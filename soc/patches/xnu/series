@@ -1,0 +1,10 @@
+# SM8735 SoC-level xnu patch series (soc: namespace). Resolved by board.toml
+# [kernel].patch_series "soc:patches/xnu/series" through the local `sm8735` SoC feed (soc/).
+#
+# [adapted] from unixnu-format2/UniXNU-sm8735-common/patches/xnu/series (the local scaffold),
+# which itself started from the SM8550 shared patches. Reviewed only statically; not build-tested.
+native-smp-secondary.patch
+# [placeholder] The scaffold's sheng-platform-power.patch is SM8550/sheng board code
+# (XNU_SHENG_PMGR hook in bsd_init). luming has no PMGR component yet, so it stays inactive;
+# the file is kept next to this series as a reference.
+# sheng-platform-power.patch

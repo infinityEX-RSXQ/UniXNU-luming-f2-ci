@@ -1,0 +1,569 @@
+name: macOS build (format-2 luming)
+
+# Adapted for agents/f2-luming (Xiaomi Civi 5 Pro / SM8735 / luming) from the format-2
+# UniXNU upstream workflow (.github/workflows/macos.yml of UniXNU/UniXNU, copied locally at
+# agents/f2-luming/ci/unixnu-macos-reference.yml).
+#
+# Deploy target (see ci/ci-wiring.ps1):
+#   base/core fork  : <owner>/UniXNU (format-2 branch)  -> .github/workflows/f2-luming-macos.yml
+#   device repo     : <owner>/UniXNU-luming-f2         -> this is a format-2 *device* repository
+#                     (the skeleton under agents/f2-luming), branch f2-luming-ci
+# The workflow runs from the UniXNU core checkout, so `./unixnu` is available; the device
+# repository is checked out into `device/` and passed through `--device`.
+#
+# It performs, in order (each step is opt-in through the `steps` input):
+#   1. defconfig / fetch / status            (unixnu tool: config profiles, sources, lock)
+#   2. kernel                                (config fragments + patch series + component
+#                                             archives incl. build-corecrypto-14.py /
+#                                             SoftwareAES, native XNU link, XnuPrelink with
+#                                             [kernel.prelink] roots/slide/early_security_init)
+#   3. package                               (UniXNU.efi / UniXNUDxe / UniXNURamDiskDxe)
+#   4. firmware                              (Mu-Silicium lumingPkg via --uefi checkout)
+#   5. payload                               (FAT payload volume + ADT from the board DTS)
+#   6. bootimg                               (BootShim + FD + DTB + payload, Android v4)
+#   7. artifact upload with SHA256SUMS + build-manifest.json
+#
+# Proprietary inputs (kernelcache, IPSW, userdata/trust-cache URLs) are *never* committed:
+# they are downloaded from masked workflow inputs into $RUNNER_TEMP and deleted at the end.
+
+on:
+  workflow_dispatch:
+    inputs:
+      device_repository:
+        description: "Format-2 luming device repository as owner/name"
+        required: true
+        default: "infinityEX-RSXQ/UniXNU-luming-f2"
+      device_ref:
+        description: "Device repository ref"
+        required: true
+        default: "f2-luming-ci"
+      defconfig:
+        description: "Defconfig name (configs/ of the device repository)"
+        required: true
+        default: "luming_defconfig"
+      steps:
+        description: "Pipeline steps to run (space separated)"
+        type: choice
+        options:
+          - "kernel"
+          - "kernel package"
+          - "kernel package firmware"
+          - "kernel package firmware payload"
+          - "kernel package firmware payload bootimg"
+        default: "kernel package firmware payload bootimg"
+      dry_run:
+        description: "Only run the device preflight/dry-run checklist; build nothing"
+        type: boolean
+        default: false
+      uefi_repository:
+        description: "Mu-Silicium luming UEFI repository as owner/name (needed by firmware/bootimg)"
+        required: false
+        default: "infinityEX-RSXQ/uefi-luming"
+      uefi_ref:
+        description: "UEFI repository ref"
+        required: false
+        default: "main"
+      kernelcache_url:
+        description: "Decompressed iOS 16.7.16 kernelcache URL (masked; optional if ipsw_url is set)"
+        required: false
+        default: ""
+      kernelcache_sha256:
+        description: "Expected kernelcache sha256 (required with kernelcache_url)"
+        required: false
+        default: ""
+      ipsw_url:
+        description: "IPSW URL for the pinned target build (masked; empty uses board.toml [ipsw])"
+        required: false
+        default: ""
+      fd_url:
+        description: "Optional prebuilt SILICIUM_UEFI.fd URL (used when firmware step is skipped)"
+        required: false
+        default: ""
+      dtb_url:
+        description: "Optional compiled luming DTB URL (used when the UEFI checkout does not ship one)"
+        required: false
+        default: ""
+      trust_cache_url:
+        description: "Optional trust cache bundle URL for the payload (masked)"
+        required: false
+        default: ""
+      owner_trust_cache:
+        description: "Treat the trust cache URL as an owner-signed bundle"
+        type: boolean
+        default: false
+      data_seed_url:
+        description: "Optional Data seed (.dbr) URL for the payload (masked)"
+        required: false
+        default: ""
+      grow_gib:
+        description: "Grow the Data seed to this many GiB (optional)"
+        required: false
+        default: ""
+      skip_setup:
+        description: "Mark Setup as done in the Data seed"
+        type: boolean
+        default: false
+      xcode:
+        description: "Xcode version of the macos-26 image (/Applications/Xcode_<version>.app)"
+        required: true
+        default: "26.6"
+      artifact_retention_days:
+        description: "Artifact retention in days"
+        required: false
+        default: "7"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f2-luming-macos-${{ github.ref }}-${{ inputs.device_repository }}-${{ inputs.device_ref }}-${{ inputs.defconfig }}
+  cancel-in-progress: false
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+  HOMEBREW_NO_ENV_HINTS: 1
+  DEVELOPER_DIR: /Applications/Xcode_${{ inputs.xcode }}.app/Contents/Developer
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 360
+    env:
+      UNIXNU_DEVICE: ${{ github.workspace }}/device
+      UNIXNU_UEFI: ${{ github.workspace }}/uefi
+      DEFCONFIG: ${{ inputs.defconfig }}
+      STEPS: ${{ inputs.steps }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Check out the UniXNU core (format-2)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check out the luming format-2 device repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.device_repository }}
+          ref: ${{ inputs.device_ref }}
+          path: device
+          token: ${{ secrets.UNIXNU_DEVICE_TOKEN || github.token }}
+          persist-credentials: false
+
+      - name: Check out the luming UEFI repository
+        if: ${{ contains(inputs.steps, 'firmware') && inputs.uefi_repository != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.uefi_repository }}
+          ref: ${{ inputs.uefi_ref }}
+          path: uefi
+          submodules: recursive
+          token: ${{ secrets.UNIXNU_DEVICE_TOKEN || github.token }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Check the inputs and mask proprietary URLs
+        id: check
+        env:
+          HAS_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID != '' }}
+          OWNER_TRUST_CACHE: ${{ inputs.owner_trust_cache }}
+          GROW_GIB: ${{ inputs.grow_gib }}
+          SKIP_SETUP: ${{ inputs.skip_setup }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          # URLs can embed access tokens; read them from the event payload and mask them before
+          # any later step can print its environment.
+          kernelcache_url=$(jq -r '.inputs.kernelcache_url // ""' "$GITHUB_EVENT_PATH")
+          ipsw_url=$(jq -r '.inputs.ipsw_url // ""' "$GITHUB_EVENT_PATH")
+          fd_url=$(jq -r '.inputs.fd_url // ""' "$GITHUB_EVENT_PATH")
+          dtb_url=$(jq -r '.inputs.dtb_url // ""' "$GITHUB_EVENT_PATH")
+          trust_cache_url=$(jq -r '.inputs.trust_cache_url // ""' "$GITHUB_EVENT_PATH")
+          data_seed_url=$(jq -r '.inputs.data_seed_url // ""' "$GITHUB_EVENT_PATH")
+          for value in "$kernelcache_url" "$ipsw_url" "$fd_url" "$dtb_url" "$trust_cache_url" "$data_seed_url"; do
+            if [ -n "$value" ]; then echo "::add-mask::$value"; fi
+          done
+          fail() { echo "::error::$1"; exit 1; }
+          [ -f device/board.toml ] || fail "the device repository has no board.toml"
+          [ -f "device/configs/$DEFCONFIG" ] || fail "device/configs/$DEFCONFIG not found (skeleton state: only docs/reference/luming-format1_defconfig exists today)"
+          [ -f ./unixnu ] || fail "./unixnu missing: this workflow must run from the UniXNU format-2 core repository"
+          [ -d "$DEVELOPER_DIR" ] || fail "Xcode not found at $DEVELOPER_DIR; installed: $(printf '%s ' /Applications/Xcode_*.app)"
+          if [ -n "$kernelcache_url" ] && [ -z "${{ inputs.kernelcache_sha256 }}" ]; then
+            fail "kernelcache_sha256 is required when kernelcache_url is set"
+          fi
+          if [[ "$STEPS" == *firmware* ]] && [ -z "${{ inputs.uefi_repository }}" ] && [ -z "$fd_url" ]; then
+            fail "firmware step needs uefi_repository (or use a kernel-only dry run)"
+          fi
+          if [[ "$STEPS" == *payload* ]] && [ -z "$HAS_CHIP_ID" ] && [ "$DRY_RUN" != "true" ]; then
+            fail "payload step needs the UNIXNU_UNIQUE_CHIP_ID repository secret (or run with dry_run=true)"
+          fi
+          if [ -n "$GROW_GIB" ] && ! [[ "$GROW_GIB" =~ ^[0-9]+$ ]]; then fail "grow_gib must be a whole number of GiB"; fi
+          if [ -n "$GROW_GIB" ] && [ -z "$data_seed_url" ]; then fail "grow_gib needs data_seed_url"; fi
+          if [ "$SKIP_SETUP" = true ] && [ -z "$data_seed_url" ]; then fail "skip_setup needs data_seed_url"; fi
+          if [ "$OWNER_TRUST_CACHE" = true ] && [ -z "$trust_cache_url" ]; then fail "owner_trust_cache needs trust_cache_url"; fi
+          # Resolve board name without fetching sources.
+          python3 - <<'PY'
+          import os, sys, tomllib
+          from pathlib import Path
+          board = tomllib.loads(Path('device/board.toml').read_text(encoding='utf-8'))
+          if board.get('schema_version') != 2:
+              sys.exit('::error::device/board.toml must use schema_version = 2 (format 2)')
+          name = (board.get('board') or {}).get('name')
+          if not name:
+              sys.exit('::error::device/board.toml needs [board] name')
+          out = Path(os.environ['GITHUB_OUTPUT'])
+          with out.open('a', encoding='utf-8') as fh:
+              fh.write(f'board={name}\n')
+          print('board:', name)
+          print('defconfig:', os.environ['DEFCONFIG'])
+          print('steps:', os.environ['STEPS'])
+          print('dry_run:', os.environ['DRY_RUN'])
+          PY
+
+      - name: Install host tools
+        run: |
+          set -euo pipefail
+          brew install llvm lld mtools dtc
+          if ! command -v unifdef >/dev/null; then
+            brew install unifdef
+            echo "$(brew --prefix unifdef)/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Report the runner toolchain
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphoneos --find mig
+          clang --version | head -n 1
+          "$(brew --prefix llvm)/bin/clang" --version | head -n 1
+          python3 --version
+          missing=0
+          for tool in git make clang cmake ninja unifdef ld.lld mformat mcopy dtc xcodebuild jq; do
+            path=$(command -v "$tool" || true)
+            printf '%-10s %s\n' "$tool" "${path:-MISSING}"
+            [ -n "$path" ] || missing=1
+          done
+          df -h "$GITHUB_WORKSPACE"
+          exit "$missing"
+
+      - name: Prepare proprietary inputs
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GROW_GIB: ${{ inputs.grow_gib }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f2-luming-inputs"
+          kernelcache_url=$(jq -r '.inputs.kernelcache_url // ""' "$GITHUB_EVENT_PATH")
+          ipsw_url=$(jq -r '.inputs.ipsw_url // ""' "$GITHUB_EVENT_PATH")
+          fd_url=$(jq -r '.inputs.fd_url // ""' "$GITHUB_EVENT_PATH")
+          dtb_url=$(jq -r '.inputs.dtb_url // ""' "$GITHUB_EVENT_PATH")
+          trust_cache_url=$(jq -r '.inputs.trust_cache_url // ""' "$GITHUB_EVENT_PATH")
+          data_seed_url=$(jq -r '.inputs.data_seed_url // ""' "$GITHUB_EVENT_PATH")
+          if [ -n "$kernelcache_url" ]; then
+            curl -fsSL --retry 3 --retry-all-errors "$kernelcache_url" -o "$RUNNER_TEMP/f2-luming-inputs/kernelcache.macho"
+            actual=$(shasum -a 256 "$RUNNER_TEMP/f2-luming-inputs/kernelcache.macho" | cut -d' ' -f1)
+            expected="${{ inputs.kernelcache_sha256 }}"
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::kernelcache sha256 mismatch: got $actual expected $expected"
+              exit 1
+            fi
+            echo "UNIXNU_KERNELCACHE=$RUNNER_TEMP/f2-luming-inputs/kernelcache.macho" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$ipsw_url" ]; then echo "UNIXNU_IPSW=$ipsw_url" >> "$GITHUB_ENV"; fi
+          if [ -n "$fd_url" ]; then
+            curl -fsSL --retry 3 "$fd_url" -o "$RUNNER_TEMP/f2-luming-inputs/SILICIUM_UEFI.fd"
+            echo "F2_FD=$RUNNER_TEMP/f2-luming-inputs/SILICIUM_UEFI.fd" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$dtb_url" ]; then
+            curl -fsSL --retry 3 "$dtb_url" -o "$RUNNER_TEMP/f2-luming-inputs/luming.dtb"
+            echo "F2_DTB=$RUNNER_TEMP/f2-luming-inputs/luming.dtb" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$trust_cache_url" ]; then
+            curl -fsSL --retry 3 "$trust_cache_url" -o "$RUNNER_TEMP/f2-luming-inputs/trustcache"
+          fi
+          if [ -n "$data_seed_url" ]; then
+            curl -fsSL --retry 3 "$data_seed_url" -o "$RUNNER_TEMP/f2-luming-inputs/data.dbr"
+            if [ -n "$GROW_GIB" ]; then
+              # seed-data-grow.py imports drivers/DarwinBoot/Test and keeps scratch in build/.
+              git submodule update --init --depth 1 drivers/DarwinBoot
+              mkdir -p build
+              python3 scripts/seed-data-grow.py --gib "$GROW_GIB" "$RUNNER_TEMP/f2-luming-inputs/data.dbr" "$RUNNER_TEMP/f2-luming-inputs/data-grow.dbr"
+              mv "$RUNNER_TEMP/f2-luming-inputs/data-grow.dbr" "$RUNNER_TEMP/f2-luming-inputs/data.dbr"
+            fi
+          fi
+
+      - name: Device preflight / dry-run checklist
+        run: |
+          set -euo pipefail
+          if [ -x device/scripts/ci/f2-luming-ci.sh ] || [ -f device/scripts/ci/f2-luming-ci.sh ]; then
+            bash device/scripts/ci/f2-luming-ci.sh dry-run
+          else
+            echo "::warning::device/scripts/ci/f2-luming-ci.sh is missing; running inline board preflight"
+            python3 - <<'PY'
+            import tomllib
+            from pathlib import Path
+            board = tomllib.loads(Path('device/board.toml').read_text(encoding='utf-8'))
+            required = ['board', 'kernel', 'kernel.prelink', 'firmware', 'payload', 'bootimg', 'device_tree']
+            blockers = [f'missing board.toml [{key}]' for key in required if key not in board]
+            dts = ((board.get('device_tree') or {}).get('source') or '').removeprefix('device:')
+            if dts and not (Path('device') / dts).is_file():
+                blockers.append(f'missing device tree source device/{dts}')
+            kernel = board.get('kernel') or {}
+            config = Path('device/configs') / (kernel.get('defconfig') or '')
+            if kernel.get('defconfig') and not config.is_file():
+                blockers.append(f'missing defconfig {config}')
+            prelink = kernel.get('prelink') or {}
+            if not prelink.get('roots'):
+                blockers.append('board.toml [kernel.prelink].roots is empty')
+            for line in blockers:
+                print('BLOCKER:', line)
+            if blockers:
+                Path('ci-artifacts').mkdir(exist_ok=True)
+                Path('ci-artifacts/preflight-blockers.txt').write_text('\n'.join(blockers) + '\n', encoding='utf-8')
+            PY
+          fi
+
+      - name: Stop here for a dry run
+        if: ${{ inputs.dry_run == true }}
+        env:
+          BOARD: ${{ steps.check.outputs.board }}
+        run: |
+          set -euo pipefail
+          mkdir -p ci-artifacts
+          {
+            echo "# format-2 luming dry run: ${BOARD}"
+            echo
+            echo "|\u00a0item | value |"
+            echo "| --- | --- |"
+            echo "| defconfig | $DEFCONFIG |"
+            echo "| steps | $STEPS |"
+            echo "| device | ${{ inputs.device_repository }}@${{ inputs.device_ref }} |"
+            echo "| uefi | ${{ inputs.uefi_repository }}@${{ inputs.uefi_ref }} |"
+            echo "| kernelcache | ${UNIXNU_KERNELCACHE:-not supplied} |"
+            echo "| ipsw | ${UNIXNU_IPSW:-board.toml default} |"
+            echo
+            echo "See the preflight/dry-run log for the blocker list. This run builds nothing."
+          } > ci-artifacts/DRY-RUN.md
+          echo "## Dry run: ${BOARD:-unknown}" >> "$GITHUB_STEP_SUMMARY"
+          cat ci-artifacts/DRY-RUN.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f ci-artifacts/preflight-blockers.txt ]; then
+            echo "### Blockers" >> "$GITHUB_STEP_SUMMARY"
+            sed 's/^/- /' ci-artifacts/preflight-blockers.txt >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Configure the device
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          ./unixnu defconfig "$DEFCONFIG" --device "$UNIXNU_DEVICE"
+          ./unixnu fetch --device "$UNIXNU_DEVICE"
+          ./unixnu status --device "$UNIXNU_DEVICE" --json | tee "$RUNNER_TEMP/f2-unixnu-status.json"
+
+      - name: Run the device pre-build hook
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          set -euo pipefail
+          if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
+            bash device/scripts/ci/f2-luming-ci.sh pre_build
+          else
+            echo "::warning::no device/scripts/ci/f2-luming-ci.sh pre_build hook"
+          fi
+
+      - name: Build the native XNU kernel and prelink
+        id: kernel
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/logs
+          args=()
+          if [ -n "${UNIXNU_KERNELCACHE:-}" ]; then args+=(--kernelcache "$UNIXNU_KERNELCACHE"); fi
+          if [ -n "${UNIXNU_IPSW:-}" ]; then args+=(--ipsw "$UNIXNU_IPSW"); fi
+          ./unixnu build kernel --device "$UNIXNU_DEVICE" "${args[@]}" -j 3 2>&1 | tee "out/logs/f2-kernel.log"
+
+      - name: Build the UniXNU package
+        id: package
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'package') }}
+        run: |
+          set -euo pipefail
+          ./unixnu build package --device "$UNIXNU_DEVICE" 2>&1 | tee "out/logs/f2-package.log"
+
+      - name: Build the luming firmware
+        id: firmware
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'firmware') && inputs.uefi_repository != '' }}
+        run: |
+          set -euo pipefail
+          [ -d "$UNIXNU_UEFI" ] || { echo "::error::UEFI checkout missing at $UNIXNU_UEFI"; exit 1; }
+          ./unixnu build firmware --device "$UNIXNU_DEVICE" --uefi "$UNIXNU_UEFI" 2>&1 | tee "out/logs/f2-firmware.log"
+
+      - name: Build the payload
+        id: payload
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'payload') }}
+        env:
+          UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+          SKIP_SETUP: ${{ inputs.skip_setup }}
+          OWNER_TRUST_CACHE: ${{ inputs.owner_trust_cache }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -f "$RUNNER_TEMP/f2-luming-inputs/trustcache" ]; then
+            if [ "$OWNER_TRUST_CACHE" = true ]; then
+              args+=(--owner-trust-cache "$RUNNER_TEMP/f2-luming-inputs/trustcache")
+            else
+              args+=(--trust-cache "$RUNNER_TEMP/f2-luming-inputs/trustcache")
+            fi
+          fi
+          if [ -f "$RUNNER_TEMP/f2-luming-inputs/data.dbr" ]; then args+=(--data-ramdisk "$RUNNER_TEMP/f2-luming-inputs/data.dbr"); fi
+          if [ "$SKIP_SETUP" = true ]; then args+=(--skip-setup); fi
+          ./unixnu build payload --device "$UNIXNU_DEVICE" "${args[@]}" 2>&1 | tee "out/logs/f2-payload.log"
+
+      - name: Compose the Android v4 boot image
+        id: bootimg
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'bootimg') }}
+        run: |
+          set -euo pipefail
+          [ -d "$UNIXNU_UEFI" ] || { echo "::error::bootimg needs the UEFI checkout (uefi_repository) or prebuilt FD/DTB inputs"; exit 1; }
+          fd="${F2_FD:-}"
+          dtb="${F2_DTB:-}"
+          if [ -z "$fd" ]; then
+            fd=$(find "$UNIXNU_UEFI/Build" -path '*/FV/SILICIUM_UEFI.fd' -type f 2>/dev/null | sort | tail -n 1)
+          fi
+          if [ -z "$dtb" ]; then
+            for candidate in "$UNIXNU_UEFI/Resources/DTBs/luming.dtb" "$UNIXNU_UEFI/Resources/DTBs/luming.dtbo"; do
+              if [ -f "$candidate" ]; then dtb="$candidate"; break; fi
+            done
+          fi
+          [ -n "$fd" ] && [ -f "$fd" ] || { echo "::error::SILICIUM_UEFI.fd not found; pass fd_url"; exit 1; }
+          [ -n "$dtb" ] && [ -f "$dtb" ] || { echo "::error::luming DTB not found; pass dtb_url or add it to the UEFI repo"; exit 1; }
+          ./unixnu bootimg --device "$UNIXNU_DEVICE" --uefi "$UNIXNU_UEFI" --fd "$fd" --dtb "$dtb" \
+            -o "$RUNNER_TEMP/f2-luming-inputs/boot.img" 2>&1 | tee "out/logs/f2-bootimg.log"
+          ls -lh "$RUNNER_TEMP/f2-luming-inputs/boot.img"
+
+      - name: Collect outputs, hashes and the build manifest
+        if: ${{ inputs.dry_run != true }}
+        env:
+          BOARD: ${{ steps.check.outputs.board }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, platform, shutil, subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          root = Path.cwd()
+          out = Path('ci-artifacts')
+          out.mkdir(parents=True, exist_ok=True)
+          candidates = []
+          patterns = [
+              'out/**/kernel/kernel.macho',
+              'out/**/payload/**',
+              'out/**/boot/**',
+              'out/**/package/Build/Out/**',
+              'out/**/logs/*.log',
+              'out/**/unixnu.lock',
+          ]
+          for pattern in patterns:
+              candidates.extend(p for p in root.glob(pattern) if p.is_file())
+          candidates.extend(p for p in [
+              Path(os.environ.get('F2_FD', '')), Path(os.environ.get('F2_DTB', '')),
+              Path(os.environ.get('RUNNER_TEMP', '/tmp')) / 'f2-luming-inputs/boot.img',
+              Path(os.environ.get('RUNNER_TEMP', '/tmp')) / 'f2-unixnu-status.json',
+          ] if str(p) and p.is_file())
+          seen, manifest = set(), []
+          payload_dir = out / 'files'
+          for path in candidates:
+              if path in seen:
+                  continue
+              seen.add(path)
+              rel = path.relative_to(root) if str(path).startswith(str(root)) else Path(path.name)
+              # stage the file only if it is small enough for an Actions artifact (<2 GiB);
+              # the kernel itself is ~50 MiB and the payload ~192 MiB.
+              dest = payload_dir / rel
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(path, dest)
+              digest = hashlib.sha256(dest.read_bytes()).hexdigest()
+              manifest.append({'path': rel.as_posix(), 'bytes': dest.stat().st_size, 'sha256': digest})
+          manifest.sort(key=lambda item: item['path'])
+          (out / 'build-manifest.json').write_text(json.dumps({
+              'workflow': 'f2-luming-macos',
+              'run_id': os.environ.get('GITHUB_RUN_ID'),
+              'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
+              'repository': os.environ.get('GITHUB_REPOSITORY'),
+              'ref': os.environ.get('GITHUB_REF'),
+              'sha': os.environ.get('GITHUB_SHA'),
+              'created_at': datetime.now(timezone.utc).isoformat(),
+              'runner': {'os': platform.system(), 'machine': platform.machine(), 'python': platform.python_version()},
+              'steps': os.environ.get('STEPS', ''),
+              'defconfig': os.environ.get('DEFCONFIG', ''),
+              'files': manifest,
+          }, indent=2) + '\n', encoding='utf-8')
+          (out / 'SHA256SUMS').write_text(''.join(f"{item['sha256']}  {item['path']}\n" for item in manifest), encoding='ascii')
+          for item in manifest:
+              print(f"{item['sha256']}  {item['path']}  ({item['bytes']} B)")
+          summary = Path(os.environ['GITHUB_STEP_SUMMARY'])
+          with summary.open('a', encoding='utf-8') as fh:
+              fh.write('## format-2 luming build: artifacts\n\n| file | bytes | sha256 |\n| --- | --- | --- |\n')
+              for item in manifest:
+                  fh.write(f"| {item['path']} | {item['bytes']} | `{item['sha256']}` |\n")
+          PY
+
+      - name: Upload artifacts, hashes and logs
+        if: ${{ inputs.dry_run != true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: f2-luming-${{ steps.check.outputs.board }}-${{ github.run_number }}-${{ github.run_attempt }}
+          path: ci-artifacts/**
+          if-no-files-found: warn
+          retention-days: ${{ inputs.artifact_retention_days }}
+
+      - name: Upload the dry-run checklist
+        if: ${{ inputs.dry_run == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: f2-luming-dry-run-${{ steps.check.outputs.board }}-${{ github.run_number }}
+          path: ci-artifacts/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Summary
+        if: always()
+        env:
+          BOARD: ${{ steps.check.outputs.board }}
+          KERNEL: ${{ steps.kernel.outcome }}
+          PACKAGE: ${{ steps.package.outcome }}
+          FIRMWARE: ${{ steps.firmware.outcome }}
+          PAYLOAD: ${{ steps.payload.outcome }}
+          BOOTIMG: ${{ steps.bootimg.outcome }}
+        run: |
+          {
+            echo "## macOS build (format-2 luming): ${BOARD:-unknown}"
+            echo
+            echo "| step | result |"
+            echo "| --- | --- |"
+            echo "| kernel | ${KERNEL:-skipped} |"
+            echo "| package | ${PACKAGE:-skipped} |"
+            echo "| firmware | ${FIRMWARE:-skipped} |"
+            echo "| payload | ${PAYLOAD:-skipped} |"
+            echo "| bootimg | ${BOOTIMG:-skipped} |"
+            echo
+            echo "dry_run=$DRY_RUN defconfig=$DEFCONFIG steps=$STEPS"
+            echo "device=${{ inputs.device_repository }}@${{ inputs.device_ref }}"
+            echo "uefi=${{ inputs.uefi_repository }}@${{ inputs.uefi_ref }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove proprietary inputs
+        if: always()
+        run: |
+          rm -rf out/ipsw out/feeds out/**/tree/.cache/firmware out/**/payload/data-skip-setup-* out/**/**/tree/.cache/firmware 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/f2-luming-inputs"/kernelcache.macho "$RUNNER_TEMP/f2-luming-inputs"/trustcache \
+                "$RUNNER_TEMP/f2-luming-inputs"/data.dbr "$RUNNER_TEMP/f2-luming-inputs"/data-grow.dbr 2>/dev/null || true

@@ -1,0 +1,15 @@
+diff --git a/bsd/vm/vm_unix.c b/bsd/vm/vm_unix.c
+--- a/bsd/vm/vm_unix.c
++++ b/bsd/vm/vm_unix.c
+@@ -418,9 +418,10 @@
+ #else /* XNU_TARGET_OS_OSX */
+ 
+ static int scdir_enforce = 0;
+ static char *scdir_path[] = {
+ 	"/System/Library/Caches/com.apple.dyld/",
+ 	"/private/preboot/Cryptexes/OS/System/Library/Caches/com.apple.dyld",
+ 	"/System/Cryptexes/OS/System/Library/Caches/com.apple.dyld",
++	"/private/preboot/System/Library/Caches/com.apple.dyld",
+ 	NULL
+ };
+ 

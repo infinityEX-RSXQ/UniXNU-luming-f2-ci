@@ -1,0 +1,62 @@
+# luming diagnostic start signals A/B/C for osfmk/arm64/start.s (bring-up only):
+# A red FB block before MMU, B green FB block before SCTLR_EL1, C PSCI reset after MMU.
+diff --git a/osfmk/arm64/start.s b/osfmk/arm64/start.s
+index d4909c7..5d075fe 100644
+--- a/osfmk/arm64/start.s
++++ b/osfmk/arm64/start.s
+@@ -465,6 +465,19 @@ LEXT(start_first_cpu)
+ 	mov		x20, x0
+ 	mov		x21, #0
+ 
++	/*
++	 * luming diagnostic start-signal A (bring-up only): RED block at the GOP framebuffer
++	 * physical address while the MMU is still OFF. x27/x28/x29 are unused in bootstrap.
++	 */
++	movz	x27, #0xFC80, lsl #16			// x27 = 0xFC800000 (FB PA)
++	movz	w29, #0xFF, lsl #16				// red 0x00FF0000
++	mov	x28, #0x10000						// 256 KiB / 4
++Lluming_start_signal_a:
++	str	w29, [x27], #4
++	subs	x28, x28, #1
++	b.ne	Lluming_start_signal_a
++	dsb	sy
++
+ 	// Set low reset vector before attempting any loads
+ 	adrp	x0, EXT(LowExceptionVectorBase)@page
+ 	add		x0, x0, EXT(LowExceptionVectorBase)@pageoff
+@@ -750,9 +763,35 @@ common_start:
+ #endif /* HAS_APPLE_PAC */
+ 
+ 	// Enable caches, MMU, ROP and JOP
++
++	/*
++	 * luming diagnostic start-signal B (bring-up only): GREEN block at FB+2 MiB while the
++	 * MMU is still OFF, immediately before SCTLR_EL1 is written.
++	 */
++	movz	x27, #0xFC80, lsl #16			// x27 = 0xFC800000 (FB PA)
++	movz	x28, #0x20, lsl #16				// + 0x200000 (2 MiB)
++	add	x27, x27, x28
++	movz	w29, #0xFF00					// green 0x0000FF00 (16-bit imm, shift 0; movz lsl #8 is invalid)
++	mov	x28, #0x10000						// 256 KiB / 4
++Lluming_start_signal_b:
++	str	w29, [x27], #4
++	subs	x28, x28, #1
++	b.ne	Lluming_start_signal_b
++	dsb	sy
++
+ 	MOV64   x0, SCTLR_EL1_DEFAULT
+ 	MSR_SCTLR_EL1_X0
+ 	isb		sy
++	/*
++	 * luming diagnostic start-signal C (bring-up only): the MMU is now ON. Reset through
++	 * PSCI (SYSTEM_RESET = 0x84000009) so an automatic reboot proves this point was reached.
++	 */
++	movz	w0, #0x8400, lsl #16
++	movk	w0, #9
++	smc	#0
++	hvc	#0
++Lluming_start_signal_c:
++	b	Lluming_start_signal_c
+ 
+ #if !VMAPPLE
+ 	MOV64   x1, SCTLR_EL1_DEFAULT

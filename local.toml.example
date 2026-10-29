@@ -1,0 +1,32 @@
+# Local overrides for this device repository (copy to local.toml; ignored by git).
+#
+# Format 2 accepts module source overrides here. The first match wins: CLI --local-* flags,
+# then local.toml/feeds.toml `local` keys, then the device repository, then the selected SoC
+# repository, then the base repository, then git feeds.
+#
+# [adapted] from UniXNU docs/reference/configuration.md (local.toml) and dada's feeds comment.
+
+[local]
+# Uncomment and point at local checkouts/component directories when testing unpublished work:
+# drivers = "D:/civitoip20/agents/f2-luming/drivers"
+# kits = "D:/civitoip20/agents/f2-luming/kits"
+# patches = "D:/civitoip20/agents/f2-luming/patches"
+# scripts = "D:/civitoip20/agents/f2-luming/scripts"
+# package = "D:/civitoip20/agents/f2-luming/package"
+
+# The official-format SoC source is a local scafold in this skeleton; keep the feed override
+# explicit for builds from another working copy.
+[[source]]
+kind = "soc"
+name = "sm8735"
+local = "soc"
+
+# [placeholder] When the luming UFS fork/board drivers are published, point at them here:
+# [[source]]
+# kind = "driver"
+# name = "LumingUfs"
+# local = "D:/civitoip20/agents/f2-luming/drivers/LumingUfs"
+# [[source]]
+# kind = "driver"
+# name = "LumingPlatformPower"
+# local = "D:/civitoip20/agents/f2-luming/drivers/LumingPlatformPower"

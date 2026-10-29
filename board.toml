@@ -1,0 +1,312 @@
+# Board description of the Xiaomi Civi 5 Pro (luming, Qualcomm SM8735 "Tuna").
+#
+# Format-2 skeleton (route 1: the sheng/dada "6S Pro way"), adapted 2026-10-29.
+# Primary shape: Xiaomi 15 / SM8750 "dada" (format 2, native 4K source XNU + XnuPrelink
+#   24 components, no AMFI/PMGR, no-AMFI entitlement guards, launchd/SpringBoard/backboardd
+#   proven on the phone). Reference copies: docs/reference/dada-board.toml and
+#   docs/reference/dada-known-values.md (cached from the official crawl).
+# Secondary shape: Xiaomi Pad 6S Pro / SM8550 "sheng" (format 2, full iPadOS UI) for the
+#   SHNGROOT + VerifiedRoot userdata recipe, boot/payload conventions and the generic fields.
+#
+# OS profile decision (Lead direction + clone recipe 2026-10-29): use the proven official
+# profile that sheng and dada actually boot - ipados-17.7.11-21H461. Do not target
+# iOS16/Darwin22: no official Darwin 22 profile exists and the only public skeleton
+# (picasso) is abi_qualified=false. The prelink/AMFI/PMGR/owner-cache blocks below follow
+# dada's current PROVEN shape (AMFI+PMGR+sandbox restored; see
+# docs/reference/dada-known-values.md and agents/official-crawl/recipe/REPORT-DADA-CLONE-RECIPE.md).
+# Alternatives are kept as comments only:
+#   * ios-16.7.16-20H392 (Darwin 22.6, xnu-8796) - see proposals/profiles/os/ios-16.7.16-20H392/
+#     copied from SuzukiR1n/UniXNU-Picasso; NOT chosen, no device-boot evidence, profile unqualified.
+#   * iOS 17 iPadOS profile is the active choice because it has device-boot evidence on both
+#     sheng (full UI) and dada (launchd/SpringBoard) and is the only official profile in UniXNU.
+#
+# Status labels: [adapted] copied/transformed from a named reference; [measured] measured on
+# the luming device from the stock Android capture (2026-10-22); [placeholder] required value
+# missing, the comment names the needed input; [missing] referenced file/component does not
+# exist yet in this skeleton.
+schema_version = 2
+
+[board]
+name = "luming"
+soc = "SM8735"
+soc_source = "sm8735"
+os_profile = "ipados-17.7.11-21H461"   # [adapted] proven official profile (sheng full UI, dada userland)
+description = "Xiaomi Civi 5 Pro (SM8735; format-2 bring-up, iPadOS 17.7.11 profile)"
+kit = "luming"
+example = false
+
+[components]
+# Kernel-stage components that exist in the official catalog (UniXNU/components.toml).
+# Storage: LumingUfs is the board module (SM8735 fork of dada's DadaUfs) selected by the
+# board/device module; the catalog lineage is ShengUfs/NativeUfs. It is not a published catalog
+# component yet, so the resolver needs the local drivers/LumingUfs module (docs/UFS.md).
+# The prelink roots below are dada's current proven 27-item set: AMFI, PMGR, sandbox and
+# AppleImage4 are INCLUDED, while the GPU/graphics/HID families (IOGPUFamily,
+# IOMobileGraphicsFamily, IOHIDFamily, IOHIDEventDriver) stay out until a display/input
+# component exists (docs/GAP-LIST.md #4/#5).
+include = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "LumingUfs", "RamBlock",
+           "VerifiedRoot", "XnuPrelink", "DarwinBoot"]
+
+[userdata]
+# [measured] GPT entry "userdata" of LUN 0 (2026-10-22 stock capture, also format-1 board):
+# last_lba - first_lba + 1 = 125,494,779 LBAs * 4096 B = 478.7 GiB.
+# Recipe: follow sheng's working SHNGROOT route - the userdata partition carries a SHNGROOT
+# manifest with read-only OS and SystemOS windows, the root volume is selected by APFS volume
+# UUID, and VerifiedRoot provides the owner/root policy hooks. Build it with
+# `./unixnu build userdata` from the active profile's IPSW; do not carry the retired iOS16
+# 20H392 image (build/ios16-root/luming/userdata/userdata-root.img) into this route.
+first_lba = 3124736
+last_lba = 128619514
+lba_bytes = 4096
+windows = [
+  { name = "OS", component = "OS" },
+  { name = "SystemOS", component = "Cryptex1,SystemOS" },
+]
+
+[kernel]
+defconfig = "luming_defconfig"
+# Official profile roots: arch:/soc:/os: series are owned by UniXNU profiles; device: is this repo.
+# The vendored copies under configs/{arch,soc,os} and patches/xnu/{arch,os} are reference copies
+# only; change the official files upstream, not these copies.
+config_fragments = ["arch:configs/common.config", "soc:configs/sm8735.config", "os:configs/ipados.config"]
+patch_series = ["arch:patches/xnu/series", "soc:patches/xnu/series", "os:patches/xnu/series", "device:patches/xnu/device/series"]
+# Ordered archive plan, [adapted] from dada/board.toml [kernel] archives (the proven build).
+# Storage needs the pinned IOBlockStorageDevice reference object (build-storage-classes.py) and the
+# kext-binding pass (build-storage-kext-bindings.py) that rebinds base-class imports to the
+# prelinked com.apple.iokit.IOStorageFamily addresses; compiling the base class instead registers a
+# duplicate OSMetaClass. The copied builders live in scripts/ (see docs/REFERENCE-SOURCES.md).
+archives = [
+  "build-corecrypto-14.py",
+  "build-corecrypto-14.py --namespace",
+  "component:ArmDTPlatform",
+  "component:ArmCpu",
+  "component:SoftwareAES",
+  "build-software-aes-bindings.py",
+  "build-libpthread-kernel.py",
+  "build-storage-classes.py",
+  "component:LumingUfs",
+  "build-luming-platform-power.py",
+  "build-storage-kext-bindings.py --component LumingUfs --slide=-0x1000000",
+  "component:RamBlock",
+  "build-luming-ram-block.py",
+  "build-luming-boot-log.py",
+]
+
+[kernel.prelink]
+# [adapted] dada's current PROVEN prelink shape (agents/official-crawl/recipe/REPORT-DADA-CLONE-RECIPE.md
+# ¡ì2, docs/reference/dada-known-values.md "Trust cache lock"/"Why AMFI is not prelinked" history).
+# tool, kernel and kernelcache_sha256 stay inherited from the official OS profile; slide is
+# dada's proven -0x1000000 (also the format-1 luming candidate).
+slide = "-0x1000000"
+# The AMFI early-security initializer is restored to the profile value so the kernel calls
+# AppleMobileFileIntegrity's initializer before trust_cache_runtime_init(); dropping it (the
+# intermediate no-AMFI variant) dead-ends in AMFI NULL walls after launchd.
+early_security_init = "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0"
+# 27 roots: the profile's 31 minus the GPU/graphics/HID families that need components this board
+# does not have yet (IOGPUFamily, IOMobileGraphicsFamily, IOHIDFamily, IOHIDEventDriver).
+# AMFI, PMGR, sandbox and AppleImage4 are included on purpose.
+roots = [
+  "com.apple.AppleFSCompression.AppleFSCompressionTypeZlib",
+  "com.apple.driver.AppleARMPlatform",
+  "com.apple.driver.AppleARMWatchdogTimer",
+  "com.apple.driver.AppleAudioClockLibs",
+  "com.apple.driver.AppleEffaceableStorage",
+  "com.apple.driver.AppleIISController",
+  "com.apple.driver.AppleM2ScalerCSCDriver",
+  "com.apple.driver.AppleMobileFileIntegrity",
+  "com.apple.driver.ApplePMGR",
+  "com.apple.driver.IODARTFamily",
+  "com.apple.filesystems.apfs",
+  "com.apple.iokit.CoreAnalyticsFamily",
+  "com.apple.iokit.IOAVFamily",
+  "com.apple.iokit.IOAudio2Family",
+  "com.apple.iokit.IOCECFamily",
+  "com.apple.iokit.IOCryptoAcceleratorFamily",
+  "com.apple.iokit.IOHDCPFamily",
+  "com.apple.iokit.IOReportFamily",
+  "com.apple.iokit.IOSlowAdaptiveClockingFamily",
+  "com.apple.iokit.IOStorageFamily",
+  "com.apple.iokit.IOSurface",
+  "com.apple.kec.Libm",
+  "com.apple.kec.corecrypto",
+  "com.apple.kext.AppleMatch",
+  "com.apple.kext.CoreTrust",
+  "com.apple.security.AppleImage4",
+  "com.apple.security.sandbox",
+]
+
+[device_tree]
+source = "device:dts/luming.dts"
+include_dirs = ["soc:dts"]
+
+[firmware]
+# [placeholder] The luming UEFI port lives outside this repository:
+#   D:/civitoip20/uefi-luming (Mu-Silicium onyx-based, Platforms/Xiaomi/lumingPkg).
+# It must embed UniXNU, UniXNUDxe, UniXNURamDiskDxe, DarwinBoot and DiskIoDxe/FAT
+# (dada's docs/patches + docs/FIRMWARE.md). uefi-builder owns the firmware/ subdirectory and
+# the uefi-luming work; the paths below are the interface contract.
+# [unverified] candidate FD base/size from the SM8750-class Mu-Silicium boards and the local
+# uefi-luming baseline: FD_BASE 0xA7100000, FD_SIZE 0x300000. Measure the luming reserved region
+# or trial-boot before trusting it (recipe ¡ì4 "UEFI firmware" row).
+config = "luming"                              # Resources/Configs/luming.toml (shape: firmware/reference-uefi-dada.toml)
+dsc = "Platforms/Xiaomi/lumingPkg/luming.dsc"  # exists in the local uefi-luming tree [adapted]
+fd = "Build/lumingPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd"
+preflight = ["scripts/check-luming.py"]        # [missing] format-1 check script in scripts/reference/
+submodules = [
+  "Common/Mu",
+  "Common/Mu_OEM_Sample",
+  "Silicium-ACPI",
+  "Silicon/Silicium/OpensslPkg/Library/OpensslLib/openssl",
+]
+patches = [
+  "Resources/MuPatches/AsmMacroLib.patch",
+  "Resources/MuPatches/Auth-Service.patch",
+  "Resources/MuPatches/Boot-Manager.patch",
+  "Resources/MuPatches/Timer.patch",
+  "Resources/MuPatches/Usb-Bus.patch",
+]
+packages = [
+  "{uefi}",
+  "{uefi}/Platforms/Xiaomi",
+  "{tree}/package",
+  "{tree}/drivers/DarwinBoot",
+  "{edk2}",
+  "{uefi}/Common/Mu",
+  "{uefi}/Common/Mu_OEM_Sample",
+  "{uefi}/Silicon/Qualcomm",
+  "{uefi}/Silicon/Silicium",
+  "{uefi}/Silicium-ACPI",
+  "{uefi}/Silicium-ACPI/Platforms/Xiaomi",
+  "{uefi}/Silicium-ACPI/Silicon/Qualcomm",
+]
+
+[firmware.defines]
+ENABLE_SECUREBOOT = "0"        # [adapted] dada first-boot value
+DEVICE_MODEL = "luming"
+MEMORY_PROTECTION = "TRUE"
+SHIP_MODE = "FALSE"
+BUILDID_STRING = "luming-f2-bringup"
+
+[payload]
+# [adapted] dada payload shape; 192 MiB is a [placeholder] size for the first boot (format-1
+# luming used 80 MiB with a 59 MB prelinked kernel; format-2 prelink output is ~50 MB).
+volume = "LUMINGESP"
+size_mib = 80
+loader = "firmware"
+title = "luming first boot: source 4K XNU to console"
+# The format-2 ADT generator requires exactly one contiguous DRAM range and compares
+# payload.dram_size with the hardware DTS memory node. [measured] live /proc/iomem gives the
+# largest contiguous System RAM window 0x8c0000000..0xaffffefff = 0x23ffff000 (8.999996 GiB)
+# (docs/KNOWN-VALUES.md #4). This is where the A-line prelinked kernel markers/physBase lived
+# (0x8c01e06a0 / 0x8c4000000, agents/ufs-ci/REPORT-CLEAN*.md), unlike dada/sheng's 0x80000000/2 GiB.
+dram_size = "0x23ffff000"
+# [adapted sheng] panic_screen = true patches a panic screen into the kernel copy: the
+# formatted panic message and registers stay visible on the framebuffer (docs/guide/debugging.md
+# §Panic screen in UniXNU). dada ships false; sheng ships true and is the reference used here.
+# Payload build logs/probe installation in logs/payload-patch.log; if the patcher refuses the
+# kernel the payload step reports it (upstream-supported path, no hand-made probe).
+panic_screen = true
+# [adapted] The profile pins two 21H461 trust-cache modules; the first hash is the bundle dada and
+# sheng ship (`docs/reference/dada-known-values.md` "Trust cache"). The bundle itself is an input
+# (--trust-cache) and is never stored in the repository.
+trust_cache_sha256 = ["7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235a7323a7"]
+# [adapted] The profile pins two 21H461 trust-cache modules; the first hash is the bundle dada and
+# sheng ship (`docs/reference/dada-known-values.md` "Trust cache"). The bundle itself is an input
+# (--trust-cache) and is never stored in the repository.
+kernel_args = [
+  "-v",
+  "debug=0x14e",
+  # Upstream observability paths (docs/LOGGING.md):
+  #   serial=3   serial console selection (backend: see docs/LOGGING.md; no GENI driver yet)
+  #   keepsyms=1 symbolize backtraces in panic/console output
+  #   luming-log=1 opens the UFS log window and starts the periodic BootLog writer
+  #   boot-progress=2 keeps the upstream boot-progress boot argument (screen needs CONFIG on)
+  "serial=3",
+  "keepsyms=1",
+  "boot-progress=2",
+  "armcpu-diagnostics=1",
+  "native-ufs-root=1",
+  "native-ufs-diagnostics=1",
+  "luming-log=1",
+  "luming-dump=1",
+  "luming-dump-pa=0xE4000000",
+  # PMGR instrument (copied from dada, same kernelcache/slide addresses) publishes the
+  # ApplePMGRNub AMFI asks for; sheng-pmgr=2 selects it in bsd_init.
+  "sheng-pmgr=2",
+  "sheng-smp=1",   # ArmCpu secondary-CPU bring-up (ArmCpu.cpp parses exactly "sheng-smp")
+  "luming-data-persist=2",
+  "-apfs_shared_datavolume",
+  "ml-timeout-lock-panic-scale=40",
+]
+
+[payload.adt]
+# Software identity seed for IOPlatformUUID, not an Apple silicon id.
+# [adapted] The active iPadOS 17.7.11 profile uses ApChipID 32785 = 0x8011 (iPad7,1). The seed
+# itself is supplied at build time (unique_chip_id = required) and never stored in the repo.
+chip_id = "8011"
+# [placeholder] DarwinBoot contiguous window request: dada measured 256 MiB as the only reliable
+# allocation on the same Qualcomm UEFI family; luming's own UEFI memory map is not measured yet.
+# Must be 256 MiB..8 GiB in 2 MiB steps.
+owned_memory_size = "0x10000000"
+# [adapted] SystemOS APFS volume UUID of the iPadOS 17.7.11 (21H461) image, the same value sheng
+# and dada pin (sheng board.toml / dada board.toml). Extract/verify again from the built
+# SHNGROOT image on macOS if the OS profile changes.
+root_match_volume_uuid = "04769D26-2CA0-4825-B443-E2E5F88300F2"
+packed_data_ramdisk = true
+persistent_data = false
+# [placeholder] DBRDISK1 Data seed staging: `./unixnu build payload --data-ramdisk <data.dbr>`
+# supplies it; the seed itself is not stored or invented by this repository.
+unique_chip_id = "required"
+# [adapted] measured live DT /cpus/cpu@*/reg (8 cores, Affinity1 0..0x700). The format-2 ADT
+# generator reads the hardware DTS CPUs instead; kept for the porting record only.
+cpu_regs = "0,0x100,0x200,0x300,0x400,0x500,0x600,0x700"
+
+[adt]
+[adt.chosen.string]
+crypto-hash-method = "sha2-384"
+[adt.chosen.u32]
+# The profile's identity/security tuple (0,0,1,1) and amfi-only-platform-code=1 are inherited from
+# ipados-17.7.11-21H461. dada's stale no-AMFI override (0) and its comments are intentionally NOT
+# copied: the proven HEAD restores AMFI/PMGR (recipe ¡ì2.2 "clone rule").
+# [adapted] A-line panic-log finding: the size property lands here; the /pram node itself has no
+# generic format-2 binding yet (docs/A-FIX-CROSSWALK.md (b) and docs/GAP-LIST.md #6).
+embedded-panic-log-size = 1048576
+
+[adt.defaults.u32]
+sleep-disabled = 1
+# [alternative, not active on the chosen iPadOS route] no-effaceable-storage = 1 (the iOS16
+# AMFI-less keybag route; only AMFI/KeyStore variants read it).
+
+[adt.product.string]
+model = "xiaomi,luming"
+[adt.product.u32]
+thin-bezel = 1
+
+[adt.buttons]
+[adt.buttons.string]
+compatible = "buttons"
+device_type = "buttons"
+[adt.buttons.strings]
+button-names = ["hold", "voldown", "volup"]
+[adt.buttons.u32]
+home-button-type = 2
+
+[bootimg.image]
+# [measured] stock luming boot.img is Android header v4 (header_size 1584, pagesize 4096);
+# kernel_offset/ramdisk_offset/tags_offset from the stock mkbootimg arguments (format-1 board).
+base = 0x0
+kernel_offset = 0x8000
+ramdisk_offset = 0x01000000
+tags_offset = 0x100
+pagesize = 4096
+header_version = 4
+
+# [measured] ABL needs the splash reservation or it powers the panel off. Live DT:
+#   /reserved-memory/splash_region reg <0 0xfc800000 0 0x2b00000> (label cont_splash_region)
+# FB geometry used by the A-line/format-1 facts: base 0xFC800000, stride 4944 B, 1236x2750.
+[[bootimg.dtb_node]]
+path = "/reserved-memory/splash_region"
+props = [
+  { name = "label", type = "s", value = "cont_splash_region" },
+  { name = "reg", type = "x", value = ["0x0", "0xfc800000", "0x0", "0x2b00000"] },
+]

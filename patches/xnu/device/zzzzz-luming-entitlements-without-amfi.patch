@@ -1,0 +1,62 @@
+diff --git a/iokit/bsddev/IOKitBSDInit.cpp b/iokit/bsddev/IOKitBSDInit.cpp
+--- a/iokit/bsddev/IOKitBSDInit.cpp
++++ b/iokit/bsddev/IOKitBSDInit.cpp
+@@ -1507,12 +1507,18 @@
+ 	}
+ 
+ 	/* Validate input arguments */
+ 	if (task == kernel_task || entitlement == NULL || value == NULL) {
+ 		return false;
+ 	}
++	/*
++	 * AMFI is not prelinked on this port; see IOTaskHasEntitlement.
++	 */
++	if (amfi == NULL) {
++		return false;
++	}
+ 	proc_t proc = (proc_t)get_bsdtask_info(task);
+ 
+ 	kern_return_t ret = amfi->OSEntitlements.queryEntitlementStringWithProc(
+ 		proc,
+ 		entitlement,
+ 		value);
+@@ -1538,12 +1544,20 @@
+ 	}
+ 
+ 	/* Validate input arguments */
+ 	if (task == kernel_task || entitlement == NULL) {
+ 		return false;
+ 	}
++	/*
++	 * AMFI is not prelinked on this port, so there is no entitlements bridge to
++	 * query. Treat every task as unentitled instead of dereferencing a NULL
++	 * interface (data abort at amfi + 0x1b0).
++	 */
++	if (amfi == NULL) {
++		return false;
++	}
+ 	proc_t proc = (proc_t)get_bsdtask_info(task);
+ 
+ 	kern_return_t ret = amfi->OSEntitlements.queryEntitlementBooleanWithProc(
+ 		proc,
+ 		entitlement);
+ 
+@@ -1569,12 +1583,18 @@
+ 	if (task == NULL) {
+ 		task = current_task();
+ 	}
+ 
+ 	/* Validate input arguments */
+ 	if (task == kernel_task || entitlement == NULL) {
++		return NULL;
++	}
++	/*
++	 * AMFI is not prelinked on this port; see IOTaskHasEntitlement.
++	 */
++	if (amfi == NULL) {
+ 		return NULL;
+ 	}
+ 	proc_t proc = (proc_t)get_bsdtask_info(task);
+ 
+ 	kern_return_t ret = amfi->OSEntitlements.copyEntitlementAsOSObjectWithProc(
+ 		proc,

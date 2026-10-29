@@ -1,0 +1,91 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -7029,12 +7029,13 @@
+ volatile int native_owner_cache_stage = 0;
+ volatile int native_owner_cache_status = -1;
+ volatile int native_owner_cache_mount_status = -1;
+ volatile int native_owner_cache_readonly = 0;
+ volatile int native_owner_cache_authorized = 0;
+ volatile int native_owner_cache_root_recheck = 0;
++volatile int native_owner_cache_path_mask = 0;
+ volatile uint64_t native_owner_cache_actual_mount_flags = 0;
+ volatile uintptr_t native_owner_cache_original_root = 0;
+ volatile uintptr_t native_owner_cache_current_root = 0;
+ volatile int native_owner_cache_native_union = 0;
+ volatile dev_t native_owner_cache_selected_device = NODEV;
+ volatile dev_t native_owner_cache_mounted_device = NODEV;
+@@ -7149,12 +7150,38 @@
+ 	cache_authorized = readonly && actual == selected &&
+ 	    !strcmp(vfs_statfs(cache_mount)->f_fstypename, "apfs") && native_verified_block_root_authorized(actual);
+ #if defined(XNU_OWNER_UNION_SYSTEMOS) && XNU_OWNER_UNION_SYSTEMOS
+ 	cache_authorized = cache_authorized && native_union;
+ #endif
+ 	if (!cache_authorized) { error = EAUTH; goto done; }
++	/* Report which dyld cache layout the mounted cryptex actually carries. */
++	{
++		static const char *const probes[] = {
++			"/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64e",
++			"/System/Library/dyld/dyld_shared_cache_arm64e",
++			"/System/Cryptexes/OS/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64e",
++		};
++		unsigned mask = 0;
++		for (unsigned i = 0; i < sizeof(probes) / sizeof(probes[0]); i++) {
++			char probe_path[192];
++			vnode_t probe_vp = NULLVP;
++			snprintf(probe_path, sizeof(probe_path), "%s%s", mountpoint, probes[i]);
++			if (vnode_lookup(probe_path, 0, &probe_vp, vfs_context_current()) == 0) {
++				mask |= 1u << i;
++				vnode_put(probe_vp);
++			}
++		}
++		native_owner_cache_path_mask = (int)mask;
++		const char *cache_dir = "/System/Library/Caches/com.apple.dyld";
++		if (!(mask & 1) && (mask & 2)) {
++			cache_dir = "/System/Library/dyld";
++		} else if (!(mask & 1) && !(mask & 2) && (mask & 4)) {
++			cache_dir = "/System/Cryptexes/OS/System/Library/Caches/com.apple.dyld";
++		}
++		snprintf(environment, sizeof(environment), "DYLD_SHARED_CACHE_DIR=%s%s", mountpoint, cache_dir);
++	}
+ 	native_owner_cache_stage = 5;
+ #if !defined(XNU_OWNER_UNION_SYSTEMOS) || !XNU_OWNER_UNION_SYSTEMOS
+ 	if ((error = copyout(environment, environment_vector[0], strlen(environment) + 1)) != 0 ||
+ 	    (error = copyout(environment_vector, scratch + 0x500, sizeof(environment_vector))) != 0) goto done;
+ #if defined(XNU_OWNER_CRYPTEX_FILES) && XNU_OWNER_CRYPTEX_FILES
+ 	if ((error = copyout(fallback, scratch + 0x600, strlen(fallback) + 1)) != 0) goto done;
+diff --git a/bsd/kern/kern_exit.c b/bsd/kern/kern_exit.c
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -1817,12 +1817,13 @@
+ }
+ 
+ #if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
+ extern volatile int native_owner_cache_stage;
+ extern volatile int native_owner_cache_status;
+ extern char native_owner_cache_device_path[64];
++extern volatile int native_owner_cache_path_mask;
+ #endif
+ 
+ static void
+ proc_handle_critical_exit(proc_t p, int rv)
+ {
+ 	if (!proc_should_trigger_panic(p, rv)) {
+@@ -1859,15 +1860,15 @@
+ 		} else if (initproc_spawned) {
+ 			prefix_str = "initproc exited";
+ 		} else {
+ 			prefix_str = "initproc failed to start";
+ 		}
+ #if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
+-		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s]",
++		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s p%x]",
+ 		    prefix_str, native_owner_cache_stage, native_owner_cache_status,
+-		    native_owner_cache_device_path);
++		    native_owner_cache_device_path, native_owner_cache_path_mask);
+ 		prefix_str = prefix_str_buf;
+ #endif
+ 	} else {
+ 		/* For processes that aren't launchd, just use the process name and pid */
+ 		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s[%d] exited", p->p_name, proc_getpid(p));
+ 		prefix_str = prefix_str_buf;

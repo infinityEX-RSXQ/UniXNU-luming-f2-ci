@@ -1,0 +1,21 @@
+# luming bring-up: flush buffered boot log to the video console right after
+# PE_create_console() (PE_init_printf(TRUE) == vcattach()); diagnostic build only.
+diff --git a/osfmk/arm/arm_init.c b/osfmk/arm/arm_init.c
+index d416a87..5157e6e 100644
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -585,6 +585,14 @@ arm_init(
+ 	extern void luming_boot_mark(unsigned int);
+ 	luming_boot_mark(3);
+ 
++	/*
++	 * luming bring-up: flush the buffered boot log to the video console now,
++	 * instead of waiting for PE_init_iokit()->vcattach().
++	 * PE_init_printf(TRUE) is vcattach() in pexpert/gen/pe_gen.c.
++	 */
++	PE_init_printf(TRUE);
++
++
+ 	/* setup console output */
+ 	PE_init_printf(FALSE);
+ 

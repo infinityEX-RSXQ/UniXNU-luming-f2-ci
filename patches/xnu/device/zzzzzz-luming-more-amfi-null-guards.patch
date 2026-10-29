@@ -1,0 +1,114 @@
+diff --git a/iokit/Kernel/IOUserClient.cpp b/iokit/Kernel/IOUserClient.cpp
+--- a/iokit/Kernel/IOUserClient.cpp
++++ b/iokit/Kernel/IOUserClient.cpp
+@@ -1550,12 +1550,19 @@
+ 	if (task == NULL) {
+ 		task = current_task();
+ 	}
+ 
+ 	/* Validate input arguments */
+ 	if (task == kernel_task || entitlement == NULL) {
++		return NULL;
++	}
++	/*
++	 * AMFI is not prelinked on this port, so there is no entitlements bridge;
++	 * report no entitlement instead of dereferencing the NULL interface.
++	 */
++	if (amfi == NULL) {
+ 		return NULL;
+ 	}
+ 	proc_t proc = (proc_t)get_bsdtask_info(task);
+ 
+ 	kern_return_t ret = amfi->OSEntitlements.copyEntitlementAsOSObjectWithProc(
+ 		proc,
+diff --git a/bsd/kern/kern_cs.c b/bsd/kern/kern_cs.c
+--- a/bsd/kern/kern_cs.c
++++ b/bsd/kern/kern_cs.c
+@@ -507,13 +507,13 @@
+ 	if (ro_blob == true) {
+ 		zalloc_ro_update_field(ZONE_ID_CS_BLOB, csblob, csb_flags, &updated_flags);
+ 	} else {
+ 		csblob->csb_flags = updated_flags;
+ 	}
+ 
+-	if (csblob->csb_entitlements != NULL) {
++	if (csblob->csb_entitlements != NULL && amfi != NULL) {
+ 		amfi->OSEntitlements_invalidate(csblob->csb_entitlements);
+ 	}
+ 
+ 	printf("Invalidated flags, old %x new %x\n", current_flags, csblob->csb_flags);
+ }
+ 
+@@ -734,13 +734,17 @@
+ csblob_entitlements_dictionary_copy(struct cs_blob *csblob)
+ {
+ 	if (!csblob->csb_entitlements) {
+ 		return NULL;
+ 	}
+ 	if (!amfi) {
+-		panic("CoreEntitlements: missing AMFI bridge\n");
++		/*
++		 * AMFI is not prelinked on this port; there is no entitlements bridge to
++		 * return a dictionary from.
++		 */
++		return NULL;
+ 	}
+ 	return amfi->OSEntitlements_asdict(csblob->csb_entitlements);
+ }
+ 
+ OS_NORETURN
+ void
+diff --git a/bsd/kern/ubc_subr.c b/bsd/kern/ubc_subr.c
+--- a/bsd/kern/ubc_subr.c
++++ b/bsd/kern/ubc_subr.c
+@@ -3937,13 +3937,13 @@
+ 		kmem_free(kernel_map, (vm_offset_t)blob->csb_native4k_hashes,
+ 		    blob->csb_native4k_hashes_size);
+ 		blob->csb_native4k_hashes = NULL;
+ 		blob->csb_native4k_hashes_size = 0;
+ 		blob->csb_native4k_hash_count = 0;
+ 	}
+-	if (blob->csb_entitlements != NULL) {
++	if (blob->csb_entitlements != NULL && amfi != NULL) {
+ 		amfi->OSEntitlements_invalidate(blob->csb_entitlements);
+ 		osobject_release(blob->csb_entitlements);
+ 		blob->csb_entitlements = NULL;
+ 	}
+ 
+ #if CODE_SIGNING_MONITOR
+diff --git a/bsd/kern/kern_proc.c b/bsd/kern/kern_proc.c
+--- a/bsd/kern/kern_proc.c
++++ b/bsd/kern/kern_proc.c
+@@ -3370,13 +3370,13 @@
+ 
+ 		void* osent = csblob_os_entitlements_get(blob);
+ 		if (!osent) {
+ 			goto out;
+ 		}
+ 		CS_GenericBlob* xmlblob = NULL;
+-		if (amfi->OSEntitlements_get_xml(osent, &xmlblob)) {
++		if (amfi != NULL && amfi->OSEntitlements_get_xml(osent, &xmlblob)) {
+ 			start = (void*)xmlblob;
+ 			length = (size_t)ntohl(xmlblob->length);
+ 		} else {
+ 			goto out;
+ 		}
+ 
+diff --git a/bsd/vm/vm_unix.c b/bsd/vm/vm_unix.c
+--- a/bsd/vm/vm_unix.c
++++ b/bsd/vm/vm_unix.c
+@@ -2517,13 +2517,13 @@
+ 				srfmp->vp->v_name));
+ 			goto root_check;
+ 		}
+ 
+ 		bool in_trust_cache = false;
+ 		TrustCacheQueryToken_t qt;
+-		if (query_trust_cache(kTCQueryTypeAll, cdhash, &qt) == KERN_SUCCESS) {
++		if (amfi != NULL && query_trust_cache(kTCQueryTypeAll, cdhash, &qt) == KERN_SUCCESS) {
+ 			TCType_t tc_type = kTCTypeInvalid;
+ 			TCReturn_t tc_ret = amfi->TrustCache.queryGetTCType(&qt, &tc_type);
+ 			in_trust_cache = (tc_ret.error == kTCReturnSuccess &&
+ 			    (tc_type == kTCTypeCryptex1BootOS ||
+ 			    tc_type == kTCTypeStatic ||
+ 			    tc_type == kTCTypeEngineering));

@@ -1,0 +1,14 @@
+# Firmware inputs for scripts/extract-files.py. Files are written under .cache/firmware/.
+# Format: path|sha256. Prefix a path with - for an optional file.
+#
+# [placeholder] No luming vendor firmware file has a pinned SHA-256 in this skeleton yet.
+# The luming UEFI port (uefi-luming) ships stock luming vendor DXE modules from the stock fastboot
+# ROM; they are extracted by backup/analysis/rom/extract_uefi.py, not committed. Add each required
+# file here with its measured hash when the firmware/ handoff prepares the FD.
+#
+# Candidate vendor inputs (all [missing] until hashed):
+#   Binaries/luming/QcomPkg/Drivers/UFSDxe/UFSDxe.efi
+#   Binaries/luming/QcomPkg/Drivers/ClockDxe/ClockDxe.efi
+#   Binaries/luming/QcomPkg/Drivers/RpmhDxe/RpmhDxe.efi
+#   Binaries/luming/QcomPkg/Drivers/VcsDxe/VcsDxe.efi
+#   Binaries/luming/QcomPkg/Drivers/DisplayDxe/DisplayDxe.efi

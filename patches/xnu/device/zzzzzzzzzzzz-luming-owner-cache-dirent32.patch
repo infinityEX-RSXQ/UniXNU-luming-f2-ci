@@ -1,0 +1,44 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -7175,17 +7175,16 @@
+ 		native_owner_cache_path_mask = (int)mask;
+ 		/* List the mounted root so an unexpected cryptex layout is visible on the panic screen. */
+ 		{
+ 			vnode_t root_vp = NULLVP;
+ 			if (vnode_lookup(mountpoint, 0, &root_vp, vfs_context_current()) == 0) {
+ 				struct dada_dirent {
+-					uint64_t d_ino;
+-					uint64_t d_seekoff;
++					uint32_t d_ino;
+ 					uint16_t d_reclen;
+-					uint16_t d_namlen;
+ 					uint8_t d_type;
++					uint8_t d_namlen;
+ 					char d_name[1];
+ 				};
+ 				char buf[512];
+ 				struct uio *uio = uio_create(1, 0, UIO_SYSSPACE, UIO_READ);
+ 				if (uio) {
+ 					uio_addiov(uio, (user_addr_t)(uintptr_t)buf, sizeof(buf));
+@@ -7197,15 +7196,17 @@
+ 							    (unsigned char)buf[b]);
+ 						}
+ 						size_t used = sizeof(buf) - uio_resid(uio);
+ 						size_t off = 0, out = 0;
+ 						while (off + __offsetof(struct dada_dirent, d_name) + 1 <= used) {
+ 							struct dada_dirent *dp = (struct dada_dirent *)(buf + off);
+-							if (dp->d_reclen == 0 || off + dp->d_reclen > used) break;
+-							if (dp->d_namlen && strcmp(dp->d_name, ".") && strcmp(dp->d_name, "..")) {
+-								size_t n = strlen(dp->d_name);
++							if (dp->d_reclen < 9 || off + dp->d_reclen > used) break;
++							size_t n = dp->d_namlen;
++							bool dot = (n == 1 && dp->d_name[0] == '.');
++							bool dotdot = (n == 2 && dp->d_name[0] == '.' && dp->d_name[1] == '.');
++							if (n && off + 8 + n <= used && !dot && !dotdot) {
+ 								if (out + n + 2 < sizeof(native_owner_cache_root_names)) {
+ 									if (out) native_owner_cache_root_names[out++] = ',';
+ 									memcpy(native_owner_cache_root_names + out, dp->d_name, n);
+ 									out += n;
+ 								}
+ 							}

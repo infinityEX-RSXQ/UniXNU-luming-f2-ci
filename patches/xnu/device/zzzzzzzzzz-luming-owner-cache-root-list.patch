@@ -1,0 +1,107 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -7030,12 +7030,13 @@
+ volatile int native_owner_cache_status = -1;
+ volatile int native_owner_cache_mount_status = -1;
+ volatile int native_owner_cache_readonly = 0;
+ volatile int native_owner_cache_authorized = 0;
+ volatile int native_owner_cache_root_recheck = 0;
+ volatile int native_owner_cache_path_mask = 0;
++char native_owner_cache_root_names[96] = {0};
+ volatile uint64_t native_owner_cache_actual_mount_flags = 0;
+ volatile uintptr_t native_owner_cache_original_root = 0;
+ volatile uintptr_t native_owner_cache_current_root = 0;
+ volatile int native_owner_cache_native_union = 0;
+ volatile dev_t native_owner_cache_selected_device = NODEV;
+ volatile dev_t native_owner_cache_mounted_device = NODEV;
+@@ -7168,12 +7169,53 @@
+ 			if (vnode_lookup(probe_path, 0, &probe_vp, vfs_context_current()) == 0) {
+ 				mask |= 1u << i;
+ 				vnode_put(probe_vp);
+ 			}
+ 		}
+ 		native_owner_cache_path_mask = (int)mask;
++		/* List the mounted root so an unexpected cryptex layout is visible on the panic screen. */
++		{
++			vnode_t root_vp = NULLVP;
++			if (vnode_lookup(mountpoint, 0, &root_vp, vfs_context_current()) == 0) {
++				struct dada_dirent {
++					uint64_t d_ino;
++					uint64_t d_seekoff;
++					uint16_t d_reclen;
++					uint16_t d_namlen;
++					uint8_t d_type;
++					char d_name[1];
++				};
++				char buf[512];
++				struct uio *uio = uio_create(1, 0, UIO_SYSSPACE, UIO_READ);
++				if (uio) {
++					uio_addiov(uio, (user_addr_t)(uintptr_t)buf, sizeof(buf));
++					int eofflag = 0, numdirent = 0;
++					if (VNOP_READDIR(root_vp, uio, 0, &eofflag, &numdirent,
++					    vfs_context_current()) == 0) {
++						size_t used = sizeof(buf) - uio_resid(uio);
++						size_t off = 0, out = 0;
++						while (off + __offsetof(struct dada_dirent, d_name) + 1 <= used) {
++							struct dada_dirent *dp = (struct dada_dirent *)(buf + off);
++							if (dp->d_reclen == 0 || off + dp->d_reclen > used) break;
++							if (dp->d_namlen && strcmp(dp->d_name, ".") && strcmp(dp->d_name, "..")) {
++								size_t n = strlen(dp->d_name);
++								if (out + n + 2 < sizeof(native_owner_cache_root_names)) {
++									if (out) native_owner_cache_root_names[out++] = ',';
++									memcpy(native_owner_cache_root_names + out, dp->d_name, n);
++									out += n;
++								}
++							}
++							off += dp->d_reclen;
++						}
++						native_owner_cache_root_names[out] = 0;
++					}
++					uio_free(uio);
++				}
++				vnode_put(root_vp);
++			}
++		}
+ 		const char *cache_dir = "/System/Library/Caches/com.apple.dyld";
+ 		if (!(mask & 1) && (mask & 2)) {
+ 			cache_dir = "/System/Library/dyld";
+ 		} else if (!(mask & 1) && !(mask & 2) && (mask & 4)) {
+ 			cache_dir = "/System/Cryptexes/OS/System/Library/Caches/com.apple.dyld";
+ 		}
+diff --git a/bsd/kern/kern_exit.c b/bsd/kern/kern_exit.c
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -1818,12 +1818,13 @@
+ 
+ #if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
+ extern volatile int native_owner_cache_stage;
+ extern volatile int native_owner_cache_status;
+ extern char native_owner_cache_device_path[64];
+ extern volatile int native_owner_cache_path_mask;
++extern char native_owner_cache_root_names[96];
+ #endif
+ 
+ static void
+ proc_handle_critical_exit(proc_t p, int rv)
+ {
+ 	if (!proc_should_trigger_panic(p, rv)) {
+@@ -1860,15 +1861,16 @@
+ 		} else if (initproc_spawned) {
+ 			prefix_str = "initproc exited";
+ 		} else {
+ 			prefix_str = "initproc failed to start";
+ 		}
+ #if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
+-		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s p%x]",
++		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s p%x %s]",
+ 		    prefix_str, native_owner_cache_stage, native_owner_cache_status,
+-		    native_owner_cache_device_path, native_owner_cache_path_mask);
++		    native_owner_cache_device_path, native_owner_cache_path_mask,
++		    native_owner_cache_root_names);
+ 		prefix_str = prefix_str_buf;
+ #endif
+ 	} else {
+ 		/* For processes that aren't launchd, just use the process name and pid */
+ 		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s[%d] exited", p->p_name, proc_getpid(p));
+ 		prefix_str = prefix_str_buf;

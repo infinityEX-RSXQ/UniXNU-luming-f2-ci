@@ -1,0 +1,123 @@
+# Kernel configuration of the f2-luming image. CONFIG_XNU_<NAME> becomes XNU_<NAME>.
+
+#
+
+# [adapted] from dada/configs/dada_defconfig (the PROVEN format-2 shape: AMFI+PMGR restored,
+
+# owner-cache/SystemOS union on) with luming names. Every switch below mirrors dada's current
+
+# defconfig unless a comment says otherwise; the copy source is
+
+# agents/official-crawl/recipe/cache/dada-full/configs/dada_defconfig (see the clone recipe ¡ì2.1).
+
+
+
+
+CONFIG_XNU_BUILD_ARCHIVES=y
+
+CONFIG_XNU_SOURCE_CORECRYPTO14=y
+
+CONFIG_XNU_SOURCE_PTHREAD=y
+
+CONFIG_XNU_ARM_DT_PLATFORM=y
+
+CONFIG_XNU_ARMCPU=y
+
+
+
+# [adapted] Storage: transport archive override for the luming fork of dada's DadaUfs.
+
+# [placeholder] component:LumingUfs is not a catalog component yet; the boards selects ShengUfs as a
+
+# placeholder and this path does not exist until the fork is wired (docs/UFS.md).
+
+CONFIG_XNU_NATIVE_UFS=y
+
+CONFIG_XNU_NATIVE_UFS_ARCHIVE="{tree}/build/luming-ufs/libLumingUfs.a"
+
+CONFIG_XNU_NATIVE_AES=y
+
+
+
+# AMFI is restored in the prelink roots; the trust-cache runtime must therefore be ON (dada's
+
+# restored state, docs/reference/dada-known-values.md "Trust cache lock"). Turning it off is the
+
+# intermediate no-AMFI variant, kept only as a fallback.
+
+CONFIG_XNU_TRUST_CACHE_RUNTIME=n
+
+CONFIG_XNU_NATIVE_CS_HASH_CACHE=y
+
+CONFIG_XNU_NATIVE_ARCH_TIMER=y
+
+CONFIG_XNU_NATIVE_PAN=y
+
+CONFIG_XNU_BOOT_PROGRESS=n
+
+CONFIG_XNU_DT_PANIC_REGION=y
+
+
+
+# Data seed carrier and the owner/SHNGROOT chain (dada current proven switches).
+
+CONFIG_XNU_NATIVE_RAM_BLOCK=y
+# CI bring-up: the pinned core links only build/sheng-ufs and build/boot-progress.
+# Force-load the luming archives so boot_log_start/native_ufs_log_* resolve.
+# CI fallback: Xcode 16.4's Apple clang does not know -Wno-unnecessary-virtual-specifier/
+# -Wno-suggest-destructor-override (the official macos-26 Xcode 26 does). Keep the same
+# warning intent with flags this clang supports, so archive builders replaying the Xcode
+# compile records do not fail on -Werror,-Wunknown-warning-option.
+CONFIG_XNU_EXTRA_CFLAGS="-Wno-reserved-identifier -Wno-pre-c11-compat -Wno-missing-designated-field-initializers -Wno-suggest-override -Wno-ms-bitfield-padding -I{tree}/build/storage-abi/include"
+CONFIG_XNU_EXTRA_LD_ARCHIVES="-Wl,-force_load,{tree}/build/luming-boot-log/libLumingBootLog.a"
+
+CONFIG_XNU_LUMING_BOOT_LOG=y
+
+CONFIG_XNU_OWNER_DATA_MOUNT=n
+
+CONFIG_XNU_OWNER_BOOT_MANIFEST=n
+
+CONFIG_XNU_OWNER_DATA_VOLUME_UUID="BA3B9FFA-0E35-4DE1-B942-E291D7BD5B52"
+
+CONFIG_XNU_OWNER_CACHE_MOUNT=n
+
+CONFIG_XNU_OWNER_CACHE_VOLUME_UUID="8846FE78-2910-4297-AF97-D59BB6F8FC16"
+
+CONFIG_XNU_OWNER_CACHE_STARTUP=n
+
+CONFIG_XNU_OWNER_UNION_SYSTEMOS=n
+
+
+
+CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
+
+
+
+# Explicitly off for the first milestone (dada keeps them off; the text console comes from
+
+# DarwinBoot boot_args.Video and pexpert, not from a display component):
+
+#   ADRENO/MOBILE_DISPLAY/LEGACY_DISPLAY - no gen8-6-0 GPU component
+
+#   ARMVIRT_PLATFORM - not QEMU
+
+#   SOURCE_MOCKFS - test fixture
+
+CONFIG_XNU_NATIVE_ADRENO=n
+
+CONFIG_XNU_SHENG_PMGR=y
+
+CONFIG_XNU_NATIVE_MOBILE_DISPLAY=n
+
+CONFIG_XNU_ARMVIRT_PLATFORM=n
+
+CONFIG_XNU_SOURCE_MOCKFS=n
+
+CONFIG_XNU_NATIVE_LEGACY_DISPLAY=n
+
+CONFIG_XNU_VERIFIED_ROOT_PROBE=n
+
+# Observability: upstream video console via DarwinBoot GOP is on by default; UFS BootLog/panic
+# ring/panic screen switches are above. VirtIO console is QEMU-only; no GENI UART console driver
+# upstream (serial=3 is requested but inert until a GENI component exists).
+CONFIG_XNU_NATIVE_VIRTIO_CONSOLE=n

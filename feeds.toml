@@ -1,0 +1,14 @@
+# Sources of this board repository. UniXNU's own feeds.toml supplies xnu, libplatform,
+# libdispatch, AvailabilityVersions, edk2, libpthread and corecrypto; the board pins the shared
+# SoC source here.
+#
+# [placeholder] UniXNU-sm8735-common is not published. The vendored soc/ directory in this
+# skeleton is the local feed source (adapted from unixnu-format2/UniXNU-sm8735-common, itself
+# "not validated" by the migration notes). Publish the SoC repo and replace `local` with the
+# git URL + commit when the SM8735 common source is upstreamed.
+[[source]]
+name = "sm8735"
+kind = "soc"
+local = "soc"
+# git = "https://github.com/REQUIRED_OWNER/UniXNU-sm8735-common.git"
+# commit = "REQUIRED_40_HEX_COMMIT"

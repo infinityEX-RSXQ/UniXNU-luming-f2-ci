@@ -1,0 +1,787 @@
+name: macOS build (format-2 luming)
+
+# Route ① (sheng/dada format-2, "6S Pro way") macOS CI for the Xiaomi Civi 5 Pro
+# (luming, Qualcomm SM8735). Adapted by windows-ci (task-328) from:
+#   * UniXNU core format-2 workflow    (UniXNU/UniXNU:.github/workflows/macos.yml,
+#     pinned snapshot 33da81310819b86d3ea62cb704f156c56407764a; local copy in
+#     ci/unixnu-macos-reference.yml)
+#   * the device-repo skeleton workflow this file replaces
+#   * the self-contained device-repo pattern of picasso-yincql (checks out UniXNU core as a
+#     sibling checkout, then runs `./unixnu … -D ../device`)
+#
+# The workflow lives in the **device repository** (not in the UniXNU core fork), so the device
+# repository can be published/dispatched on its own. It performs:
+#   1. defconfig / fetch / status   (format-2 profiles, sources, unixnu.lock)
+#   2. kernel                       (config fragments + patch series + archives incl.
+#                                    build-corecrypto-14.py / SoftwareAES, native XNU, XnuPrelink
+#                                    using [kernel.prelink] roots/slide/early_security_init)
+#   3. package                      (UniXNU.efi / UniXNUDxe / UniXNURamDiskDxe)
+#   4. firmware                     (Mu-Silicium lumingPkg from a uefi-luming checkout)
+#   5. payload                      (FAT payload volume + ADT sidecar)
+#   6. bootimg                      (BootShim + FD + DTB + payload, Android header v4)
+#   7. artifact upload with SHA256SUMS + build-manifest.json
+# Proprietary inputs (kernelcache/IPSW/trust cache/Data seed/FD/DTB) are downloaded from masked
+# workflow inputs into $RUNNER_TEMP and deleted at the end; nothing Apple-derived is committed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      unixnu_repository:
+        description: "UniXNU format-2 core repository as owner/name"
+        required: true
+        default: "UniXNU/UniXNU"
+      unixnu_ref:
+        description: "UniXNU core ref (pinned format-2 snapshot by default)"
+        required: true
+        default: "33da81310819b86d3ea62cb704f156c56407764a"
+      device_ref:
+        description: "Ref of this device repository"
+        required: true
+        default: "main"
+      defconfig:
+        description: "Defconfig name (configs/ of this device repository)"
+        required: true
+        default: "luming_defconfig"
+      steps:
+        description: "Pipeline steps"
+        type: choice
+        options:
+          - "preflight"
+          - "firmware"
+          - "kernel"
+          - "kernel package"
+          - "kernel package payload"
+          - "kernel package firmware"
+          - "kernel package firmware payload"
+          - "kernel package firmware payload bootimg"
+          - "kernel firmware payload bootimg"
+          - "kernel payload bootimg"
+        default: "kernel package firmware payload bootimg"
+      dry_run:
+        description: "Only run the device preflight/dry-run checklist; build nothing"
+        type: boolean
+        default: false
+      private_repository:
+        description: "Private repository holding the kernelcache/UEFI release assets (read via PRIVATE_REPO_TOKEN)"
+        required: false
+        default: "infinityEX-RSXQ/UniXNU-luming-f2"
+      uefi_archive_asset:
+        description: "Asset filename inside uefi_archive_release_tag (e.g. uefi-luming-ci-diag.tar.gz)"
+        required: false
+        default: "uefi-luming-ci-diag.tar.gz"
+      upload_artifacts:
+        description: "Upload kernel/boot.img (+manifests) to a private release in private_repository. Public artifacts are never uploaded."
+        type: boolean
+        default: false
+      kernelcache_url:
+        description: "Decompressed iOS 16.7.16 kernelcache URL (masked; optional when ipsw_url/UNIXNU_IPSW is set)"
+        required: false
+        default: ""
+      kernelcache_sha256:
+        description: "Expected kernelcache sha256 (required with kernelcache_url/release)"
+        required: false
+        default: ""
+      kernelcache_release_tag:
+        description: "Private-repo release tag whose kernelcache.macho asset is downloaded with github.token (alternative to kernelcache_url)"
+        required: false
+        default: ""
+      ipsw_url:
+        description: "IPSW URL for the pinned target build (masked; empty uses UNIXNU_IPSW secret or board.toml [ipsw])"
+        required: false
+        default: ""
+      uefi_repository:
+        description: "Mu-Silicium luming UEFI repository as owner/name (needed by firmware/bootimg)"
+        required: false
+        default: "infinityEX-RSXQ/uefi-luming"
+      uefi_ref:
+        description: "UEFI repository ref"
+        required: false
+        default: "main"
+      uefi_archive_release_tag:
+        description: "Private-repo release tag whose uefi-luming-ci.tar.gz asset is downloaded with github.token (alternative to uefi_repository)"
+        required: false
+        default: ""
+      uefi_archive_sha256:
+        description: "Expected sha256 of uefi-luming-ci.tar.gz"
+        required: false
+        default: ""
+      fd_url:
+        description: "Optional prebuilt SILICIUM_UEFI.fd URL (bootimg without a UEFI checkout)"
+        required: false
+        default: ""
+      dtb_url:
+        description: "Optional compiled luming DTB URL (bootimg when the UEFI checkout has none)"
+        required: false
+        default: ""
+      trust_cache_url:
+        description: "Optional trust cache bundle URL for the payload (masked)"
+        required: false
+        default: ""
+      owner_trust_cache:
+        description: "Treat the trust cache URL as an owner-signed bundle"
+        type: boolean
+        default: false
+      data_seed_url:
+        description: "Optional Data seed (.dbr) URL for the payload (masked)"
+        required: false
+        default: ""
+      grow_gib:
+        description: "Grow the Data seed to this many GiB (optional)"
+        required: false
+        default: ""
+      skip_setup:
+        description: "Mark Setup as done in the Data seed"
+        type: boolean
+        default: false
+      xcode:
+        description: "Xcode version of the macos-15 image (/Applications/Xcode_<version>.app)"
+        required: true
+        default: "16.4"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: f2-luming-macos-${{ github.ref }}-${{ inputs.defconfig }}-${{ inputs.steps }}
+  cancel-in-progress: false
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+  HOMEBREW_NO_ENV_HINTS: 1
+  DEVELOPER_DIR: /Applications/Xcode_${{ inputs.xcode }}.app/Contents/Developer
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 360
+    env:
+      UNIXNU_DEVICE: ${{ github.workspace }}/device
+      UNIXNU_UEFI: ${{ github.workspace }}/uefi
+      UNIXNU_BUILD_ROOT: ${{ github.workspace }}/unixnu
+      UNIXNU_CORE: ${{ github.workspace }}/unixnu
+      PRIVATE_REPOSITORY: ${{ inputs.private_repository }}
+      UEFI_ARCHIVE_ASSET: ${{ inputs.uefi_archive_asset }}
+      KERNELCACHE_RELEASE_TAG: ${{ inputs.kernelcache_release_tag }}
+      UEFI_ARCHIVE_RELEASE_TAG: ${{ inputs.uefi_archive_release_tag }}
+      UEFI_ARCHIVE_SHA256: ${{ inputs.uefi_archive_sha256 }}
+      UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+      UNIXNU_ALLOW_NO_PANIC_SCREEN: "1"
+      DEFCONFIG: ${{ inputs.defconfig }}
+      STEPS: ${{ inputs.steps }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Check out the UniXNU format-2 core
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.unixnu_repository }}
+          ref: ${{ inputs.unixnu_ref }}
+          path: unixnu
+          persist-credentials: false
+
+      - name: Check out the luming format-2 device repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ inputs.device_ref }}
+          path: device
+          persist-credentials: false
+
+      - name: Check out the luming UEFI repository
+        if: ${{ inputs.dry_run != true && (contains(inputs.steps, 'firmware') || contains(inputs.steps, 'bootimg')) && inputs.uefi_repository != '' && inputs.uefi_archive_release_tag == '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.uefi_repository }}
+          ref: ${{ inputs.uefi_ref }}
+          path: uefi
+          submodules: recursive
+          token: ${{ secrets.UNIXNU_DEVICE_TOKEN || github.token }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Add the local LumingUfs catalog entry
+        run: python3 device/scripts/ci/add-lumingufs-component.py unixnu/components.toml
+
+      - name: Strip Xcode 26-only warning flags for the macos-15 fallback
+        # The pinned core's build-arm-driver.py/build-xnu-4k-baseline.sh and the device's
+        # platform-power/storage builders hardcode -Wno-unnecessary-virtual-specifier and
+        # -Wno-suggest-destructor-override, which the available macos-15 Xcode 16.4 clang
+        # rejects under -Werror. Replace them with clang's own unknown-warning silencer.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          roots = [Path('unixnu/scripts'), Path('device/scripts')]
+          changed = []
+          for root in roots:
+              if not root.is_dir():
+                  continue
+              for path in root.rglob('*'):
+                  if path.suffix not in ('.py', '.sh') or not path.is_file():
+                      continue
+                  text = path.read_text(encoding='utf-8', errors='ignore')
+                  new = (text.replace('-Wno-unnecessary-virtual-specifier', '-Wno-unknown-warning-option')
+                             .replace('-Wno-suggest-destructor-override', '-Wno-unknown-warning-option'))
+                  if new != text:
+                      path.write_text(new, encoding='utf-8')
+                      changed.append(str(path))
+          print('patched warning flags in', len(changed), 'files')
+          for path in changed:
+              print(' ', path)
+          PY
+
+      - name: Disable the incompatible core boot-progress patch
+        # The pinned UniXNU core carries patches/xnu/zzz-boot-progress.patch generated against a
+        # different bsd_init.c (its XNU_SHENG_PMGR hunk does not apply to xnu-10063). The device
+        # series already supplies zzz-boot-progress-min.patch for this board; disable the core copy
+        # in the CI checkout only, with the mismatch recorded in REPORT-F2-LUMING-CI.md.
+        run: |
+          set -euo pipefail
+          series="unixnu/profiles/os/ipados-17.7.11-21H461/patches/xnu/series"
+          if [ -f "$series" ] && grep -q 'patches/xnu/zzz-boot-progress.patch' "$series"; then
+            python3 - "$series" <<'PY'
+          import sys
+          from pathlib import Path
+          path = Path(sys.argv[1])
+          lines = path.read_text(encoding="utf-8").splitlines()
+          out = []
+          for line in lines:
+              if "patches/xnu/zzz-boot-progress.patch" in line:
+                  out.append("# disabled in CI: patch context does not match xnu-10063 (device zzz-boot-progress-min.patch is used)")
+              else:
+                  out.append(line)
+          path.write_text("\n".join(out) + "\n", encoding="utf-8")
+          PY
+            echo "disabled core zzz-boot-progress.patch (device minimal patch remains active)"
+          fi
+
+      - name: Prepare the UEFI bundle from the private release asset
+        if: ${{ inputs.dry_run != true && inputs.uefi_archive_release_tag != '' && (contains(inputs.steps, 'firmware') || contains(inputs.steps, 'bootimg')) }}
+        env:
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p uefi
+          asset="$RUNNER_TEMP/${UEFI_ARCHIVE_ASSET}"
+          api="https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/tags/${UEFI_ARCHIVE_RELEASE_TAG}"
+          asset_id=$(curl -fsSL -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/vnd.github+json" "$api" \
+            | jq -r --arg name "$UEFI_ARCHIVE_ASSET" '.assets[] | select(.name == $name) | .id' | head -n 1)
+          if [ -z "$asset_id" ] || [ "$asset_id" = "null" ]; then
+            echo "::error::no ${UEFI_ARCHIVE_ASSET} asset on private release ${UEFI_ARCHIVE_RELEASE_TAG}"
+            exit 1
+          fi
+          curl -fsSL -L -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/octet-stream" \
+            "https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/assets/${asset_id}" -o "$asset"
+          actual=$(shasum -a 256 "$asset" | cut -d' ' -f1)
+          if [ -n "${UEFI_ARCHIVE_SHA256:-}" ] && [ "$actual" != "$UEFI_ARCHIVE_SHA256" ]; then
+            echo "::error::UEFI bundle sha256 mismatch: got $actual expected $UEFI_ARCHIVE_SHA256"
+            exit 1
+          fi
+          tar -xzf "$asset" -C uefi --strip-components=1
+          # the release asset may lose exec bits; EDK2 needs the BinWrappers scripts executable
+          chmod -R +x "$UNIXNU_UEFI/Mu_Basecore/BaseTools/BinWrappers/PosixLike" "$UNIXNU_UEFI/Mu_Basecore/BaseTools/Bin" 2>/dev/null || true
+          echo "UEFI bundle extracted: $(du -sh uefi | cut -f1)"
+          test -d uefi/Build || echo "::warning::uefi/Build missing after extraction"
+
+      - name: Check the inputs and mask proprietary URLs
+        id: check
+        env:
+          HAS_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID != '' }}
+          HAS_IPSW: ${{ secrets.UNIXNU_IPSW != '' }}
+          OWNER_TRUST_CACHE: ${{ inputs.owner_trust_cache }}
+          GROW_GIB: ${{ inputs.grow_gib }}
+          SKIP_SETUP: ${{ inputs.skip_setup }}
+        run: |
+          set -euo pipefail
+          kernelcache_url=$(jq -r '.inputs.kernelcache_url // ""' "$GITHUB_EVENT_PATH")
+          ipsw_url=$(jq -r '.inputs.ipsw_url // ""' "$GITHUB_EVENT_PATH")
+          fd_url=$(jq -r '.inputs.fd_url // ""' "$GITHUB_EVENT_PATH")
+          dtb_url=$(jq -r '.inputs.dtb_url // ""' "$GITHUB_EVENT_PATH")
+          trust_cache_url=$(jq -r '.inputs.trust_cache_url // ""' "$GITHUB_EVENT_PATH")
+          data_seed_url=$(jq -r '.inputs.data_seed_url // ""' "$GITHUB_EVENT_PATH")
+          for value in "$kernelcache_url" "$ipsw_url" "$fd_url" "$dtb_url" "$trust_cache_url" "$data_seed_url"; do
+            if [ -n "$value" ]; then echo "::add-mask::$value"; fi
+          done
+          fail() { echo "::error::$1"; exit 1; }
+          [ -f device/board.toml ] || fail "the device repository has no board.toml"
+          [ -f "device/configs/$DEFCONFIG" ] || fail "device/configs/$DEFCONFIG not found"
+          [ -f unixnu/unixnu ] || fail "the UniXNU core checkout has no unixnu wrapper"
+          [ -d "$DEVELOPER_DIR" ] || fail "Xcode not found at $DEVELOPER_DIR; installed: $(printf '%s ' /Applications/Xcode_*.app)"
+          if [ -n "$kernelcache_url" ] && [ -z "${{ inputs.kernelcache_sha256 }}" ]; then
+            fail "kernelcache_sha256 is required when kernelcache_url is set"
+          fi
+          if [[ "$STEPS" == *firmware* ]] && [ -z "${{ inputs.uefi_repository }}" ] && [ -z "${{ inputs.uefi_archive_release_tag }}" ]; then
+            fail "firmware step needs uefi_repository or uefi_archive_release_tag"
+          fi
+          if [[ "$STEPS" == *bootimg* ]] && [ -z "${{ inputs.uefi_repository }}" ] && [ -z "${{ inputs.uefi_archive_release_tag }}" ] && [ -z "$fd_url" ]; then
+            fail "bootimg step needs uefi_repository/uefi_archive_release_tag (or fd_url + dtb_url)"
+          fi
+          if [[ "$STEPS" == *payload* ]] && [ "$HAS_CHIP_ID" != "true" ] && [ "$DRY_RUN" != "true" ]; then
+            fail "payload step needs the UNIXNU_UNIQUE_CHIP_ID repository secret (or run with dry_run=true)"
+          fi
+          if [ -n "$GROW_GIB" ] && ! [[ "$GROW_GIB" =~ ^[0-9]+$ ]]; then fail "grow_gib must be a whole number of GiB"; fi
+          if [ -n "$GROW_GIB" ] && [ -z "$data_seed_url" ]; then fail "grow_gib needs data_seed_url"; fi
+          if [ "$SKIP_SETUP" = true ] && [ -z "$data_seed_url" ]; then fail "skip_setup needs data_seed_url"; fi
+          if [ "$OWNER_TRUST_CACHE" = true ] && [ -z "$trust_cache_url" ]; then fail "owner_trust_cache needs trust_cache_url"; fi
+          python3 - <<'PY'
+          import os, sys, tomllib
+          from pathlib import Path
+          board = tomllib.loads(Path('device/board.toml').read_text(encoding='utf-8'))
+          if board.get('schema_version') != 2:
+              sys.exit('::error::device/board.toml must use schema_version = 2 (format 2)')
+          name = (board.get('board') or {}).get('name')
+          if not name:
+              sys.exit('::error::device/board.toml needs [board] name')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as out:
+              out.write(f'board={name}\n')
+          print('board:', name)
+          print('defconfig:', os.environ['DEFCONFIG'])
+          print('steps:', os.environ['STEPS'])
+          print('dry_run:', os.environ['DRY_RUN'])
+          PY
+
+      - name: Install host tools
+        run: |
+          set -euo pipefail
+          brew install llvm lld mtools dtc
+          if ! command -v unifdef >/dev/null; then
+            brew install unifdef
+            echo "$(brew --prefix unifdef)/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Report the runner toolchain
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphoneos --find mig
+          clang --version | head -n 1
+          "$(brew --prefix llvm)/bin/clang" --version | head -n 1
+          python3 --version
+          missing=0
+          for tool in git make clang cmake ninja unifdef ld.lld mformat mcopy dtc xcodebuild jq; do
+            path=$(command -v "$tool" || true)
+            printf '%-10s %s\n' "$tool" "${path:-MISSING}"
+            [ -n "$path" ] || missing=1
+          done
+          df -h "$GITHUB_WORKSPACE"
+          exit "$missing"
+
+      - name: Prepare proprietary inputs
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' }}
+        env:
+          GROW_GIB: ${{ inputs.grow_gib }}
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f2-luming-inputs"
+          kernelcache_url=$(jq -r '.inputs.kernelcache_url // ""' "$GITHUB_EVENT_PATH")
+          ipsw_url=$(jq -r '.inputs.ipsw_url // ""' "$GITHUB_EVENT_PATH")
+          fd_url=$(jq -r '.inputs.fd_url // ""' "$GITHUB_EVENT_PATH")
+          dtb_url=$(jq -r '.inputs.dtb_url // ""' "$GITHUB_EVENT_PATH")
+          trust_cache_url=$(jq -r '.inputs.trust_cache_url // ""' "$GITHUB_EVENT_PATH")
+          data_seed_url=$(jq -r '.inputs.data_seed_url // ""' "$GITHUB_EVENT_PATH")
+          kc="$RUNNER_TEMP/f2-luming-inputs/kernelcache.macho"
+          if [ -n "$kernelcache_url" ]; then
+            curl -fsSL --retry 3 --retry-all-errors "$kernelcache_url" -o "$kc"
+          elif [ -n "${KERNELCACHE_RELEASE_TAG:-}" ]; then
+            api="https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/tags/${KERNELCACHE_RELEASE_TAG}"
+            asset_id=$(curl -fsSL -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/vnd.github+json" "$api" \
+              | jq -r '.assets[] | select(.name == "kernelcache.macho") | .id' | head -n 1)
+            if [ -z "$asset_id" ] || [ "$asset_id" = "null" ]; then
+              echo "::error::no kernelcache.macho asset on release $KERNELCACHE_RELEASE_TAG"
+              exit 1
+            fi
+            curl -fsSL -L -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/octet-stream" \
+              "https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/assets/${asset_id}" -o "$kc"
+          fi
+          if [ -f "$kc" ]; then
+            actual=$(shasum -a 256 "$kc" | cut -d' ' -f1)
+            expected="${{ inputs.kernelcache_sha256 }}"
+            if [ -n "$expected" ] && [ "$actual" != "$expected" ]; then
+              echo "::error::kernelcache sha256 mismatch: got $actual expected $expected"
+              exit 1
+            fi
+            echo "kernelcache: $actual ($(wc -c < "$kc") B)"
+            echo "UNIXNU_KERNELCACHE=$kc" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$ipsw_url" ]; then echo "UNIXNU_IPSW=$ipsw_url" >> "$GITHUB_ENV"; fi
+          if [ -n "$fd_url" ]; then
+            curl -fsSL --retry 3 "$fd_url" -o "$RUNNER_TEMP/f2-luming-inputs/SILICIUM_UEFI.fd"
+            echo "F2_FD=$RUNNER_TEMP/f2-luming-inputs/SILICIUM_UEFI.fd" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$dtb_url" ]; then
+            curl -fsSL --retry 3 "$dtb_url" -o "$RUNNER_TEMP/f2-luming-inputs/luming.dtb"
+            echo "F2_DTB=$RUNNER_TEMP/f2-luming-inputs/luming.dtb" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$trust_cache_url" ]; then
+            curl -fsSL --retry 3 "$trust_cache_url" -o "$RUNNER_TEMP/f2-luming-inputs/trustcache"
+          fi
+          if [ -n "$data_seed_url" ]; then
+            curl -fsSL --retry 3 "$data_seed_url" -o "$RUNNER_TEMP/f2-luming-inputs/data.dbr"
+            if [ -n "$GROW_GIB" ]; then
+              git -C unixnu submodule update --init --depth 1 drivers/DarwinBoot
+              mkdir -p unixnu/build
+              python3 unixnu/scripts/seed-data-grow.py --gib "$GROW_GIB" "$RUNNER_TEMP/f2-luming-inputs/data.dbr" "$RUNNER_TEMP/f2-luming-inputs/data-grow.dbr"
+              mv "$RUNNER_TEMP/f2-luming-inputs/data-grow.dbr" "$RUNNER_TEMP/f2-luming-inputs/data.dbr"
+            fi
+          fi
+
+      - name: Device preflight / dry-run checklist
+        env:
+          HAS_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ci-artifacts
+          if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
+            bash device/scripts/ci/f2-luming-ci.sh dry-run
+            if [ "$DRY_RUN" != "true" ] && [ "$STEPS" != "preflight" ]; then
+              python3 device/scripts/check-luming.py --device device --unixnu unixnu --json ci-artifacts/check-luming.json
+          bash device/scripts/ci/f2-luming-ci.sh preflight
+            fi
+          else
+            echo "::warning::device/scripts/ci/f2-luming-ci.sh missing; inline board check only"
+            python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+          board = tomllib.loads(Path('device/board.toml').read_text(encoding='utf-8'))
+          blockers = []
+          for key in ('board', 'kernel', 'kernel.prelink', 'firmware', 'payload', 'bootimg', 'device_tree'):
+              if key not in board:
+                  blockers.append(f'missing [{key}]')
+          print('blockers:', blockers)
+          Path('ci-artifacts').mkdir(exist_ok=True)
+          Path('ci-artifacts/preflight-blockers.txt').write_text('\n'.join(blockers) + '\n', encoding='utf-8')
+          PY
+          fi
+
+      - name: Stop after preflight/dry run
+        if: ${{ inputs.dry_run == true || inputs.steps == 'preflight' }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## format-2 luming preflight: ${{ steps.check.outputs.board }}"
+            echo
+            echo "No build was executed (dry_run=$DRY_RUN, steps=$STEPS)."
+            echo "See ci-artifacts/DRY-RUN.md and ci-artifacts/preflight.json for the blocker list."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Configure the device (defconfig / fetch / status)
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd unixnu
+          ./unixnu defconfig "$DEFCONFIG" -D ../device
+          ./unixnu fetch -D ../device
+          ./unixnu status --json -D ../device > ../ci-artifacts/unixnu-status.json
+
+      - name: Run the device pre-build hook
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' }}
+        run: |
+          set -euo pipefail
+          if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
+            bash device/scripts/ci/f2-luming-ci.sh pre_build
+          else
+            echo "::warning::no device/scripts/ci/f2-luming-ci.sh pre_build hook"
+          fi
+
+      - name: Build the native XNU kernel and prelink
+        id: kernel
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' && contains(inputs.steps, 'kernel') }}
+        working-directory: unixnu
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          UNIXNU_IPSW: ${{ secrets.UNIXNU_IPSW }}
+        run: |
+          set -euo pipefail
+          mkdir -p ../ci-artifacts/logs
+          args=(-D ../device)
+          if [ -n "${UNIXNU_KERNELCACHE:-}" ]; then args+=(--kernelcache "$UNIXNU_KERNELCACHE"); fi
+          if [ -n "${UNIXNU_IPSW:-}" ]; then args+=(--ipsw "$UNIXNU_IPSW"); fi
+          ./unixnu build kernel "${args[@]}" -j 3 2>&1 | tee ../ci-artifacts/logs/kernel.log
+
+      - name: Build the UniXNU package
+        id: package
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' && contains(inputs.steps, 'package') }}
+        working-directory: unixnu
+        run: |
+          set -euo pipefail
+          mkdir -p ../ci-artifacts/logs
+          ./unixnu build package -D ../device 2>&1 | tee ../ci-artifacts/logs/package.log
+
+      - name: Build the luming firmware
+        id: firmware
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'firmware') && inputs.uefi_archive_release_tag == '' && inputs.uefi_repository != '' }}
+        working-directory: unixnu
+        run: |
+          set -euo pipefail
+          [ -d "$UNIXNU_UEFI" ] || { echo "::error::UEFI checkout missing at $UNIXNU_UEFI"; exit 1; }
+          mkdir -p ../ci-artifacts/logs
+          ./unixnu build firmware -D ../device --uefi "$UNIXNU_UEFI" 2>&1 | tee ../ci-artifacts/logs/firmware.log
+
+      - name: Build the luming firmware (CI bundle)
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'firmware') && inputs.uefi_archive_release_tag != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ci-artifacts/logs
+          python3 -m pip install --quiet --disable-pip-version-check edk2-pytool-extensions edk2-pytool-library regex pyyaml
+          export PATH="$UNIXNU_UEFI/Mu_Basecore/BaseTools/BinWrappers/PosixLike:$UNIXNU_UEFI/Mu_Basecore/BaseTools/Bin:$PATH"
+          # macOS /bin/bash is 3.2; EDK2 wrappers use negative array subscripts (bash >= 4.3). Make them 3.2-compatible in the CI checkout.
+          python3 - "$UNIXNU_UEFI" <<'PY'
+          import sys
+          from pathlib import Path
+          root = Path(sys.argv[1]) / "Mu_Basecore/BaseTools/BinWrappers/PosixLike"
+          for path in root.glob("*"):
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              new = text.replace("${BASH_SOURCE[-1]:-$0}", "${BASH_SOURCE[0]:-$0}")
+              if new != text:
+                  path.write_text(new, encoding="utf-8")
+          PY
+          export GIT_PYTHON_GIT_EXECUTABLE="$(command -v git)"
+          export GIT_PYTHON_REFRESH=quiet
+          cd device
+          python3 firmware/build-firmware.py --work-dir "$UNIXNU_UEFI" 2>&1 | tee ../ci-artifacts/logs/firmware.log
+          python3 firmware/preflight.py --board firmware/board-firmware.snippet.toml 2>&1 | tee -a ../ci-artifacts/logs/firmware.log
+
+      - name: Force the reduced-payload CI config
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'payload') }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('device/board.toml')
+          text = path.read_text(encoding='utf-8')
+          if 'panic_screen = true' in text:
+              path.write_text(text.replace('panic_screen = true', 'panic_screen = false'), encoding='utf-8')
+          print('CI reduced payload: [payload].panic_screen = false (device tree stays true)')
+          PY
+
+      - name: Build the payload
+        id: payload
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' && contains(inputs.steps, 'payload') }}
+        working-directory: unixnu
+        env:
+          UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+          SKIP_SETUP: ${{ inputs.skip_setup }}
+          OWNER_TRUST_CACHE: ${{ inputs.owner_trust_cache }}
+        run: |
+          set -euo pipefail
+          args=(-D ../device)
+          if [ -f "$RUNNER_TEMP/f2-luming-inputs/trustcache" ]; then
+            if [ "$OWNER_TRUST_CACHE" = true ]; then
+              args+=(--owner-trust-cache "$RUNNER_TEMP/f2-luming-inputs/trustcache")
+            else
+              args+=(--trust-cache "$RUNNER_TEMP/f2-luming-inputs/trustcache")
+            fi
+          fi
+          if [ -f "$RUNNER_TEMP/f2-luming-inputs/data.dbr" ]; then args+=(--data-ramdisk "$RUNNER_TEMP/f2-luming-inputs/data.dbr"); fi
+          if [ "$SKIP_SETUP" = true ]; then args+=(--skip-setup); fi
+          mkdir -p ../ci-artifacts/logs
+          ./unixnu build payload "${args[@]}" 2>&1 | tee ../ci-artifacts/logs/payload.log
+
+      - name: Apply the boot image v4 patch
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'bootimg') && inputs.uefi_archive_release_tag != '' }}
+        run: |
+          set -euo pipefail
+          patch="$GITHUB_WORKSPACE/device/firmware/patches/unixnu-bootimg-header-v4.patch"
+          if [ -f "$patch" ]; then
+            if git -C unixnu apply --check "$patch" >/dev/null 2>&1; then
+              git -C unixnu apply "$patch"
+              echo "applied unixnu-bootimg-header-v4.patch"
+            else
+              echo "::warning::unixnu-bootimg-header-v4.patch does not apply cleanly; continuing (maybe already in the core)"
+            fi
+          fi
+
+      - name: Compose the Android v4 boot image
+        id: bootimg
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' && contains(inputs.steps, 'bootimg') }}
+        working-directory: unixnu
+        run: |
+          set -euo pipefail
+          fd="${F2_FD:-}"
+          dtb="${F2_DTB:-}"
+          if [ -z "$fd" ] && [ -d "$UNIXNU_UEFI" ]; then
+            fd=$(find "$UNIXNU_UEFI/Build" -path '*/FV/SILICIUM_UEFI.fd' -type f 2>/dev/null | sort | tail -n 1)
+          fi
+          if [ -z "$dtb" ] && [ -d "$UNIXNU_UEFI" ]; then
+            for candidate in "$UNIXNU_UEFI/Resources/DTBs/luming.dtb" "$UNIXNU_UEFI/Resources/DTBs/luming.dtbo"; do
+              if [ -f "$candidate" ]; then dtb="$candidate"; break; fi
+            done
+          fi
+          if [ -z "$dtb" ] && [ -d "$UNIXNU_UEFI" ]; then
+            dtb=$(find "$UNIXNU_UEFI" \( -name 'luming.dtb' -o -name 'luming.dtbo' -o -name '*.dtb' \) -type f 2>/dev/null | sort | head -n 1)
+          fi
+          [ -n "$fd" ] && [ -f "$fd" ] || { echo "::error::SILICIUM_UEFI.fd not found; pass fd_url or a uefi_repository with a built FD"; exit 1; }
+          [ -n "$dtb" ] && [ -f "$dtb" ] || { echo "::error::luming DTB not found; pass dtb_url or add it to the UEFI repository"; exit 1; }
+          # The UEFI-bundle DTB already carries /reserved-memory/splash_region; remove it so
+          # unixnu bootimg can add the board's [[bootimg.dtb_node]] without FDT_ERR_EXISTS.
+          if command -v fdtput >/dev/null 2>&1; then
+            fdtput -r "$dtb" /reserved-memory/splash_region 2>/dev/null || true
+          fi
+          mkdir -p out/f2-luming/firmware out/f2-luming/boot
+          cp "$fd" out/f2-luming/firmware/SILICIUM_UEFI.fd
+          cp "$dtb" out/f2-luming/firmware/luming.dtb
+          args=(-D ../device -o out/f2-luming/boot/boot.img)
+          if [ -d "$UNIXNU_UEFI" ]; then args+=(--uefi "$UNIXNU_UEFI"); fi
+          args+=(--fd "$fd" --dtb "$dtb")
+          ./unixnu bootimg "${args[@]}" 2>&1 | tee ../ci-artifacts/logs/bootimg.log
+          ls -lh out/f2-luming/boot/boot.img
+
+      - name: Collect outputs, hashes and the build manifest
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' }}
+        env:
+          UNIXNU_BUILD_ROOT: ${{ github.workspace }}/unixnu
+        run: |
+          set -euo pipefail
+          bash device/scripts/ci/f2-luming-ci.sh collect
+          echo '## format-2 luming build: artifacts' >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo '| file | bytes | sha256 |' >> "$GITHUB_STEP_SUMMARY"
+          echo '| --- | --- | --- |' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f ci-artifacts/build-manifest.json ]; then
+            python3 - <<'PY'
+          import json, os
+          manifest = json.load(open('ci-artifacts/build-manifest.json', encoding='utf-8'))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as fh:
+              for item in manifest.get('files', []):
+                  fh.write(f"| {item['path']} | {item['bytes']} | `{item['sha256']}` |\n")
+          PY
+          fi
+
+      - name: Upload artifacts, hashes and logs (private destinations only; disabled by default in public repo)
+        if: false
+        uses: actions/upload-artifact@v4
+        with:
+          name: f2-luming-${{ steps.check.outputs.board }}-${{ github.run_number }}-${{ github.run_attempt }}
+          path: ci-artifacts/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload the preflight / dry-run checklist (private destinations only)
+        if: false
+        uses: actions/upload-artifact@v4
+        with:
+          name: f2-luming-preflight-${{ steps.check.outputs.board }}-${{ github.run_number }}
+          path: ci-artifacts/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Summary
+        if: always()
+        env:
+          BOARD: ${{ steps.check.outputs.board }}
+          KERNEL: ${{ steps.kernel.outcome }}
+          PACKAGE: ${{ steps.package.outcome }}
+          FIRMWARE: ${{ steps.firmware.outcome }}
+          PAYLOAD: ${{ steps.payload.outcome }}
+          BOOTIMG: ${{ steps.bootimg.outcome }}
+        run: |
+          {
+            echo "## macOS build (format-2 luming): ${BOARD:-unknown}"
+            echo
+            echo "| step | result |"
+            echo "| --- | --- |"
+            echo "| kernel | ${KERNEL:-skipped} |"
+            echo "| package | ${PACKAGE:-skipped} |"
+            echo "| firmware | ${FIRMWARE:-skipped} |"
+            echo "| payload | ${PAYLOAD:-skipped} |"
+            echo "| bootimg | ${BOOTIMG:-skipped} |"
+            echo
+            echo "dry_run=$DRY_RUN steps=$STEPS defconfig=$DEFCONFIG"
+            echo "unixnu=${{ inputs.unixnu_repository }}@${{ inputs.unixnu_ref }}"
+            echo "uefi=${{ inputs.uefi_repository }}@${{ inputs.uefi_ref }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload kernel and boot.img to the private release
+        if: ${{ inputs.upload_artifacts == true && inputs.dry_run != true && success() }}
+        env:
+          PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, urllib.error, urllib.request
+          repo = os.environ['PRIVATE_REPOSITORY']
+          token = os.environ['PRIVATE_UPLOAD_TOKEN']
+          tag = f"ci-defer-console-{os.environ['GITHUB_RUN_ID']}"
+          root = pathlib.Path('.')
+
+          def find_one(pattern):
+              hits = sorted(root.glob(pattern))
+              return hits[0] if hits else None
+
+          files = []
+          kernel = find_one('unixnu/out/**/kernel/kernel.macho')
+          if kernel: files.append((kernel, 'kernel.macho'))
+          boot = root / 'unixnu/out/f2-luming/boot/boot.img'
+          boot_json = root / 'unixnu/out/f2-luming/boot/boot.json'
+          if boot.is_file(): files.append((boot, 'boot.img'))
+          if boot_json.is_file(): files.append((boot_json, 'boot.json'))
+          manifest = root / 'ci-artifacts/build-manifest.json'
+          if manifest.is_file(): files.append((manifest, 'build-manifest.json'))
+          if not files:
+              raise SystemExit('no kernel/boot.img files to upload')
+
+          summary = []
+          for path, name in files:
+              data = path.read_bytes()
+              summary.append({'name': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
+          upload_manifest = root / 'ci-artifacts/private-upload-manifest.json'
+          upload_manifest.write_text(json.dumps({'release_tag': tag, 'assets': summary}, indent=2) + '\n', encoding='utf-8')
+          files.append((upload_manifest, 'private-upload-manifest.json'))
+
+          api = 'https://api.github.com'
+          def req(method, url, body=None):
+              headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json',
+                         'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'luming-public-ci'}
+              data = None
+              if body is not None:
+                  data = json.dumps(body).encode(); headers['Content-Type'] = 'application/json'
+              r = urllib.request.Request(url, data=data, headers=headers, method=method)
+              with urllib.request.urlopen(r, timeout=600) as f:
+                  raw = f.read(); return json.loads(raw) if raw else {}
+
+          try:
+              release = req('GET', f'{api}/repos/{repo}/releases/tags/{tag}')
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404: raise
+              release = req('POST', f'{api}/repos/{repo}/releases', {
+                  'tag_name': tag, 'name': f'CI diagnostic build {tag}',
+                  'body': 'Kernel and boot.img from the public code-only CI mirror; private device-test artifacts.',
+                  'draft': False, 'prerelease': True,
+              })
+          release_id = release['id']
+          for path, name in files:
+              data = path.read_bytes()
+              headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json',
+                         'Content-Type': 'application/octet-stream', 'User-Agent': 'luming-public-ci',
+                         'X-GitHub-Api-Version': '2022-11-28'}
+              url = f'https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={name}'
+              r = urllib.request.Request(url, data=data, headers=headers, method='POST')
+              with urllib.request.urlopen(r, timeout=1200) as f:
+                  asset = json.loads(f.read())
+              print(f"UPLOADED {name} {asset.get('size')} {asset.get('browser_download_url')}")
+          print(f"PRIVATE_RELEASE {tag} https://github.com/{repo}/releases/tag/{tag}")
+          for item in summary:
+              print(f"ASSET_SHA {item['name']} {item['sha256']} {item['bytes']}")
+          PY
+
+      - name: Remove proprietary inputs
+        if: always()
+        run: |
+          rm -rf unixnu/out/ipsw unixnu/out/feeds unixnu/out/**/tree/.cache/firmware 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/f2-luming-inputs"/kernelcache.macho "$RUNNER_TEMP/f2-luming-inputs"/trustcache \
+                "$RUNNER_TEMP/f2-luming-inputs"/data.dbr "$RUNNER_TEMP/f2-luming-inputs"/data-grow.dbr 2>/dev/null || true

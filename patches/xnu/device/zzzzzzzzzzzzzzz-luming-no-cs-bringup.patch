@@ -1,0 +1,30 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -8627,12 +8627,26 @@
+ 
+ 	/*
+ 	 * image activation may be failed due to policy
+ 	 * which is unexpected but security framework does not
+ 	 * approve of exec, kill and return immediately.
+ 	 */
++	/*
++	 * dada bring-up: this image carries no StaticTrustCache yet, so AMFI's
++	 * signature hook rejects the init program with no descriptive reason. The
++	 * board opts out of that gate with the dada-no-cs boot argument; ordinary
++	 * boots keep the policy intact.
++	 */
++	int dada_no_cs = 0;
++	if (PE_parse_boot_argn("dada-no-cs", &dada_no_cs, sizeof(dada_no_cs)) && dada_no_cs) {
++		imgp->ip_mac_return = 0;
++		if (imgp->ip_cs_error != OS_REASON_NULL) {
++			os_reason_free(imgp->ip_cs_error);
++			imgp->ip_cs_error = OS_REASON_NULL;
++		}
++	}
+ 	if (imgp->ip_mac_return != 0) {
+ 		KERNEL_DEBUG_CONSTANT(BSDDBG_CODE(DBG_BSD_PROC, BSD_PROC_EXITREASON_CREATE) | DBG_FUNC_NONE,
+ 		    proc_getpid(p), OS_REASON_EXEC, EXEC_EXIT_REASON_SECURITY_POLICY, 0, 0);
+ 		signature_failure_reason = os_reason_create(OS_REASON_EXEC, EXEC_EXIT_REASON_SECURITY_POLICY);
+ 		error = imgp->ip_mac_return;
+ 		unexpected_failure = TRUE;

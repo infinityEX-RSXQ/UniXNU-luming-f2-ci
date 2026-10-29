@@ -1,0 +1,156 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+index 8bba078..c2796c9 100644
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -7096,7 +7096,14 @@ load_init_program_at_path(proc_t p, user_addr_t scratch_addr, const char* path)
+ 	 */
+ 	set_security_token(p, proc_ucred_unsafe(p));
+ 
+-	return execve(p, &init_exec_args, retval);
++	{
++		extern void luming_log_flush(const char *);
++		extern volatile long long luming_log_value;
++		int dada_exec_error = execve(p, &init_exec_args, retval);
++		luming_log_value = (long long)dada_exec_error;
++		luming_log_flush("execve-returned");
++		return dada_exec_error;
++	}
+ }
+ 
+ static const char * init_programs[] = {
+@@ -7141,6 +7148,30 @@ static const char * init_programs[] = {
+ void
+ load_init_program(proc_t p)
+ {
++	{
++		extern void luming_log_flush(const char *);
++		extern int native_ufs_log_open(uint64_t *, uint64_t *, const char **);
++		extern int native_ufs_log_probe(uint32_t, const char *);
++		extern volatile int luming_log_enabled;
++		extern volatile int luming_log_open_status;
++		extern volatile uint64_t luming_log_first_lba;
++		extern volatile long long luming_log_value;
++		extern void boot_log_start(void);
++		uint64_t log_first = 0, log_blocks = 0;
++		const char *log_why = NULL;
++		if (!luming_log_enabled) {
++			int opened = native_ufs_log_open(&log_first, &log_blocks, &log_why);
++			native_ufs_log_probe(opened ? 0x100u : (log_why ? 0xfffffffeu : 0xffffffffu), log_why);
++			luming_log_open_status = opened ? 1 : (log_why ? -1 : -2);
++			luming_log_first_lba = log_first;
++			if (opened) {
++				luming_log_enabled = 1;
++			}
++		}
++		boot_log_start();
++		luming_log_value = 0x100;
++		luming_log_flush("exec-enter");
++	}
+ 	uint32_t i;
+ 	int error;
+ 	vm_map_t map = current_map();
+diff --git a/osfmk/kern/printf.c b/osfmk/kern/printf.c
+index aeac9d3..a7d08ff 100644
+--- a/osfmk/kern/printf.c
++++ b/osfmk/kern/printf.c
+@@ -862,10 +862,79 @@ conslog_putc(char c)
+ #endif
+ }
+ 
++#define LUMING_LOG_BYTES (256 * 1024)
++char luming_log_ring[LUMING_LOG_BYTES];
++volatile size_t luming_log_len;
++volatile int luming_log_enabled;
++volatile int luming_log_open_status;
++volatile uint64_t luming_log_first_lba;
++volatile long long luming_log_value;
++
++extern int native_ufs_log_write(uint64_t rel, uint32_t blocks, const void *src);
++extern int native_ufs_log_sync(void);
++
++void
++luming_log_flush(const char *reason)
++{
++	if (!luming_log_enabled) {
++		return;
++	}
++	static uint8_t header[4096];
++	static const char magic[8] = { 'L', 'U', 'M', 'I', 'N', 'G', 'L', '1' };
++	size_t len = luming_log_len;
++	if (len > LUMING_LOG_BYTES) {
++		len = LUMING_LOG_BYTES;
++	}
++	__builtin_memset(header, 0, sizeof(header));
++	__builtin_memcpy(header, magic, sizeof(magic));
++	__builtin_memcpy(header + 8, &len, sizeof(len));
++	int status = luming_log_open_status;
++	__builtin_memcpy(header + 24, &status, sizeof(status));
++	uint64_t first = luming_log_first_lba;
++	__builtin_memcpy(header + 32, &first, sizeof(first));
++	long long value = luming_log_value;
++	__builtin_memcpy(header + 40, &value, sizeof(value));
++	if (reason) {
++		size_t n = 0;
++		while (n < 128 && reason[n]) {
++			header[64 + n] = (uint8_t)reason[n];
++			n++;
++		}
++	}
++	uint32_t blocks = (uint32_t)((len + 4095) / 4096);
++	if (!native_ufs_log_write(0, 1, header)) {
++		return;
++	}
++	static uint8_t tail[4096];
++	for (uint32_t i = 0; i < blocks; i++) {
++		uint32_t offset = i * 4096;
++		uint32_t remaining = (uint32_t)len - offset;
++		if (remaining >= 4096) {
++			if (!native_ufs_log_write(1 + i, 1, luming_log_ring + offset)) {
++				return;
++			}
++		} else {
++			__builtin_memset(tail, 0, sizeof(tail));
++			__builtin_memcpy(tail, luming_log_ring + offset, remaining);
++			if (!native_ufs_log_write(1 + i, 1, tail)) {
++				return;
++			}
++		}
++	}
++	native_ufs_log_sync();
++}
++
+ void
+ cons_putc_locked(char c)
+ {
+ 	console_write_char(c);
++	if (luming_log_enabled) {
++		size_t at = luming_log_len;
++		if (at < LUMING_LOG_BYTES) {
++			luming_log_ring[at] = c;
++			luming_log_len = at + 1;
++		}
++	}
+ }
+ 
+ __printflike(1, 0)
+diff --git a/pexpert/arm/hwtrace/hwtrace.c b/pexpert/arm/hwtrace/hwtrace.c
+index 3ba6b91..936ffcb 100644
+--- a/pexpert/arm/hwtrace/hwtrace.c
++++ b/pexpert/arm/hwtrace/hwtrace.c
+@@ -493,12 +493,15 @@ PE_singlestep_hook(void)
+ {
+ }
+ 
++extern void luming_log_flush(const char *reason);
++
+ void
+-PE_panic_hook(const char *str __unused)
++PE_panic_hook(const char *str)
+ {
+ 	if (PE_arm_debug_panic_hook != NULL) {
+ 		PE_arm_debug_panic_hook(str);
+ 	}
++	luming_log_flush(str ? str : "panic");
+ }
+ 
+ /*

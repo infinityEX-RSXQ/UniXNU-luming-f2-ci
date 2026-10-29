@@ -1,0 +1,18 @@
+# Full active device series before the reduced diagnostic build (saved 2026-10-29).
+zzzzz-fix-darwinboot-physical-framebuffer.patch
+zzzzz-luming-defer-console-init.patch
+zzzzz-luming-start-signals.patch
+zzzzz-luming-boot-marks.patch
+zzz-boot-progress-min.patch
+zzzzzzz-luming-owner-cache-diagnostics.patch
+zzzzzzz-luming-cache-path.patch
+zzzzzzzz-luming-owner-cache-initproc-panic.patch
+zzzzzzzzz-luming-owner-cache-probe.patch
+zzzzzzzzzz-luming-owner-cache-root-list.patch
+zzzzzzzzzzz-luming-owner-cache-root-hex.patch
+zzzzzzzzzzzz-luming-owner-cache-dirent32.patch
+zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch
+zzzzzzzzzzzzzz-luming-owner-cache-union-env.patch
+zzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
+zzzzzzzzzzzzzzzzz-luming-ufs-log.patch
+zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch

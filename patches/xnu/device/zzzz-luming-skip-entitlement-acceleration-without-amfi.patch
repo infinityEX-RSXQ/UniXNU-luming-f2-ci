@@ -1,0 +1,22 @@
+diff --git a/bsd/kern/ubc_subr.c b/bsd/kern/ubc_subr.c
+index 76c97a9..7a0e85a 100644
+--- a/bsd/kern/ubc_subr.c
++++ b/bsd/kern/ubc_subr.c
+@@ -4369,6 +4369,17 @@ accelerate_entitlement_queries(
+ {
+ 	kern_return_t ret = KERN_NOT_SUPPORTED;
+ 
++	/*
++	 * The acceleration runs through the AMFI interface, which owns the
++	 * CoreEntitlements bridge that backs csb_entitlements. When AMFI is not
++	 * registered (non-Apple ports that leave the kext out of the prelinked
++	 * kernel) there is nothing to accelerate and the interface pointer is
++	 * NULL, so skip instead of dereferencing it.
++	 */
++	if (amfi == NULL) {
++		return 0;
++	}
++
+ #if CODE_SIGNING_MONITOR
+ 	CEQueryContext_t ce_ctx = NULL;
+ 	const char *signing_id = NULL;

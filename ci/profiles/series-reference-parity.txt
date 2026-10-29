@@ -1,0 +1,20 @@
+# Reference-parity series used by CI run #9 (AMFI/no-cs bring-up patches enabled).
+zzzzz-fix-darwinboot-physical-framebuffer.patch
+zzzzz-luming-defer-console-init.patch
+zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
+zzzz-luming-skip-root-auth-gate-without-owner-audit.patch
+zzzzz-luming-entitlements-without-amfi.patch
+zzzzzz-luming-more-amfi-null-guards.patch
+zzzzzzzzzzzzzzz-luming-no-cs-bringup.patch
+zzzzzzz-luming-cache-path.patch
+zzzzzzz-luming-owner-cache-diagnostics.patch
+zzzzzzzz-luming-owner-cache-initproc-panic.patch
+zzzzzzzzz-luming-owner-cache-probe.patch
+zzzzzzzzzz-luming-owner-cache-root-list.patch
+zzzzzzzzzzz-luming-owner-cache-root-hex.patch
+zzzzzzzzzzzz-luming-owner-cache-dirent32.patch
+zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch
+zzzzzzzzzzzzzz-luming-owner-cache-union-env.patch
+zzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
+zzzzzzzzzzzzzzzzz-luming-ufs-log.patch
+zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch

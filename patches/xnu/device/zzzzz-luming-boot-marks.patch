@@ -1,0 +1,60 @@
+# luming diagnostic boot marks: five framebuffer colour bands marking early boot stages.
+# Bring-up only. Pair with kits/luming/BootMarks.c (libLumingBootLog.a).
+diff --git a/osfmk/arm/arm_init.c b/osfmk/arm/arm_init.c
+index 8fe43b6..d416a87 100644
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -520,6 +520,9 @@ arm_init(
+ #endif  /* __ARM_PAN_AVAILABLE__ */
+ 
+ 	arm_vm_init(xmaxmem, args);
++	/* luming diagnostic boot marks (bring-up only): see kits/luming/BootMarks.c */
++	extern void luming_boot_mark(unsigned int);
++	luming_boot_mark(1);
+ 
+ 	if (debug_boot_arg) {
+ 		patch_low_glo();
+@@ -535,6 +538,9 @@ arm_init(
+ 	const unsigned int serial_exists = serial_init();
+ 	kernel_startup_initialize_upto(STARTUP_SUB_KPRINTF);
+ 	kprintf("kprintf initialized\n");
++	/* luming diagnostic boot marks (bring-up only): see kits/luming/BootMarks.c */
++	extern void luming_boot_mark(unsigned int);
++	luming_boot_mark(2);
+ 
+ 	serialmode = 0;
+ 	if (PE_parse_boot_argn("serial", &serialmode, sizeof(serialmode))) {
+@@ -575,6 +581,9 @@ arm_init(
+ 		disableConsoleOutput = FALSE;     /* Allow printfs to happen */
+ 	}
+ 	PE_create_console();
++	/* luming diagnostic boot marks (bring-up only): see kits/luming/BootMarks.c */
++	extern void luming_boot_mark(unsigned int);
++	luming_boot_mark(3);
+ 
+ 	/* setup console output */
+ 	PE_init_printf(FALSE);
+@@ -588,6 +597,9 @@ arm_init(
+ 	cpu_machine_idle_init(TRUE);
+ 
+ 	PE_init_platform(TRUE, &BootCpuData);
++	/* luming diagnostic boot marks (bring-up only): see kits/luming/BootMarks.c */
++	extern void luming_boot_mark(unsigned int);
++	luming_boot_mark(4);
+ 
+ #if __arm64__
+ 	extern bool cpu_config_correct;
+diff --git a/osfmk/kern/startup.c b/osfmk/kern/startup.c
+index 0a9f261..8effee1 100644
+--- a/osfmk/kern/startup.c
++++ b/osfmk/kern/startup.c
+@@ -693,6 +693,9 @@ kernel_bootstrap_thread(void)
+ 
+ #ifdef  IOKIT
+ 	kernel_bootstrap_log("PE_init_iokit");
++	/* luming diagnostic boot marks (bring-up only): see kits/luming/BootMarks.c */
++	extern void luming_boot_mark(unsigned int);
++	luming_boot_mark(5);
+ 	PE_init_iokit();
+ #endif
+ 

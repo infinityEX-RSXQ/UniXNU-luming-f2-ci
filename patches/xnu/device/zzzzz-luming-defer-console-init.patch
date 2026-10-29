@@ -1,0 +1,64 @@
+--- a/pexpert/arm/pe_init.c
++++ b/pexpert/arm/pe_init.c
+@@ -5,8 +5,9 @@
+  */
+ #include <sys/types.h>
+ #include <sys/kdebug.h>
+ #include <mach/vm_param.h>
++#include <vm/vm_kern.h>
+ #include <pexpert/protos.h>
+ #include <pexpert/pexpert.h>
+ #include <pexpert/boot.h>
+ #include <pexpert/device_tree.h>
+@@ -519,8 +520,21 @@
+ void
+ PE_create_console(void)
+ {
+ 	/*
++	 * luming: arm_init() calls PE_create_console() before Mach VM exists,
++	 * while kernel_map is still VM_MAP_NULL. The video path then reaches
++	 * initialize_screen() -> ml_io_map_unmappable() -> io_map(), which
++	 * cannot allocate the framebuffer mapping without kernel_map (and the
++	 * 4 KiB bootstrap tables do not necessarily contain a PTE for the
++	 * framebuffer KVA). Defer the real console creation until the first
++	 * call made after vm_mem_bootstrap()/console_init() in kernel_bootstrap.
++	 */
++	if (kernel_map == VM_MAP_NULL) {
++		return;
++	}
++
++	/*
+ 	 * Check the head of VRAM for a panic log saved on last panic.
+ 	 * Do this before the VRAM is trashed.
+ 	 */
+ 	check_for_panic_log();
+--- a/osfmk/kern/startup.c
++++ b/osfmk/kern/startup.c
+@@ -116,8 +116,9 @@
+ #include <machine/pmap.h>
+ #include <machine/commpage.h>
+ #include <machine/machine_routines.h>
+ #include <libkern/version.h>
++#include <pexpert/pexpert.h>
+ #include <pexpert/device_tree.h>
+ #include <sys/codesign.h>
+ #include <sys/kdebug.h>
+ #include <sys/random.h>
+@@ -477,8 +478,17 @@
+ 	}
+ 
+ 	kernel_bootstrap_log("console_init");
+ 	console_init();
++
++	/*
++	 * luming: PE_create_console() was deferred from arm_init() because
++	 * kernel_map did not exist yet. By now vm_mem_bootstrap() has created
++	 * kernel_map and console_init() has set up the console ring; create the
++	 * screen through the real VM map here. PE_init_iokit() still performs
++	 * the normal vcattach (PE_init_printf(TRUE)) later.
++	 */
++	PE_create_console();
+ 
+ 	kernel_bootstrap_log("stackshot_init");
+ 	stackshot_init();
+ 

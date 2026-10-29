@@ -1,0 +1,38 @@
+[os]
+name = "ios-16.7.16-20H392"
+darwin = "22.6.0"
+# Public Darwin 22 source candidate. Exact kext/structure compatibility still
+# needs an ABI port and must not be inferred from the shared Darwin major.
+xnu_version = "8796.141.3"
+xnu_revision = "1b191cb58250d0705d8a51287127505aa4bc0789"
+driverkit_tag = "xnu-8796.141.3"
+trustcache_tag = "xnu-8796.101.5"
+abi_qualified = false
+abi = ["iPhone X A11 arm64; Darwin 22 ABI port pending"]
+
+[ipsw]
+url = "https://updates.cdn-apple.com/2025FallFCS/fullrestores/122-77006/1158E502-D76D-4226-AA06-ED5E30CD1111/iPhone10,3,iPhone10,6_16.7.16_20H392_Restore.ipsw"
+product = "iPhone10,3"
+version = "16.7.16"
+build = "20H392"
+device_class = "d22ap"
+chip_id = 0x8015
+board_id = 0x06
+fetch = ["KernelCache", "DeviceTree", "StaticTrustCache"]
+
+[audit]
+# SHA384 of the IM4P from the Apple BuildManifest, independently matched to
+# the bytes downloaded from Apple's IPSW, not the decompressed Mach-O.
+kernel_im4p_sha384 = "64904730143fc2411c6b82c0611379050b15d8402d5403ca38c48eb4a42d3568152d785bf9e2c3797f9113771bf003e3"
+kernel_im4p_sha256 = "2d6a13d040aaf87cec09bb6906d43e9bd8cea951e43d1aa1cd62707dfdc5aaec"
+kernel_member = "kernelcache.release.iphone10b"
+release_reference = "https://developer.apple.com/news/releases/?id=05112026j"
+
+[adt.root.string]
+model = "iPhone10,3"
+compatible = "D22AP"
+target-type = "D22"
+
+[adt.product.string]
+product-name = "iPhone X"
+artwork-device-idiom = "phone"

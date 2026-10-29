@@ -1,0 +1,152 @@
+# VALIDATION-HOST.log — f2-luming host-side static validation
+
+date: 2026-10-29 (post deep-graft top-3 + preflight); host: Windows 11; Python 3.12.
+
+## scripts/check-skeleton.py
+
+255 pass, 4 warn, 7 missing, 0 error (exit 0). Missing items are the documented external gaps (LumingUfs catalog entry/published source, display/input components, firmware checkout/seed inputs).
+
+## scripts/check-luming.py (format-2 preflight, new)
+
+check-luming: 139 pass, 5 warn, 0 error
+exit code: 0
+
+## porting-record.py check (with local LumingUfs catalog patch applied to a copy)
+
+luming: 13 structured areas checked (exit 0).
+The unpatched official UniXNU main lacks the LumingUfs catalog entry; the repository carries
+patches/unixnu/unixnu-components-lumingufs.patch and .github/workflows/porting-record.yml applies it before the check.
+
+## Deep-graft corrections applied
+- GccUfs.h GCC_AGGRE_UFS_PHY_AXI_ENABLE 0x770f4 (was 0x770f0).
+- DadaUfs.cpp renamed LumingUfs.cpp; kRootPartition "userdata"; accepted {qcom,ufshc, qcom,sm8735-ufshc}.
+- board.toml components/archives use LumingUfs + --component LumingUfs in the mandatory order.
+- kits/luming/BootLog.c + BootProcessProbe.c added (build-luming-boot-log.py sources).
+- tests/check_sm8750_facts.py renamed check_sm8735_facts.py (offset/partition expectations updated).
+
+## Not run on Windows
+- dtc DTS compile, unixnu kernel/prelink/firmware/payload/userdata/bootimg (need macOS or official Linux toolchain).
+- CI dispatch: .github/workflows/macos.yml and porting-record.yml are ready; windows-ci owns the publish.
+
+## 2026-10-29 02:5x — post deep-graft top-3 / preflight pass
+
+- check-skeleton.py (stock UniXNU): 258 pass, 7 missing, 4 warn, 0 error (exit 0).
+- check-skeleton.py (patched catalog copy .check/uni/UniXNU): 261 pass, 7 missing, 2 warn, 0 error; LumingUfs resolves from the patched catalog.
+- check-luming.py: 139 pass, 5 warn, 0 error (exit 0). Warnings: LumingUfs catalog entry pending, 2 component-owned profile patches, UFS stream 0x60 not documented in DTS, external uefi-luming not supplied.
+- porting-record.py check with patches/unixnu/unixnu-components-lumingufs.patch applied: 13 structured areas checked (exit 0).
+- catalog patch apply --check in a clean repo: PASS (git apply --check exit 0).
+- Deep-graft corrections: AGGRE 0x770f4; DadaUfs.cpp -> LumingUfs.cpp; kRootPartition "userdata"; accepted {qcom,ufshc,qcom,sm8735-ufshc}; board components/archives LumingUfs in OSMetaClass-safe order; kits/luming/BootLog.c+BootProcessProbe.c; tests renamed check_sm8735_facts.py.
+- New: drivers/LumingUfs/SM8735-VALUES.md (register/clock/PHY/partition candidate table with [measured]/[from-dada]/[needs-stock-source]/[unknown] and BLOCK/STUB flags).
+- CI wiring: scripts/ci/f2-luming-ci.sh preflight runs check-luming.py; .github/workflows/macos.yml preflight runs it and applies the catalog patch; porting-record.yml applies the patch before the official check.
+
+## Not run on Windows
+- dtc DTS compile, unixnu kernel/prelink/firmware/payload/userdata/bootimg (need macOS or official Linux toolchain).
+- CI dispatch: ready for windows-ci after publish.
+
+## Observability pass (2026-10-29)
+
+- docs/LOGGING.md: video console (DarwinBoot GOP boot_args.Video), UFS BootLog LUMINGL2 (last 32 MiB of userdata), panic/exec ring LUMINGL1, panic_screen=true, keepsyms/serial/debug args; boot-progress off (upstream gate) and GENI serial backend missing documented.
+- configs/luming_defconfig: CONFIG_XNU_LUMING_BOOT_LOG/DT_PANIC_REGION/CS_HASH_CACHE on; VIRTIO_CONSOLE off (QEMU only).
+- check-luming.py observability gate added; results check-luming=0 check-skeleton=0 porting=0.
+
+
+## Observability + stock-source pass (2026-10-29)
+
+- docs/LOGGING.md written: video console (DarwinBoot GOP boot_args.Video), UFS BootLog LUMINGL2 (last 32 MiB of userdata), panic/exec ring LUMINGL1, panic_screen=true, keepsyms/serial/debug args, AI9 QR fallback; boot-progress off (upstream gate) and GENI serial backend missing documented.
+- configs/luming_defconfig: LUMING_BOOT_LOG/DT_PANIC_REGION/CS_HASH_CACHE/NATIVE_UFS/RAM_BLOCK on; VIRTIO_CONSOLE off.
+- check-luming.py observability gate added; check-luming=1 check-skeleton=0 porting=0.
+- Stock sources (agents/luming-stock-kernel): gcc-tuna confirms AGGRE 0x770f4 + 8 offsets + RCG2; GDSC 0x77004/0x9e000 via tuna-gdsc/live DT; ufs-qcom match only qcom,ufshc; UFS node reg/IRQ/lanes match; PHY v4-niobe source now available; DTS deltas documented (SM8735-VALUES section E, docs/UFS.md).
+
+
+## Final observability + stock-source results (2026-10-29 03:0x)
+
+- check-luming.py: 159 pass, 6 warn, 0 error (observability gate now active).
+- check-skeleton.py: 261 pass, 7 missing, 4 warn, 0 error.
+- porting-record.py (with LumingUfs catalog patch): 13 structured areas checked.
+- Log paths: video console (DarwinBoot GOP), UFS BootLog LUMINGL2 (last 32 MiB userdata), panic/exec ring LUMINGL1, panic_screen=true, keepsyms/debug args; serial=3 inert (no GENI backend), boot-progress off (upstream gate). Read-back: docs/LOGGING.md + scripts/read-luming-log.py.
+- Stock sources: gcc-tuna AGGRE 0x770f4 + 8 offsets + RCG2 + GDSC confirmed; UFS DTS reg/IRQ/lanes match; PHY v4-niobe source now available; MCQ handoff + DMA<4GiB remain BLOCK risks.
+
+
+## Host-mismatch fixes (2026-10-29, task-336 follow-up)
+
+- board kernel_args: sheng-data-persist=2 -> luming-data-persist=2; added sheng-smp=1 (ArmCpu.cpp:188 parses exactly 'sheng-smp'); luming-log=1 present.
+- kits/luming/BootLog.c: remaining dada-log/read-dada-log strings renamed; magic LUMINGL2 confirmed.
+- check-luming.py: 159 pass, 6 warn, 0 error.
+- check-skeleton.py: 261 pass, 7 missing, 4 warn, 0 error.
+
+## DarwinBoot physical-framebuffer fix (2026-10-29)
+
+- patches/xnu/device/zzzzz-fix-darwinboot-physical-framebuffer.patch modifies osfmk/console/video_console.c
+  makeMapping to treat non-kernel-VA (< 0xffff000000000000) values as physical.
+- git apply --check against pinned xnu d8b80295118ef25ac3a784134bcf95cd8e88109f osfmk/console/video_console.c: PASS.
+- Added first in patches/xnu/device/series (before boot-progress); LF endings, no BOM.
+- Only one makeMapping assignment exists; initialize_screen() is the single mapping path (kPEAcquireScreen/
+  kPEReleaseScreen call it at video_console.c:3086/3089).
+
+- panic_screen restored to true after a stale board edit; check-luming=0 check-skeleton=0.
+
+
+## Boot-marks diagnostic build (2026-10-29)
+
+- kits/luming/BootMarks.c: luming_boot_mark(stage) maps FB with ml_io_map(0xFC800000,0x2B00000) once, paints 5 full-width bands (550 rows each; panel 1236x2750 stride 4944), dsb sy; compiled into libLumingBootLog.a by build-luming-boot-log.py.
+- patches/xnu/device/zzzzz-luming-boot-marks.patch: calls after arm_vm_init(1), kprintf initialized(2), PE_create_console(3), PE_init_platform(TRUE)(4), before PE_init_iokit(5); git apply --check against pinned xnu d8b8029 PASS; LF no BOM; series order: fb fix -> boot marks -> boot-progress.
+- docs/BOOT-MARKS.md written with band/stage decode, build/removal, fallbacks.
+- checks: check-luming=161/6/0, check-skeleton=374/7/4/0.
+
+
+## Early console-flush diagnostic (2026-10-29)
+
+- patches/xnu/device/zzzzz-luming-early-console-flush.patch: PE_init_printf(TRUE) (== vcattach(), pexpert/gen/pe_gen.c) after boot-mark 3 / PE_create_console(); shows buffered boot log before PE_init_iokit.
+- generated against post-boot-marks tree; full series fb fix -> boot marks -> early flush applied to pristine pinned xnu d8b8029 arm_init.c/startup.c: PASS; reverse-check PASS; LF only, no BOM.
+- docs/BOOT-MARKS.md updated; diagnostic only.
+- checks: ck-luming/ck-skeleton pending (see next line).
+
+- checks after early-flush: check-luming=0 check-skeleton=0.
+
+
+## Start-signals A/B/C diagnostic (2026-10-29)
+
+- patches/xnu/device/zzzzz-luming-start-signals.patch: start.s red FB block before MMU, green FB block before SCTLR_EL1, PSCI SYSTEM_RESET after MMU enable; x27/x28/x29 verified unused in pinned start.s; inserted before boot-marks in series.
+- standalone git apply --check against pinned osfmk/arm64/start.s: PASS; full series fb fix -> start signals -> boot marks -> early flush: PASS; LF only, no BOM.
+- docs/BOOT-MARKS.md updated with observation/inference table.
+
+- checks after start-signals: check-luming=0 check-skeleton=0.
+
+
+## Super J2 handoff root cause recorded (2026-10-29)
+
+- docs/BOOT-MARKS.md: device diag big text matched old A-line donor (BASE 0xFFFFFFF003DC8000); stale super LUMING-J2-BLOB published by J2HandoffDxe wins over boot.img ramdisk; fix options + runtime super check + static FDF/DSC verification.
+- REPORT-F2-LUMING-CI.md: sections 17.1/17.2 with APRIORI order (RamDisk->DiskIo->Partition->Fat), J2 module position/DEPEX, preflight/runbook, format-2 kernel base expectation.
+- GAP-LIST.md: gaps 17-20 (stale super, active J2 in FD, runtime-only CI gap, ramdisk path static-verified/not device-verified).
+- check-luming.py: new check_luming_payload_path static gate (PASS ramdisk order; WARN active J2HandoffDxe + runtime super check).
+- checks: check-luming= check-skeleton=.
+
+- checks after super-J2 documentation: check-luming=0 check-skeleton=0.
+
+## Deferred console + physical msgbuf dump (task-340, 2026-10-29)
+
+- Target source pinned at xnu d8b80295118ef25ac3a784134bcf95cd8e88109f (`xnu-10063.141.1`); pristine
+  files fetched from that commit for anchors/apply checks. Local `.tools/xnu-8796` used only as a
+  structural cross-check.
+- New `patches/xnu/device/zzzzz-luming-defer-console-init.patch`:
+  `pexpert/arm/pe_init.c` (PE_create_console no-op while kernel_map==VM_MAP_NULL; include vm_kern.h)
+  + `osfmk/kern/startup.c` (after console_init(), call PE_create_console(); normal
+  PE_init_printf(TRUE)/vcattach stays in PE_init_iokit). The early-point skip is inside
+  PE_create_console, preserving boot-marks/start-signals patch context. Standalone `git apply
+  --check` against pristine target: PASS (exit 0).
+- New `patches/xnu/device/zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch`:
+  `osfmk/console/serial_console.c` (128 KiB early ring + luming_dump_msgbuf: `luming-dump=1`,
+  `luming-dump-pa` default 0xE4000000, header magic LUMDUMP1, flush_dcache, PSCI reset) +
+  `osfmk/kern/debug.c` (call after PE_panic_hook). Standalone apply check: PASS (exit 0).
+- Sequence apply check against pristine target: fb fix -> defer-console -> start-signals ->
+  boot-marks -> msgbuf dump: all PASS. `zzzzz-luming-early-console-flush.patch` marked inactive in
+  series (superseded by the deferred call; early vcattach before screen creation is unsafe).
+- LF-only/no BOM checked for both patches and docs/CONSOLE-PATH.md; series file existing CRLF left
+  unchanged (patches only must be LF).
+- `scripts/check-luming.py`: **170 pass, 8 warn, 0 error** (exit 0).
+- `scripts/check-skeleton.py`: **377 pass, 7 missing, 4 warn, 0 error** (exit 0).
+- docs/CONSOLE-PATH.md written: deferred-console rationale, physical msgbuf dump usage, 4 KiB
+  early-mapping analysis (BOOTSTRAP_TABLE_SIZE/ARM_PGSHIFT/pmap_map_bd vs kernel_map) and fallback
+  order. No device operations performed.
+
+

@@ -1,0 +1,10 @@
+schema_version = 2
+
+[soc]
+name = "sm8735"
+description = "Qualcomm SM8735 (Tuna)"
+source_repository = "https://github.com/UniXNU/UniXNU-sm8735-common"
+source_revision = "local"
+
+[components]
+include = ["ArmCpu", "ArmDTPlatform"]

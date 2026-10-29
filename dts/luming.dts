@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Xiaomi Civi 5 Pro (luming) board hardware description, format-2 device repo.
+//
+// Adapted 2026-10-29 from the SM8550 sheng board DTS (structure) and the local SM8735 scaffold,
+// with the measured luming values. Every measured value and its source is listed in
+// docs/KNOWN-VALUES.md (source: backup/analysis/device-live/luming-live/{dtb-dump.json,iomem.txt}
+// + UniXNU-luming format-1 board.toml, capture date 2026-10-22).
+//
+// The SoC DTSI is vendored in this skeleton as the local soc feed source
+// (soc/dts/sm8735.dtsi; board.toml [device_tree].include_dirs = ["soc:dts"]). It is a corrected
+// copy of unixnu-format2/UniXNU-sm8735-common/dts/sm8735.dtsi with the measured GIC/timer/UFS/PHY/
+// UART/GPU facts and source annotations.
+/dts-v1/;
+/include/ "sm8735.dtsi"
+
+/ {
+    model = "Xiaomi Civi 5 Pro";
+    compatible = "xiaomi,luming", "qcom,sm8735";
+
+    #address-cells = <2>;
+    #size-cells = <2>;
+
+    aliases {
+        serial0 = &uart;
+    };
+
+    // [measured] The one contiguous DRAM range the ADT can express (format-2 requires exactly one
+    // memory node; the platform/payload dram_size must equal this size).
+    //   largest contiguous System RAM window from live /proc/iomem:
+    //   0x8c0000000..0xaffffefff = 0x23ffff000 (~9 GiB)
+    // The rest of the 12 GiB SKU is split by XPU carve-outs (low bank 0x80000000..0xffffffff and
+    // high-bank holes at 0x8af8fe000, 0x8b7f00000 and 0x8b9f00000) and cannot be expressed as one
+    // range; this matches the A-line kernel's physBase/markers at 0x8c01e06a0/0x8c4000000.
+    // [alternative, not chosen] 0x80000000 + 0x80000000 (2 GiB) is dada/sheng's low-bank shape;
+    // it is not where the luming A-line kernel was placed.
+    memory@8c0000000 {
+        device_type = "memory";
+        /* 64-bit values split explicitly: 0x8c0000000 and 0x23ffff000 */
+        reg = <0x8 0xc0000000 0x2 0x3ffff000>;
+    };
+
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        // [measured] live DT /reserved-memory/splash_region (label cont_splash_region):
+        //   reg <0 0xfc800000 0 0x2b00000>; dmesg reports 44,032 KiB non-reusable splash.
+        // ABL powers the panel off when the boot image DTB lacks this node (sheng note);
+        // board.toml [bootimg.dtb_node] adds it to the boot-image FDT.
+        // Panel facts for the future display component: FB base 0xFC800000, stride 4944 B,
+        // 1236x2750, 32 bpp (A-line/format-1 measured facts; docs/KNOWN-VALUES.md #6).
+        splash_region: framebuffer@fc800000 {
+            label = "cont_splash_region";
+            reg = <0 0xfc800000 0 0x2b00000>;
+            no-map;
+        };
+    };
+};
+
+// First boot: no GPU, no display service, no touch/input userspace yet (dada stage).
+// The nodes exist but stay disabled; enabling them needs the matching format-2 components
+// (docs/GAP-LIST.md #4/#5).
+&gpu { status = "disabled"; };
+&gmu { status = "disabled"; };
+&gpu_smmu { status = "disabled"; };
+
+// Storage: the SHNGROOT root sits on the userdata partition and is reached through the
+// adopted UFS controller. The node is exported as /arm-io/ufshc and /arm-io/ufsphy
+// (docs/UFS.md).
+&ufshc { status = "okay"; };
+&ufsphy { status = "okay"; };

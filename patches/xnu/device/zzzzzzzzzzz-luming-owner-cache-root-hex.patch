@@ -1,0 +1,82 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -7031,12 +7031,13 @@
+ volatile int native_owner_cache_mount_status = -1;
+ volatile int native_owner_cache_readonly = 0;
+ volatile int native_owner_cache_authorized = 0;
+ volatile int native_owner_cache_root_recheck = 0;
+ volatile int native_owner_cache_path_mask = 0;
+ char native_owner_cache_root_names[96] = {0};
++char native_owner_cache_root_raw[49] = {0};
+ volatile uint64_t native_owner_cache_actual_mount_flags = 0;
+ volatile uintptr_t native_owner_cache_original_root = 0;
+ volatile uintptr_t native_owner_cache_current_root = 0;
+ volatile int native_owner_cache_native_union = 0;
+ volatile dev_t native_owner_cache_selected_device = NODEV;
+ volatile dev_t native_owner_cache_mounted_device = NODEV;
+@@ -7188,12 +7189,16 @@
+ 				struct uio *uio = uio_create(1, 0, UIO_SYSSPACE, UIO_READ);
+ 				if (uio) {
+ 					uio_addiov(uio, (user_addr_t)(uintptr_t)buf, sizeof(buf));
+ 					int eofflag = 0, numdirent = 0;
+ 					if (VNOP_READDIR(root_vp, uio, 0, &eofflag, &numdirent,
+ 					    vfs_context_current()) == 0) {
++						for (unsigned b = 0; b < 24; b++) {
++							snprintf(native_owner_cache_root_raw + b * 2, 3, "%02x",
++							    (unsigned char)buf[b]);
++						}
+ 						size_t used = sizeof(buf) - uio_resid(uio);
+ 						size_t off = 0, out = 0;
+ 						while (off + __offsetof(struct dada_dirent, d_name) + 1 <= used) {
+ 							struct dada_dirent *dp = (struct dada_dirent *)(buf + off);
+ 							if (dp->d_reclen == 0 || off + dp->d_reclen > used) break;
+ 							if (dp->d_namlen && strcmp(dp->d_name, ".") && strcmp(dp->d_name, "..")) {
+diff --git a/bsd/kern/kern_exit.c b/bsd/kern/kern_exit.c
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -1819,12 +1819,13 @@
+ #if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
+ extern volatile int native_owner_cache_stage;
+ extern volatile int native_owner_cache_status;
+ extern char native_owner_cache_device_path[64];
+ extern volatile int native_owner_cache_path_mask;
+ extern char native_owner_cache_root_names[96];
++extern char native_owner_cache_root_raw[49];
+ #endif
+ 
+ static void
+ proc_handle_critical_exit(proc_t p, int rv)
+ {
+ 	if (!proc_should_trigger_panic(p, rv)) {
+@@ -1850,27 +1851,27 @@
+ 		printf("pid %d exited -- exit reason namespace %d subcode 0x%llx, description %s\n", proc_getpid(p),
+ 		    p->p_exit_reason->osr_namespace, p->p_exit_reason->osr_code, exit_reason_desc ?
+ 		    exit_reason_desc : "none");
+ 	}
+ 
+ 	const char *prefix_str;
+-	char prefix_str_buf[128];
++	char prefix_str_buf[256];
+ 
+ 	if (p == initproc) {
+ 		if (strnstr(p->p_name, "preinit", sizeof(p->p_name))) {
+ 			prefix_str = "LTE preinit process exited";
+ 		} else if (initproc_spawned) {
+ 			prefix_str = "initproc exited";
+ 		} else {
+ 			prefix_str = "initproc failed to start";
+ 		}
+ #if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
+-		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s p%x %s]",
++		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s p%x %s h%s]",
+ 		    prefix_str, native_owner_cache_stage, native_owner_cache_status,
+ 		    native_owner_cache_device_path, native_owner_cache_path_mask,
+-		    native_owner_cache_root_names);
++		    native_owner_cache_root_names, native_owner_cache_root_raw);
+ 		prefix_str = prefix_str_buf;
+ #endif
+ 	} else {
+ 		/* For processes that aren't launchd, just use the process name and pid */
+ 		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s[%d] exited", p->p_name, proc_getpid(p));
+ 		prefix_str = prefix_str_buf;

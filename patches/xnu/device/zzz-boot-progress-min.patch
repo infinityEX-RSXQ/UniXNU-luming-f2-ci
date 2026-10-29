@@ -1,0 +1,119 @@
+diff --git a/osfmk/kern/boot_progress.h b/osfmk/kern/boot_progress.h
+new file mode 100644
+--- /dev/null
++++ b/osfmk/kern/boot_progress.h
+@@ -0,0 +1,34 @@
++// SPDX-License-Identifier: MIT
++#ifndef XNU_BOOT_PROGRESS_H
++#define XNU_BOOT_PROGRESS_H
++#include <stdint.h>
++#if defined(XNU_BOOT_PROGRESS) && XNU_BOOT_PROGRESS
++void boot_progress_init(void);
++void boot_progress_start(void);
++int boot_progress_active(void);
++void boot_progress_bind(uintptr_t, unsigned, unsigned, unsigned, unsigned);
++void boot_progress_putc(char);
++void boot_progress_stage(const char *);
++void boot_progress_irq(uint64_t, uint64_t, uint64_t);
++void boot_progress_poll(void);
++void boot_progress_user_breakpoint(void *, unsigned);
++void boot_progress_user_abort(void *, unsigned, uint64_t);
++void boot_progress_critical_exit(int, char *, unsigned long);
++void boot_progress_process_stage(int, const char *, const char *);
++void boot_progress_exit(int, const char *, int, unsigned, uint64_t);
++#else
++#define boot_progress_init() ((void)0)
++#define boot_progress_start() ((void)0)
++#define boot_progress_active() 0
++#define boot_progress_bind(...) ((void)0)
++static inline void boot_progress_putc(char c) { (void)c; }
++#define boot_progress_stage(s) ((void)0)
++#define boot_progress_irq(...) ((void)0)
++#define boot_progress_poll() ((void)0)
++#define boot_progress_user_breakpoint(...) ((void)0)
++#define boot_progress_user_abort(...) ((void)0)
++#define boot_progress_critical_exit(...) ((void)0)
++#define boot_progress_process_stage(...) ((void)0)
++#define boot_progress_exit(...) ((void)0)
++#endif
++#endif
+diff --git a/osfmk/arm/arm_init.c b/osfmk/arm/arm_init.c
+--- a/osfmk/arm/arm_init.c
++++ b/osfmk/arm/arm_init.c
+@@ -1,3 +1,4 @@
++#include <kern/boot_progress.h>
+ /*
+  * Copyright (c) 2007-2021 Apple Inc. All rights reserved.
+  *
+@@ -369,6 +370,7 @@
+ #endif /* defined(HAS_APPLE_PAC) */
+ 
+ 	PE_init_platform(FALSE, args); /* Get platform expert set up */
++	boot_progress_init();
+ 
+ #if __arm64__
+ 	configure_timer_apple_regs();
+diff --git a/osfmk/kern/startup.c b/osfmk/kern/startup.c
+--- a/osfmk/kern/startup.c
++++ b/osfmk/kern/startup.c
+@@ -75,12 +75,13 @@
+ #include <mach/task_special_ports.h>
+ #include <mach/vm_param.h>
+ #include <kern/assert.h>
+ #include <kern/mach_param.h>
+ #include <kern/misc_protos.h>
+ #include <kern/clock.h>
++#include <kern/boot_progress.h>
+ #include <kern/coalition.h>
+ #include <kern/cpu_number.h>
+ #include <kern/ledger.h>
+ #include <kern/machine.h>
+ #include <kern/processor.h>
+ #include <kern/restartable.h>
+@@ -646,12 +647,13 @@
+ 
+ 	/*
+ 	 *	Create the clock service.
+ 	 */
+ 	kernel_bootstrap_thread_log("clock_service_create");
+ 	clock_service_create();
++	boot_progress_start();
+ 
+ 	/*
+ 	 *	Create the device service.
+ 	 */
+ 	device_service_create();
+ 
+diff --git a/osfmk/console/video_console.c b/osfmk/console/video_console.c
+--- a/osfmk/console/video_console.c
++++ b/osfmk/console/video_console.c
+@@ -86,12 +86,13 @@
+  *
+  *   -- Brad and Lawrence, June 26th, 1994
+  *
+  */
+ 
+ #include <console/video_console.h>
++#include <kern/boot_progress.h>
+ #include <console/serial_protos.h>
+ 
+ #include <kern/kern_types.h>
+ #include <kern/kalloc.h>
+ #include <kern/debug.h>
+ #include <kern/thread_call.h>
+@@ -2893,12 +2894,15 @@
+ 			vinfo = new_vinfo;
+ 			simple_unlock(&vc_progress_lock);
+ 		} else {
+ 			vinfo = new_vinfo;
+ 		}
+ 
++		boot_progress_bind(vinfo.v_baseaddr, vinfo.v_width, vinfo.v_height,
++		    vinfo.v_rowbytes, vinfo.v_depth);
++
+ 		// If we changed the virtual address, remove the old mapping
+ 		if (newVideoVirt != 0) {
+ 			if (lastVideoVirt && lastVideoMapSize) {                                                /* Was the framebuffer mapped before? */
+ 				/* XXX why only !4K? */
+ 				if (!TEST_PAGE_SIZE_4K && lastVideoMapSize) {
+ 					pmap_remove(kernel_pmap, trunc_page_64(lastVideoVirt),

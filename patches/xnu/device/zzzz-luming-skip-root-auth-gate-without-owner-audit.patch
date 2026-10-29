@@ -1,0 +1,21 @@
+diff --git a/bsd/kern/bsd_init.c b/bsd/kern/bsd_init.c
+index 94243c9..50bf5ea 100644
+--- a/bsd/kern/bsd_init.c
++++ b/bsd/kern/bsd_init.c
+@@ -1093,6 +1093,16 @@ bsd_init(void)
+ #endif
+ 				native_owner_root_checkpoint(autherr, owner, device);
+ 			}
++#endif
++#if !defined(XNU_OWNER_ROOT_AUDIT) || !XNU_OWNER_ROOT_AUDIT
++			/*
++			 * dada: this port carries no owner-signature gate. The SHNGROOT
++			 * manifest is verified when the root image is built, so when the
++			 * owner-root audit is not part of the kernel there is no owner
++			 * signal to accept and a failing Apple rootauth ioctl must not
++			 * stop the boot.
++			 */
++			owner_authorized = 1;
+ #endif
+ 			if (autherr && !owner_authorized) {
+ 				panic("rootvp not authenticated after mounting");

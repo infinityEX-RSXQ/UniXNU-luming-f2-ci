@@ -1,0 +1,209 @@
+# Board description of the Xiaomi 15 (dada, Qualcomm SM8750 "sun").
+#
+# Format 2: shared SM8750 resources come from UniXNU-sm8750-common, the target
+# OS identity from the selected OS profile, and this file keeps the board's own
+# wiring, firmware selection, partition geometry and payload policy.
+# docs/known-values.md records every pinned address and its source.
+schema_version = 2
+
+[board]
+name = "dada"
+soc = "SM8750"
+soc_source = "sm8750"
+os_profile = "ipados-17.7.11-21H461"
+description = "Xiaomi 15"
+kit = "dada"
+example = false
+
+[components]
+# The components this board's kernel builds today. VirtioMmioBlock arrives as
+# DadaUfs's dependency. Further checkouts under drivers/ and kits/
+# (GopFramebuffer, AppleKeyStoreState, QcomGeniSpi, RamBlock,
+# VirtioMmioConsole) are generic components kept for later subsystems; the
+# sheng-only GPU and touch checkouts were removed with the board fork.
+# porting.toml records each area.
+include = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "DadaUfs", "RamBlock", "XnuPrelink", "DarwinBoot"]
+
+[userdata]
+# GPT entry "linux" on LUN 0. /sys/class/block/sda36 reports start=808593408 and
+# size=195313664 in 512-byte sectors; this table uses 4096-byte LBAs, so
+# 808593408 * 512 / 4096 = 101074176 and the last byte falls in LBA 125488383.
+# The partition carries the SHNGROOT manifest and the OS/SystemOS windows.
+first_lba = 101074176
+last_lba = 125488383
+lba_bytes = 4096
+windows = [
+  { name = "OS", component = "OS" },
+  { name = "SystemOS", component = "Cryptex1,SystemOS" },
+]
+
+[kernel]
+defconfig = "dada_defconfig"
+config_fragments = ["arch:configs/common.config", "soc:configs/sm8750.config", "os:configs/ipados.config"]
+patch_series = ["arch:patches/xnu/series", "soc:patches/xnu/series", "os:patches/xnu/series", "device:patches/xnu/series"]
+# Ordered archive plan. The storage transport needs the pinned
+# IOBlockStorageDevice reference object (build-storage-classes.py) and then the
+# kext-binding pass (build-storage-kext-bindings.py) that rebinds its base-class
+# imports to the prelinked com.apple.iokit.IOStorageFamily addresses. Compiling
+# that base class into the kernel instead registers a duplicate OSMetaClass.
+archives = [
+  "build-corecrypto-14.py",
+  "build-corecrypto-14.py --namespace",
+  "component:ArmDTPlatform",
+  "component:ArmCpu",
+  "component:SoftwareAES",
+  "build-software-aes-bindings.py",
+  "build-libpthread-kernel.py",
+  "build-storage-classes.py",
+  "component:DadaUfs",
+"build-dada-platform-power.py",
+  "build-storage-kext-bindings.py --component DadaUfs",
+  "build-dada-ram-block.py",
+  "build-dada-boot-log.py",
+]
+
+[kernel.prelink]
+# tool, kernel, kernelcache_sha256 and slide come from the OS profile. This
+# board prelinks no AMFI (and nothing that depends on it), so it also clears the
+# inherited early security initializer: see docs/known-values.md, "Why AMFI is
+# not prelinked".
+early_security_init = "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0"
+roots = [
+  "com.apple.AppleFSCompression.AppleFSCompressionTypeZlib",
+  "com.apple.driver.AppleARMPlatform",
+  "com.apple.driver.AppleARMWatchdogTimer",
+  "com.apple.driver.AppleAudioClockLibs",
+  "com.apple.driver.AppleEffaceableStorage",
+  "com.apple.driver.AppleIISController",
+  "com.apple.driver.AppleM2ScalerCSCDriver",
+  "com.apple.driver.AppleMobileFileIntegrity",
+  "com.apple.driver.ApplePMGR",
+  "com.apple.driver.IODARTFamily",
+  "com.apple.filesystems.apfs",
+  "com.apple.iokit.CoreAnalyticsFamily",
+  "com.apple.iokit.IOAVFamily",
+  "com.apple.iokit.IOAudio2Family",
+  "com.apple.iokit.IOCECFamily",
+  "com.apple.iokit.IOCryptoAcceleratorFamily",
+  "com.apple.iokit.IOHDCPFamily",
+  "com.apple.iokit.IOReportFamily",
+  "com.apple.iokit.IOSlowAdaptiveClockingFamily",
+  "com.apple.iokit.IOStorageFamily",
+  "com.apple.iokit.IOSurface",
+  "com.apple.kec.Libm",
+  "com.apple.kec.corecrypto",
+  "com.apple.kext.AppleMatch",
+  "com.apple.kext.CoreTrust",
+  "com.apple.security.AppleImage4",
+  "com.apple.security.sandbox",
+]
+
+[device_tree]
+source = "device:dts/dada.dts"
+include_dirs = ["soc:dts"]
+
+[firmware]
+config = "dada"
+dsc = "Platforms/Xiaomi/dadaPkg/dada.dsc"
+fd = "Build/dadaPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd"
+preflight = ["scripts/check-dada.py"]
+# The vendor binaries (Binaries/Device-Binaries, branch dada) and the trees the
+# DSC needs.
+submodules = [
+  "Binaries",
+  "Common/Mu",
+  "Common/Mu_OEM_Sample",
+  "Silicon/Silicium/OpensslPkg/Library/OpensslLib/openssl",
+]
+# The Mu_Basecore patch series that Mu-Silicium's build_uefi.py applies to every
+# platform. UniXNU applies and reverts them around the EDK II build.
+patches = [
+  "Resources/MuPatches/AsmMacroLib.patch",
+  "Resources/MuPatches/Auth-Service.patch",
+  "Resources/MuPatches/Boot-Manager.patch",
+  "Resources/MuPatches/Timer.patch",
+  "Resources/MuPatches/Usb-Bus.patch",
+]
+packages = [
+  "{uefi}",
+  "{uefi}/Platforms/Xiaomi",
+  "{tree}/package",
+  "{tree}/drivers/DarwinBoot",
+  "{edk2}",
+  "{uefi}/Common/Mu",
+  "{uefi}/Common/Mu_OEM_Sample",
+  "{uefi}/Silicon/Qualcomm",
+  "{uefi}/Silicon/Silicium",
+]
+
+[firmware.defines]
+ENABLE_SECUREBOOT = "0"
+DEVICE_MODEL = "0"
+MEMORY_PROTECTION = "TRUE"
+SHIP_MODE = "FALSE"
+BUILDID_STRING = "dada-research"
+
+[payload]
+volume = "DADAESP"
+size_mib = 192
+loader = "firmware"
+title = "dada first boot: source 4K XNU to console"
+# One contiguous dram-base/dram-size pair: the stock tree reports 15.12 GiB in
+# 16 regions, which the ADT cannot express, so 2 GiB from 0x80000000 stays the
+# conservative first-boot value.
+dram_size = "0x80000000"
+panic_screen = false
+kernel_args = [
+  "-v",
+  "debug=0x14e",
+  "boot-progress=2",
+  "armcpu-diagnostics=1",
+  "native-ufs-root=1",
+  "native-ufs-diagnostics=1",
+  "-no_slto_panic",
+  "sheng-pmgr=2",
+  "dada-log=1",
+  "sheng-data-persist=2",
+  "-apfs_shared_datavolume",
+  "panic_on_crash_disabled=1",
+  "ml-timeout-lock-panic-scale=40",
+]
+
+[payload.adt]
+# A software identity seed for IOPlatformUUID, not an Apple chip id. The
+# platform seed itself is not stored in any repository.
+chip_id = "208"
+# The DarwinBoot contiguous window request: 256 MiB was measured to allocate on
+# this phone; 1 GiB was never observed to be allocatable.
+owned_memory_size = "0x10000000"
+# UUID of the root volume, read out of the OS image the "linux" partition
+# carries (APSB superblock at 0x3e1c400 of 044-76040-038.dmg).
+root_match_volume_uuid = "04769D26-2CA0-4825-B443-E2E5F88300F2"
+packed_data_ramdisk = true
+unique_chip_id = "required"
+
+[adt]
+[adt.chosen.u32]
+# This board prelinks no AMFI, so there is no platform-code policy to restrict.
+amfi-only-platform-code = 0
+
+[adt.product.string]
+model = "xiaomi,dada"
+
+[adt.product.u32]
+thin-bezel = 1
+
+[adt.defaults.u32]
+# Suspend/resume is not implemented for this board.
+sleep-disabled = 1
+
+[adt.buttons]
+[adt.buttons.string]
+compatible = "buttons"
+device_type = "buttons"
+
+[adt.buttons.strings]
+button-names = ["hold", "voldown", "volup"]
+
+[adt.buttons.u32]
+home-button-type = 2

@@ -1,0 +1,25 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -7230,19 +7230,21 @@
+ 				    "%s/System/Library/Caches/com.apple.dyld", mountpoint);
+ 				dada_cache_list_dir(list_path, native_owner_cache_dyld_names,
+ 				    sizeof(native_owner_cache_dyld_names));
+ 				snprintf(native_owner_cache_names_src, sizeof(native_owner_cache_names_src), "caches");
+ 			}
+ 		}
++#if !defined(XNU_OWNER_UNION_SYSTEMOS) || !XNU_OWNER_UNION_SYSTEMOS
+ 		const char *cache_dir = "/System/Library/Caches/com.apple.dyld";
+ 		if (!(mask & 1) && (mask & 2)) {
+ 			cache_dir = "/System/Library/dyld";
+ 		} else if (!(mask & 1) && !(mask & 2) && (mask & 4)) {
+ 			cache_dir = "/System/Cryptexes/OS/System/Library/Caches/com.apple.dyld";
+ 		}
+ 		snprintf(environment, sizeof(environment), "DYLD_SHARED_CACHE_DIR=%s%s", mountpoint, cache_dir);
++#endif
+ 	}
+ 	native_owner_cache_stage = 5;
+ #if !defined(XNU_OWNER_UNION_SYSTEMOS) || !XNU_OWNER_UNION_SYSTEMOS
+ 	if ((error = copyout(environment, environment_vector[0], strlen(environment) + 1)) != 0 ||
+ 	    (error = copyout(environment_vector, scratch + 0x500, sizeof(environment_vector))) != 0) goto done;
+ #if defined(XNU_OWNER_CRYPTEX_FILES) && XNU_OWNER_CRYPTEX_FILES

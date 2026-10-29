@@ -1,0 +1,5 @@
+# Reduced diagnostic series for the deferred-console + msgbuf-phys-dump build (2026-10-29).
+# Consumed by copying this list into patches/xnu/device/series.
+zzzzz-fix-darwinboot-physical-framebuffer.patch
+zzzzz-luming-defer-console-init.patch
+zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch

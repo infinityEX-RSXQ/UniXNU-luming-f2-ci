@@ -1,0 +1,208 @@
+diff --git a/osfmk/arm64/sleh.c b/osfmk/arm64/sleh.c
+index ff5296d..202c2a7 100644
+--- a/osfmk/arm64/sleh.c
++++ b/osfmk/arm64/sleh.c
+@@ -78,6 +78,8 @@
+ 
+ #include <arm64/platform_error_handler.h>
+ 
++extern void luming_dump_msgbuf(const char *reason);
++
+ #if KASAN_TBI
+ #include <san/kasan.h>
+ #endif /* KASAN_TBI */
+@@ -641,6 +643,13 @@ sleh_synchronous(arm_context_t *context, uint32_t esr, vm_offset_t far, __unused
+ #endif
+ 	bool is_user = PSR64_IS_USER(get_saved_state_cpsr(state));
+ 
++#if __arm64__
++	if (!is_user && (class == ESR_EC_DABORT_EL1 || class == ESR_EC_IABORT_EL1)) {
++		luming_dump_msgbuf(class == ESR_EC_DABORT_EL1 ?
++		    "Kernel data abort (sleh)" : "Kernel instruction abort (sleh)");
++	}
++#endif
++
+ #if CONFIG_SPTM
+ 	// Lockdown should only be initiated for kernel exceptions
+ 	assert(!(is_user && did_initiate_panic_lockdown));
+diff --git a/osfmk/console/serial_console.c b/osfmk/console/serial_console.c
+index e6d38d3..99a18ee 100644
+--- a/osfmk/console/serial_console.c
++++ b/osfmk/console/serial_console.c
+@@ -50,6 +50,11 @@
+ #if __arm64__
+ #include <machine/machine_routines.h>
+ #include <arm/cpu_data_internal.h>
++#include <arm/pmap.h>
++#include <arm/caches_internal.h>
++#include <mach/vm_param.h>
++#include <pexpert/pexpert.h>
++#include <string.h>
+ #endif
+ 
+ #ifdef CONFIG_XNUPOST
+@@ -620,9 +625,127 @@ console_write_unbuffered(char c)
+  *
+  * @param c The character to print.
+  */
++#if __arm64__
++/*
++ * luming debug-only physical msgbuf dump.
++ *
++ * The normal video console can only be created after Mach VM exists (the
++ * deferred-console patch). If the kernel then faults in PE_init_iokit or
++ * later, there is no console output and no panic log yet. Keep an early log
++ * ring filled by console_write_char() and, on a panic with
++ * luming-dump=1, copy it to a fixed physical address inside the DarwinBoot
++ * kernel window, clean it to the point of coherency, and reset via PSCI.
++ * DarwinBoot/firmware MEMDUMP can read the fixed PA on the next boot.
++ *
++ * The PA must be inside the kernel physmap window (default 0xE4000000,
++ * which is inside the observed 0xE387C000..0xF387C000 DarwinBoot window).
++ * luming-dump-pa=<hex> overrides it.
++ */
++#define LUMING_DUMP_LOG_BYTES (128 * 1024)
++#define LUMING_DUMP_DEFAULT_PA 0xE4000000U
++
++struct luming_dump_header {
++	char     magic[8];          /* "LUMDUMP1" */
++	uint32_t version;           /* 1 */
++	uint32_t log_bytes;         /* bytes of ring copied after the header */
++	uint32_t log_capacity;      /* ring capacity */
++	uint32_t pa;                /* fixed physical address */
++	uint64_t kernel_slide;
++	uint64_t timestamp;         /* CNTPCT_EL0 */
++	uint64_t reserved0;
++	uint32_t reserved1;
++	uint32_t reserved2;
++	char     reason[64];
++};
++
++static char luming_dump_log[LUMING_DUMP_LOG_BYTES];
++static volatile uint32_t luming_dump_log_len;
++
++static inline void
++luming_dump_capture(char c)
++{
++	uint32_t at = luming_dump_log_len;
++	if (at < LUMING_DUMP_LOG_BYTES) {
++		luming_dump_log[at] = c;
++		luming_dump_log_len = at + 1;
++	}
++}
++
++static inline void
++luming_psci_system_reset(void)
++{
++	register uint64_t x0 __asm__("x0") = 0x84000009ULL; /* PSCI SYSTEM_RESET */
++	__asm__ volatile("dsb sy; smc #0; hvc #0" : "+r"(x0) : : "memory");
++	for (;;) {
++		__asm__ volatile("wfe");
++	}
++}
++
++void
++luming_dump_msgbuf(const char *reason)
++{
++	uint32_t enabled = 0;
++	uint32_t pa = LUMING_DUMP_DEFAULT_PA;
++	uint64_t now;
++
++	if (!PE_parse_boot_argn("luming-dump", &enabled, sizeof(enabled)) || enabled != 1) {
++		kprintf("LUMING-DUMP GATE disabled parsed=%u\n", enabled);
++		return;
++	}
++	if (PE_parse_boot_argn("luming-dump-pa", &pa, sizeof(pa)) && pa >= 0x1000) {
++		/* use the override */
++	} else {
++		pa = LUMING_DUMP_DEFAULT_PA;
++	}
++	kprintf("LUMING-DUMP ENTER pa=%x kernel_map=%p enabled=%u\n",
++	    (unsigned)pa, kernel_map, enabled);
++	if (kernel_map == VM_MAP_NULL || pa == 0) {
++		kprintf("LUMING-DUMP NOVM pa=%x kernel_map=%p\n", (unsigned)pa, kernel_map);
++		return;
++	}
++
++	struct luming_dump_header header;
++	uint32_t len = luming_dump_log_len;
++	if (len > LUMING_DUMP_LOG_BYTES) {
++		len = LUMING_DUMP_LOG_BYTES;
++	}
++	memset(&header, 0, sizeof(header));
++	memcpy(header.magic, "LUMDUMP1", 8);
++	header.version = 1;
++	header.log_bytes = len;
++	header.log_capacity = LUMING_DUMP_LOG_BYTES;
++	header.pa = pa;
++	header.kernel_slide = vm_kernel_slide;
++	__asm__ volatile("isb; mrs %0, cntpct_el0" : "=r"(now));
++	header.timestamp = now;
++	if (reason != NULL) {
++		uint32_t n = 0;
++		while (n < sizeof(header.reason) - 1 && reason[n] != 0) {
++			header.reason[n] = reason[n];
++			n++;
++		}
++	}
++	uint8_t *dst = (uint8_t *)phystokv((pmap_paddr_t)pa);
++	if (dst == NULL) {
++		kprintf("LUMING-DUMP NOKV pa=%x\n", (unsigned)pa);
++		return;
++	}
++	kprintf("LUMING-DUMP COPY pa=%x len=%u dst=%p\n", (unsigned)pa, len, dst);
++	memcpy(dst, &header, sizeof(header));
++	memcpy(dst + sizeof(header), luming_dump_log, len);
++	flush_dcache((vm_offset_t)dst, (unsigned)(sizeof(header) + len), 0);
++	__asm__ volatile("dsb sy" ::: "memory");
++	kprintf("LUMING-DUMP DONE pa=%x len=%u\n", (unsigned)pa, len);
++	luming_psci_system_reset();
++}
++#endif /* __arm64__ */
++
+ void
+ console_write_char(char c)
+ {
++#if __arm64__
++	luming_dump_capture(c);
++#endif
+ 	console_write(&c, 1);
+ }
+ 
+diff --git a/osfmk/kern/debug.c b/osfmk/kern/debug.c
+index e9daeed..55921dc 100644
+--- a/osfmk/kern/debug.c
++++ b/osfmk/kern/debug.c
+@@ -267,6 +267,7 @@ void panic_spin_forever(void) __dead2;
+ extern kern_return_t do_panic_stackshot(void);
+ extern kern_return_t do_stackshot(void);
+ extern void PE_panic_hook(const char*);
++extern void luming_dump_msgbuf(const char *reason);
+ extern int sync(proc_t p, void *, void *);
+ 
+ #define NESTEDDEBUGGERENTRYMAX 5
+@@ -899,6 +900,12 @@ DebuggerWithContext(unsigned int reason, void *ctx, const char *message,
+ #endif
+ 
+ 	PE_panic_hook(message);
++	/*
++	 * luming debug-only post-mortem channel: with luming-dump=1, copy the
++	 * early console ring to a fixed physical address and PSCI-reset so the
++	 * next DarwinBoot/MEMDUMP can read it. No effect without the boot arg.
++	 */
++	luming_dump_msgbuf(message);
+ 
+ 	doprnt_hide_pointers = FALSE;
+ 
+@@ -1134,6 +1141,11 @@ panic_trap_to_debugger(const char *panic_format_str, va_list *panic_args, unsign
+ {
+ #pragma clang diagnostic pop
+ 
++#if __arm64__
++	/* luming diagnostic: catch all panics and fatal traps before the panic path can stall. */
++	luming_dump_msgbuf(panic_format_str);
++#endif
++
+ #if defined(__x86_64__) && (DEVELOPMENT || DEBUG)
+ 	read_lbr();
+ #endif

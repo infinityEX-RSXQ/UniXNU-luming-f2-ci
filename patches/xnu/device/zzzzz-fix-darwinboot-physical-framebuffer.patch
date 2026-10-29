@@ -1,0 +1,20 @@
+diff --git a/osfmk/console/video_console.c b/osfmk/console/video_console.c
+index 4c1edf1..e4f577e 100644
+--- a/osfmk/console/video_console.c
++++ b/osfmk/console/video_console.c
+@@ -2840,7 +2840,14 @@ initialize_screen(PE_Video * boot_vinfo, unsigned int op)
+ 		 *  If VM is up, we are given a virtual address, unless b0 is set to indicate physical.
+ 		 */
+ 		newVideoVirt = boot_vinfo->v_baseAddr;
+-		makeMapping = (kernel_map == VM_MAP_NULL) || (0 != (1 & newVideoVirt));
++		/*
++		 * UniXNU: DarwinBoot hands over the GOP framebuffer as a physical address
++		 * without the iBoot b0 marker (it passes e.g. 0xFC800000 as an even value).
++		 * Treat any non-kernel-VA address as physical so initialize_screen() maps it
++		 * instead of writing pixels to an unmapped virtual address after VM init.
++		 */
++		makeMapping = (kernel_map == VM_MAP_NULL) || (0 != (1 & newVideoVirt)) ||
++		    (newVideoVirt < 0xffff000000000000ULL);
+ 		if (makeMapping) {
+ 			newVideoVirt = 0;
+ 			new_vinfo.v_physaddr = boot_vinfo->v_baseAddr & ~3UL;           /* Get the physical address */

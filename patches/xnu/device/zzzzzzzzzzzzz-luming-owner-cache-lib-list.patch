@@ -1,0 +1,193 @@
+diff --git a/bsd/kern/kern_exec.c b/bsd/kern/kern_exec.c
+--- a/bsd/kern/kern_exec.c
++++ b/bsd/kern/kern_exec.c
+@@ -7032,24 +7032,65 @@
+ volatile int native_owner_cache_readonly = 0;
+ volatile int native_owner_cache_authorized = 0;
+ volatile int native_owner_cache_root_recheck = 0;
+ volatile int native_owner_cache_path_mask = 0;
+ char native_owner_cache_root_names[96] = {0};
+ char native_owner_cache_root_raw[49] = {0};
++char native_owner_cache_lib_names[64] = {0};
++char native_owner_cache_dyld_names[96] = {0};
++char native_owner_cache_names_src[16] = {0};
+ volatile uint64_t native_owner_cache_actual_mount_flags = 0;
+ volatile uintptr_t native_owner_cache_original_root = 0;
+ volatile uintptr_t native_owner_cache_current_root = 0;
+ volatile int native_owner_cache_native_union = 0;
+ volatile dev_t native_owner_cache_selected_device = NODEV;
+ volatile dev_t native_owner_cache_mounted_device = NODEV;
+ char native_owner_cache_device_path[64];
+ void native_owner_cache_checkpoint(int, int);
+ __attribute__((noinline)) void
+ native_owner_cache_checkpoint(int status, int authorized)
+ {
+ 	__asm__ volatile("" : : "r"(status), "r"(authorized) : "memory");
++}
++
++static void
++dada_cache_list_dir(const char *path, char *out, size_t size)
++{
++	out[0] = 0;
++	vnode_t vp = NULLVP;
++	if (vnode_lookup(path, 0, &vp, vfs_context_current()) != 0) {
++		return;
++	}
++	char buf[1024];
++	struct uio *uio = uio_create(1, 0, UIO_SYSSPACE, UIO_READ);
++	if (uio) {
++		uio_addiov(uio, (user_addr_t)(uintptr_t)buf, sizeof(buf));
++		int eofflag = 0, numdirent = 0;
++		if (VNOP_READDIR(vp, uio, 0, &eofflag, &numdirent, vfs_context_current()) == 0) {
++			size_t used = sizeof(buf) - uio_resid(uio), off = 0, o = 0;
++			while (off + 9 <= used) {
++				struct { uint32_t ino; uint16_t reclen; uint8_t type; uint8_t namlen; char name[1]; } *dp =
++				    (void *)(buf + off);
++				if (dp->reclen < 9 || off + dp->reclen > used) break;
++				size_t n = dp->namlen;
++				bool dot = (n == 1 && dp->name[0] == '.');
++				bool dotdot = (n == 2 && dp->name[0] == '.' && dp->name[1] == '.');
++				if (n && off + 8 + n <= used && !dot && !dotdot) {
++					if (o + n + 2 < size) {
++						if (o) out[o++] = ',';
++						memcpy(out + o, dp->name, n);
++						o += n;
++					}
++				}
++				off += dp->reclen;
++			}
++			out[o] = 0;
++		}
++		uio_free(uio);
++	}
++	vnode_put(vp);
+ }
+ 
+ static int
+ native_owner_cache_prepare(proc_t p, user_addr_t scratch, user_addr_t *envp)
+ {
+ #ifndef XNU_OWNER_CACHE_VOLUME_UUID
+@@ -7170,56 +7211,29 @@
+ 			if (vnode_lookup(probe_path, 0, &probe_vp, vfs_context_current()) == 0) {
+ 				mask |= 1u << i;
+ 				vnode_put(probe_vp);
+ 			}
+ 		}
+ 		native_owner_cache_path_mask = (int)mask;
+-		/* List the mounted root so an unexpected cryptex layout is visible on the panic screen. */
++		/* List System/Library and the dyld directory so the real cache location is visible. */
+ 		{
+-			vnode_t root_vp = NULLVP;
+-			if (vnode_lookup(mountpoint, 0, &root_vp, vfs_context_current()) == 0) {
+-				struct dada_dirent {
+-					uint32_t d_ino;
+-					uint16_t d_reclen;
+-					uint8_t d_type;
+-					uint8_t d_namlen;
+-					char d_name[1];
+-				};
+-				char buf[512];
+-				struct uio *uio = uio_create(1, 0, UIO_SYSSPACE, UIO_READ);
+-				if (uio) {
+-					uio_addiov(uio, (user_addr_t)(uintptr_t)buf, sizeof(buf));
+-					int eofflag = 0, numdirent = 0;
+-					if (VNOP_READDIR(root_vp, uio, 0, &eofflag, &numdirent,
+-					    vfs_context_current()) == 0) {
+-						for (unsigned b = 0; b < 24; b++) {
+-							snprintf(native_owner_cache_root_raw + b * 2, 3, "%02x",
+-							    (unsigned char)buf[b]);
+-						}
+-						size_t used = sizeof(buf) - uio_resid(uio);
+-						size_t off = 0, out = 0;
+-						while (off + __offsetof(struct dada_dirent, d_name) + 1 <= used) {
+-							struct dada_dirent *dp = (struct dada_dirent *)(buf + off);
+-							if (dp->d_reclen < 9 || off + dp->d_reclen > used) break;
+-							size_t n = dp->d_namlen;
+-							bool dot = (n == 1 && dp->d_name[0] == '.');
+-							bool dotdot = (n == 2 && dp->d_name[0] == '.' && dp->d_name[1] == '.');
+-							if (n && off + 8 + n <= used && !dot && !dotdot) {
+-								if (out + n + 2 < sizeof(native_owner_cache_root_names)) {
+-									if (out) native_owner_cache_root_names[out++] = ',';
+-									memcpy(native_owner_cache_root_names + out, dp->d_name, n);
+-									out += n;
+-								}
+-							}
+-							off += dp->d_reclen;
+-						}
+-						native_owner_cache_root_names[out] = 0;
+-					}
+-					uio_free(uio);
+-				}
+-				vnode_put(root_vp);
++			char list_path[192];
++			snprintf(list_path, sizeof(list_path), "%s/System/Library", mountpoint);
++			dada_cache_list_dir(list_path, native_owner_cache_lib_names,
++			    sizeof(native_owner_cache_lib_names));
++			snprintf(list_path, sizeof(list_path), "%s/System/Library/dyld", mountpoint);
++			dada_cache_list_dir(list_path, native_owner_cache_dyld_names,
++			    sizeof(native_owner_cache_dyld_names));
++			if (native_owner_cache_dyld_names[0]) {
++				snprintf(native_owner_cache_names_src, sizeof(native_owner_cache_names_src), "dyld");
++			} else {
++				snprintf(list_path, sizeof(list_path),
++				    "%s/System/Library/Caches/com.apple.dyld", mountpoint);
++				dada_cache_list_dir(list_path, native_owner_cache_dyld_names,
++				    sizeof(native_owner_cache_dyld_names));
++				snprintf(native_owner_cache_names_src, sizeof(native_owner_cache_names_src), "caches");
+ 			}
+ 		}
+ 		const char *cache_dir = "/System/Library/Caches/com.apple.dyld";
+ 		if (!(mask & 1) && (mask & 2)) {
+ 			cache_dir = "/System/Library/dyld";
+ 		} else if (!(mask & 1) && !(mask & 2) && (mask & 4)) {
+diff --git a/bsd/kern/kern_exit.c b/bsd/kern/kern_exit.c
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -1820,12 +1820,15 @@
+ extern volatile int native_owner_cache_stage;
+ extern volatile int native_owner_cache_status;
+ extern char native_owner_cache_device_path[64];
+ extern volatile int native_owner_cache_path_mask;
+ extern char native_owner_cache_root_names[96];
+ extern char native_owner_cache_root_raw[49];
++extern char native_owner_cache_lib_names[64];
++extern char native_owner_cache_dyld_names[96];
++extern char native_owner_cache_names_src[16];
+ #endif
+ 
+ static void
+ proc_handle_critical_exit(proc_t p, int rv)
+ {
+ 	if (!proc_should_trigger_panic(p, rv)) {
+@@ -1851,27 +1854,28 @@
+ 		printf("pid %d exited -- exit reason namespace %d subcode 0x%llx, description %s\n", proc_getpid(p),
+ 		    p->p_exit_reason->osr_namespace, p->p_exit_reason->osr_code, exit_reason_desc ?
+ 		    exit_reason_desc : "none");
+ 	}
+ 
+ 	const char *prefix_str;
+-	char prefix_str_buf[256];
++	char prefix_str_buf[384];
+ 
+ 	if (p == initproc) {
+ 		if (strnstr(p->p_name, "preinit", sizeof(p->p_name))) {
+ 			prefix_str = "LTE preinit process exited";
+ 		} else if (initproc_spawned) {
+ 			prefix_str = "initproc exited";
+ 		} else {
+ 			prefix_str = "initproc failed to start";
+ 		}
+ #if defined(XNU_OWNER_CACHE_MOUNT) && XNU_OWNER_CACHE_MOUNT
+-		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s p%x %s h%s]",
++		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s [cache %d/%d %s p%x lib:%s %s:%s]",
+ 		    prefix_str, native_owner_cache_stage, native_owner_cache_status,
+ 		    native_owner_cache_device_path, native_owner_cache_path_mask,
+-		    native_owner_cache_root_names, native_owner_cache_root_raw);
++		    native_owner_cache_lib_names, native_owner_cache_names_src,
++		    native_owner_cache_dyld_names);
+ 		prefix_str = prefix_str_buf;
+ #endif
+ 	} else {
+ 		/* For processes that aren't launchd, just use the process name and pid */
+ 		snprintf(prefix_str_buf, sizeof(prefix_str_buf), "%s[%d] exited", p->p_name, proc_getpid(p));
+ 		prefix_str = prefix_str_buf;
