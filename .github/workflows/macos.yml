@@ -157,7 +157,7 @@ defaults:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 360
     env:
       UNIXNU_DEVICE: ${{ github.workspace }}/device
