@@ -30,8 +30,8 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/data
           cd /tmp/data
-          # 4 GiB so both UDRW and raw fit on the 14 GiB runner disk.
-          hdiutil create -size 4g -layout GPTSPUD -fs APFS -volname Data -ov data.dmg
+          # 8 GiB; this runner has >100 GiB free, so UDRW+raw both fit.
+          hdiutil create -size 8g -layout GPTSPUD -fs APFS -volname Data -ov data.dmg
           hdiutil convert -format UDRW -o data-rw.dmg data.dmg
           rm -f data.dmg
           mv data-rw.dmg data.dmg
@@ -40,7 +40,7 @@ jobs:
           echo "DEV=$DEV"
           diskutil list "$DEV" | tee disk-list-before.txt
           diskutil apfs list | tee apfs-list-before.txt
-          CONTAINER=$(diskutil list "$DEV" | awk '/Apple_APFS Container/ {print $NF; exit}')
+          CONTAINER=$(diskutil list "$DEV" | awk '/Apple_APFS Container/ {print $4; exit}')
           echo "CONTAINER=${CONTAINER:-none}"
           TARGET_LIST=$(diskutil apfs list "$CONTAINER")
           echo "$TARGET_LIST" | tee apfs-target-before.txt
