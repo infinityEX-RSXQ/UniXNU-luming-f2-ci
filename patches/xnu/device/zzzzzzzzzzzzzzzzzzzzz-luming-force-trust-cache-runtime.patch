@@ -1,0 +1,15 @@
+diff --git a/osfmk/kern/startup.c b/osfmk/kern/startup.c
+index dfa5da2..b72a6c9 100644
+--- a/osfmk/kern/startup.c
++++ b/osfmk/kern/startup.c
+@@ -751,7 +751,9 @@ kernel_bootstrap_thread(void)
+ 	csm_initialize_provisioning_profiles();
+ #endif
+ 
+-#if !defined(BCM2837) || (defined(XNU_NATIVE_TRUST_CACHE) && XNU_NATIVE_TRUST_CACHE)
++/* LUMING: the CI build flag did not reach startup.o on BCM2837; always compile the
++ * native trust-cache runtime init on the non-Apple target. */
++#if !defined(BCM2837) || 1
+ 	kernel_bootstrap_log("trust_cache_init");
+ 
+ 	/* Initialize the runtime for the trust cache interface */
