@@ -1,0 +1,91 @@
+name: cache-cdhash-all
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Private release tag"
+        required: true
+        type: string
+        default: "cache-cdhashes-21H461"
+      runner_label:
+        description: "macOS runner label"
+        required: true
+        type: string
+        default: "macos-15-intel"
+permissions:
+  contents: read
+jobs:
+  cdhashes:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 60
+    env:
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
+      PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      IPSW_URL: https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw
+    steps:
+      - name: Disk before
+        run: df -h /
+      - name: Download and attach SystemOS
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cdhashes
+          cd /tmp/cdhashes
+          curl -fL --retry 5 --retry-all-errors "$IPSW_URL" -o restore.ipsw
+          unzip -j restore.ipsw '044-76034-038.dmg'
+          rm -f restore.ipsw
+          hdiutil attach -readonly -noverify -noautofsck -nobrowse -mountpoint "$PWD/sysos" 044-76034-038.dmg
+          find "$PWD/sysos/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec ls -l {} \; | tee cache-files.txt
+      - name: Compute cdhash for every cache file
+        run: |
+          set -euo pipefail
+          cd /tmp/cdhashes
+          python3 - <<'PY' | tee cache-cdhashes-all.txt
+          import struct, hashlib, glob, os
+          for p in sorted(glob.glob('/tmp/cdhashes/sysos/System/Library/Caches/com.apple.dyld/*')):
+              if not os.path.isfile(p):
+                  continue
+              data = open(p, 'rb').read()
+              name = os.path.basename(p)
+              line = {'name': name, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+              try:
+                  assert data[:16].startswith(b'dyld_v1'), data[:16]
+                  cs_off, cs_size = struct.unpack_from('<QQ', data, 0x28)
+                  blob = data[cs_off:cs_off+cs_size]
+                  magic2, length, count = struct.unpack_from('>III', blob, 0)
+                  assert magic2 == 0xfade0cc0, hex(magic2)
+                  cds = []
+                  for i in range(count):
+                      btype, boff = struct.unpack_from('>II', blob, 12 + 8*i)
+                      bmagic, blen = struct.unpack_from('>II', blob, boff)
+                      if bmagic == 0xfade0c02:
+                          cd = blob[boff:boff+blen]
+                          cds.append({
+                              'cdhash_sha256_20': hashlib.sha256(cd).hexdigest()[:40],
+                              'hashType': cd[37],
+                              'hashSize': cd[36],
+                              'pageSize': cd[39],
+                              'version': hex(struct.unpack_from('>I', cd, 8)[0]),
+                          })
+                  line['codeDirectories'] = cds
+              except Exception as exc:
+                  line['error'] = repr(exc)
+              print(repr(line))
+          PY
+          hdiutil detach "$PWD/sysos"
+      - name: Upload text to private release
+        run: |
+          set -euo pipefail
+          cd /tmp/cdhashes
+          export GH_TOKEN="$PRIVATE_UPLOAD_TOKEN"
+          gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
+                 --title "dyld cache cdhashes $RELEASE_TAG" \
+                 --notes "All CodeDirectory cdhashes for the 21H461 SystemOS dyld shared cache split files."
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
+            cache-cdhashes-all.txt cache-files.txt
+      - name: Summary
+        if: always()
+        run: |
+          cd /tmp/cdhashes || exit 0
+          { echo '### cache cdhashes'; echo '```'; cat cache-cdhashes-all.txt 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
