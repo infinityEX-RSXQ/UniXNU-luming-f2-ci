@@ -3,17 +3,17 @@ on:
   workflow_dispatch:
     inputs:
       ipsw_url:
-        description: "Apple IPSW URL containing the OS and Cryptex1,SystemOS DMGs"
+        description: "Apple IPSW URL"
         required: true
         type: string
       release_tag:
-        description: "Private release tag to upload the raw OS image chunks"
+        description: "Private release tag"
         required: true
         type: string
-        default: "apfs-dyld-21H461"
+        default: "apfs-dyld-21H461-10g"
       runner_label:
-        description: "macOS runner label to try (macos-15/macos-14/macos-13)"
-        required: true
+        description: "macOS runner label"
+        required: false
         type: string
         default: "macos-15"
 permissions:
@@ -21,9 +21,9 @@ permissions:
 jobs:
   prepare:
     runs-on: ${{ inputs.runner_label }}
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
-      PRIVATE_REPOSITORY: infinityEX-RSXQ/UniXNU-luming-f2
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
       PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
       IPSW_URL: ${{ inputs.ipsw_url }}
       RELEASE_TAG: ${{ inputs.release_tag }}
@@ -33,92 +33,129 @@ jobs:
       - name: Download IPSW
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/apfs"
-          cd "$RUNNER_TEMP/apfs"
+          mkdir -p /tmp/apfs
+          cd /tmp/apfs
           curl -fL --retry 5 --retry-all-errors "$IPSW_URL" -o restore.ipsw
           ls -lh restore.ipsw
-      - name: Extract component DMGs
+      - name: Extract SystemOS and copy dyld cache
         run: |
           set -euo pipefail
-          cd "$RUNNER_TEMP/apfs"
-          unzip -o restore.ipsw '044-76034-038.dmg' '044-76040-038.dmg'
-          ls -lh *.dmg
-      - name: Extract dyld cache from SystemOS DMG
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/apfs"
-          mkdir -p cache
+          cd /tmp/apfs
+          unzip -j restore.ipsw '044-76034-038.dmg'
+          mkdir -p dyldcache
           hdiutil attach -readonly -nobrowse -mountpoint "$PWD/sysos" 044-76034-038.dmg
-          echo "== SystemOS dyld candidates =="
           find sysos -path '*com.apple.dyld*' -o -name 'dyld_shared_cache*' | tee /tmp/dyld-list.txt
-          if ! find sysos -name 'dyld_shared_cache*' -print -quit | grep -q .; then
-            echo "::error::no dyld_shared_cache under SystemOS"
-            exit 1
-          fi
-          # Copy the whole cache directory so symbols/map travel with the cache.
           cache_dir=$(find sysos -type d -name 'com.apple.dyld' -print -quit)
           [ -n "$cache_dir" ] || { echo "::error::com.apple.dyld directory missing"; exit 1; }
-          cp -a "$cache_dir" cache/
-          du -sh cache/* || true
+          cp -a "$cache_dir"/. dyldcache/
+          find dyldcache -type f -exec shasum -a 256 {} \; | tee /tmp/dyld-sha.txt
+          du -sh dyldcache
           hdiutil detach "$PWD/sysos"
           rm -f 044-76034-038.dmg
-      - name: Convert OS DMG to writable raw
+          df -h /
+      - name: Extract OS and convert to writable UDRW
         run: |
           set -euo pipefail
-          cd "$RUNNER_TEMP/apfs"
+          cd /tmp/apfs
+          unzip -j restore.ipsw '044-76040-038.dmg'
+          rm -f restore.ipsw
           hdiutil convert -format UDRW -o os-rw.dmg 044-76040-038.dmg
           rm -f 044-76040-038.dmg
           ls -lh os-rw.dmg
           df -h /
-      - name: Mount OS raw read-write and copy cache
+      - name: Resize OS disk and APFS container to 10g
         run: |
           set -euo pipefail
-          cd "$RUNNER_TEMP/apfs"
-          hdiutil attach -readwrite -nobrowse -mountpoint "$PWD/osvol" os-rw.dmg
-          echo "== OS volume =="
-          df -h "$PWD/osvol" || true
-          mkdir -p "$PWD/osvol/System/Library/Caches"
-          ditto "cache/com.apple.dyld" "$PWD/osvol/System/Library/Caches/com.apple.dyld"
-          echo "== copied =="
-          find "$PWD/osvol/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec shasum -a 256 {} \;
-          sync
-          hdiutil detach "$PWD/osvol"
-      - name: Export raw image and split
-        run: |
-          set -euo pipefail
-          cd "$RUNNER_TEMP/apfs"
-          hdiutil resize -limits os-rw.dmg >/dev/null 2>&1 || true
-          # UDRW is already a raw disk image; hdiutil imageinfo confirms it.
-          mv os-rw.dmg os-flat.img
-          ls -lh os-flat.img
-          shasum -a 256 os-flat.img | tee os-flat.sha256
-          split -b 1900m os-flat.img os-flat.img.part-
-          ls -lh os-flat.img.part-*
-          rm -f os-flat.img
-          tar -czf dyld-cache.tar.gz cache
-          shasum -a 256 dyld-cache.tar.gz | tee dyld-cache.sha256
+          cd /tmp/apfs
+          hdiutil resize -size 10g os-rw.dmg
+          hdiutil attach -readwrite -nobrowse -nomount os-rw.dmg | tee /tmp/attach-nomount.txt
+          DISK=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-nomount.txt)
+          echo "DISK=$DISK"
+          diskutil repairDisk "$DISK" || true
+          diskutil apfs resizeContainer "$DISK" 0
+          diskutil apfs list | tee /tmp/apfs-list.txt
           df -h /
+          hdiutil detach "$DISK"
+          ls -lh os-rw.dmg
+      - name: Mount expanded OS, copy cache
+        run: |
+          set -euo pipefail
+          cd /tmp/apfs
+          hdiutil attach -readwrite -nobrowse os-rw.dmg | tee /tmp/attach-rw.txt
+          OSDISK=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-rw.txt)
+          echo "OSDISK=$OSDISK"
+          OVOL=$(awk '/\/Volumes\// {print $3; exit}' /tmp/attach-rw.txt || true)
+          if [ -z "${OVOL:-}" ]; then
+            diskutil mount "$OSDISK"
+            OVOL=$(df -h | awk '/\/Volumes\// {print $NF; exit}')
+          fi
+          echo "OVOL=$OVOL"
+          df -h "$OVOL" | tee /tmp/df-osvol.txt
+          mkdir -p "$OVOL/System/Library/Caches/com.apple.dyld"
+          rsync -a --exclude='*.symbols' dyldcache/ "$OVOL/System/Library/Caches/com.apple.dyld/"
+          find "$OVOL/System/Library/Caches/com.apple.dyld" -type f | wc -l
+          du -sh "$OVOL/System/Library/Caches/com.apple.dyld"
+          find "$OVOL/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec shasum -a 256 {} \; | tee /tmp/copied-sha.txt
+          sync
+          hdiutil detach "$OSDISK"
+          df -h /
+      - name: Export enlarged raw image
+        run: |
+          set -euo pipefail
+          cd /tmp/apfs
+          hdiutil attach -readwrite -nobrowse -nomount os-rw.dmg | tee /tmp/attach-export.txt
+          DEV=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-export.txt)
+          DISKSIZE=$(diskutil info "$DEV" | awk -F: '/Disk Size/ {gsub(/[^0-9]/,"",$2); print $2}')
+          echo "DEV=$DEV DISKSIZE=$DISKSIZE"
+          RDEV=$(echo "$DEV" | sed 's#/dev/disk#/dev/rdisk#')
+          sudo dd if="$RDEV" of=os-flat.img bs=1m count=$((DISKSIZE/1048576+1))
+          truncate -s "$DISKSIZE" os-flat.img
+          stat -f%z os-flat.img | tee os-flat.size
+          shasum -a 256 os-flat.img | tee os-flat.sha256
+          hdiutil detach "$DEV"
+          df -h /
+      - name: gzip and split
+        run: |
+          set -euo pipefail
+          cd /tmp/apfs
+          gzip -1 -c os-flat.img > os-flat.img.gz
+          rm -f os-flat.img
+          ls -lh os-flat.img.gz
+          if [ "$(stat -f%z os-flat.img.gz)" -gt 1992294400 ]; then
+            split -b 1800m os-flat.img.gz os-flat.img.gz.part-
+            rm -f os-flat.img.gz
+          fi
+          shasum -a 256 os-flat.img.gz* | tee os-flat.parts.sha256
+          cp /tmp/apfs-list.txt apfs-list.txt
+          cp /tmp/df-osvol.txt df-osvol.txt
+          cp /tmp/dyld-list.txt dyld-list.txt
+          cp /tmp/dyld-sha.txt dyld-sha.txt
+          cp /tmp/copied-sha.txt copied-sha.txt
+          ls -lh
       - name: Upload to private release
         run: |
           set -euo pipefail
-          cd "$RUNNER_TEMP/apfs"
-          if ! command -v gh >/dev/null 2>&1; then
-            echo "::error::gh CLI missing"
-            exit 1
-          fi
+          cd /tmp/apfs
           export GH_TOKEN="$PRIVATE_UPLOAD_TOKEN"
           gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
-                 --title "APFS dyld-cache payload $RELEASE_TAG" \
-                 --notes "Raw OS volume with dyld shared cache copied into /System/Library/Caches/com.apple.dyld (for userdata SHNGROOT). Apple-derived; private."
+                 --title "APFS 10g OS raw $RELEASE_TAG" \
+                 --notes "Expanded OS raw image with dyld shared cache in /System/Library/Caches/com.apple.dyld. Apple-derived; private."
           gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
-            os-flat.img.part-* os-flat.sha256 dyld-cache.tar.gz dyld-cache.sha256 /tmp/dyld-list.txt
+            os-flat.img.gz* os-flat.size os-flat.sha256 os-flat.parts.sha256 \
+            apfs-list.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
       - name: Summary
+        if: always()
         run: |
-          cd "$RUNNER_TEMP/apfs"
-          echo "### OS flat raw sha256" >> "$GITHUB_STEP_SUMMARY"
-          cat os-flat.sha256 >> "$GITHUB_STEP_SUMMARY"
-          echo "### dyld cache candidates" >> "$GITHUB_STEP_SUMMARY"
-          cat /tmp/dyld-list.txt >> "$GITHUB_STEP_SUMMARY"
-          echo "### chunks" >> "$GITHUB_STEP_SUMMARY"
-          ls -lh os-flat.img.part-* >> "$GITHUB_STEP_SUMMARY"
+          cd /tmp/apfs || exit 0
+          {
+            echo "### runner ${{ inputs.runner_label }}"
+            echo '```'
+            cat os-flat.size 2>/dev/null || true
+            cat os-flat.sha256 2>/dev/null || true
+            cat os-flat.parts.sha256 2>/dev/null || true
+            cat /tmp/dyld-list.txt 2>/dev/null || true
+            cat /tmp/dyld-sha.txt 2>/dev/null || true
+            cat /tmp/df-osvol.txt 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
