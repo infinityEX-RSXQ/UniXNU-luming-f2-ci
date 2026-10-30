@@ -120,6 +120,25 @@ jobs:
           sync
           hdiutil detach "$OSDISK"
           df -h /
+      - name: Add Data and Preboot volumes inside the OS container
+        run: |
+          set -euo pipefail
+          cd /tmp/apfs
+          hdiutil attach -readwrite -nobrowse -nomount os-rw.dmg | tee /tmp/attach-roles.txt
+          DISK=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-roles.txt)
+          echo "DISK=$DISK"
+          CONTAINER=$(diskutil list "$DISK" | awk '/Apple_APFS Container/ {print $4; exit}')
+          echo "CONTAINER=$CONTAINER"
+          diskutil apfs list "$CONTAINER" | tee /tmp/apfs-before-roles.txt
+          set +e
+          diskutil apfs addVolume "$CONTAINER" APFS Data -role D 2>&1 | tee /tmp/add-data.txt
+          diskutil apfs addVolume "$CONTAINER" APFS Preboot -role P 2>&1 | tee /tmp/add-preboot.txt
+          set -e
+          diskutil apfs list "$CONTAINER" | tee /tmp/apfs-list.txt
+          if ! grep -q '(Data)' /tmp/apfs-list.txt; then echo "::error::Data role volume missing"; exit 1; fi
+          if ! grep -q '(Preboot)' /tmp/apfs-list.txt; then echo "::error::Preboot role volume missing"; exit 1; fi
+          hdiutil detach "$DISK" -force || true
+          ls -lh os-rw.dmg
       - name: Export enlarged raw image
         run: |
           set -euo pipefail
