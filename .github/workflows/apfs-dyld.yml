@@ -124,12 +124,13 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp/apfs
-          hdiutil attach -readwrite -nobrowse -nomount os-rw.dmg | tee /tmp/attach-export.txt
-          DEV=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-export.txt)
-          DISKSIZE=$(diskutil info "$DEV" | awk -F: '/Disk Size/ {gsub(/[^0-9]/,"",$2); print $2}')
-          echo "DEV=$DEV DISKSIZE=$DISKSIZE"
+          SZ=$(stat -f%z os-rw.dmg)
+          DISKSIZE=$((SZ - 512))
+          echo "os-rw.dmg size=$SZ  raw disk size=$DISKSIZE"
+          DEV=$(hdiutil attach -readwrite -nobrowse -nomount os-rw.dmg | awk '/\/dev\/disk/ {print $1; exit}')
           RDEV=$(echo "$DEV" | sed 's#/dev/disk#/dev/rdisk#')
-          sudo dd if="$RDEV" of=os-flat.img bs=1m count=$((DISKSIZE/1048576+1))
+          echo "DEV=$DEV RDEV=$RDEV"
+          sudo dd if="$RDEV" of=os-flat.img bs=1048576 count=$((DISKSIZE/1048576+1))
           truncate -s "$DISKSIZE" os-flat.img
           stat -f%z os-flat.img | tee os-flat.size
           shasum -a 256 os-flat.img | tee os-flat.sha256
