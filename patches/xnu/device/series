@@ -18,4 +18,6 @@ zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch
 zzzzzzzzzzzzzz-luming-owner-cache-union-env.patch
 zzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
 zzzzzzzzzzzzzzzzz-luming-ufs-log.patch
-zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch
+# [run #17 log-friendly] disabled: this patch PSCI-resets on panic; keep the panic screen for
+# a photo of the final kernel log. Re-enable for automatic UFS/PA dump runs.
+# zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch
