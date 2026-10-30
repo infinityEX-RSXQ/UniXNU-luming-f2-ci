@@ -73,10 +73,26 @@ jobs:
           PART="${DISK}s1"
           echo "DISK=$DISK PART=$PART"
           diskutil list "$DISK"
-          if ! diskutil apfs resizeContainer "$PART" 0; then
-            echo "first resize failed; repairing GPT and retrying"
+          resize_ok=0
+          if diskutil apfs resizeContainer "$PART" 10g; then
+            resize_ok=1
+          else
+            echo "explicit 10g resize failed; repairing GPT"
             printf 'y\n' | diskutil repairDisk "$DISK" || true
-            diskutil apfs resizeContainer "$PART" 0
+            if diskutil apfs resizeContainer "$PART" 0; then
+              resize_ok=1
+            else
+              CONTAINER=$(diskutil list | awk '/Apple_APFS Container/ {print $NF; exit}')
+              echo "trying container reference: $CONTAINER"
+              if diskutil apfs resizeContainer "$CONTAINER" 0; then resize_ok=1; fi
+            fi
+          fi
+          echo "resize_ok=$resize_ok"
+          if [ "$resize_ok" != 1 ]; then
+            diskutil apfs list || true
+            df -h /
+            echo "::error::APFS resizeContainer failed"
+            exit 1
           fi
           diskutil apfs list | tee /tmp/apfs-list.txt
           df -h /
