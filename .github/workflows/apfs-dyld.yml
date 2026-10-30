@@ -70,12 +70,17 @@ jobs:
           hdiutil resize -size 10g os-rw.dmg
           hdiutil attach -readwrite -nobrowse -nomount os-rw.dmg | tee /tmp/attach-nomount.txt
           DISK=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-nomount.txt)
-          echo "DISK=$DISK"
-          diskutil repairDisk "$DISK" || true
-          diskutil apfs resizeContainer "$DISK" 0
+          PART="${DISK}s1"
+          echo "DISK=$DISK PART=$PART"
+          diskutil list "$DISK"
+          if ! diskutil apfs resizeContainer "$PART" 0; then
+            echo "first resize failed; repairing GPT and retrying"
+            printf 'y\n' | diskutil repairDisk "$DISK" || true
+            diskutil apfs resizeContainer "$PART" 0
+          fi
           diskutil apfs list | tee /tmp/apfs-list.txt
           df -h /
-          hdiutil detach "$DISK"
+          hdiutil detach "$DISK" -force || true
           ls -lh os-rw.dmg
       - name: Mount expanded OS, copy cache
         run: |
