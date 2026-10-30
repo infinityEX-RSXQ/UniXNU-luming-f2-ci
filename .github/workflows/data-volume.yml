@@ -42,15 +42,15 @@ jobs:
           diskutil apfs list | tee apfs-list-before.txt
           CONTAINER=$(diskutil list "$DEV" | awk '/Apple_APFS Container/ {print $NF; exit}')
           echo "CONTAINER=${CONTAINER:-none}"
-          if ! diskutil apfs list | grep -q 'Role:.*Data'; then
-            echo "Data role not present; creating a Data-role volume"
-            if [ -n "${CONTAINER:-}" ]; then
-              diskutil apfs addVolume "$CONTAINER" APFS Data -role Data || true
-            fi
+          TARGET_LIST=$(diskutil apfs list "$CONTAINER")
+          echo "$TARGET_LIST" | tee apfs-target-before.txt
+          if ! echo "$TARGET_LIST" | grep -q '(Data)'; then
+            echo "Data role not present on target container; creating a Data-role volume"
+            diskutil apfs addVolume "$CONTAINER" APFS DataRole -role Data || true
           fi
-          diskutil apfs list | tee apfs-list-after.txt
-          if ! diskutil apfs list | grep -q 'Role:.*Data'; then
-            echo "::warning::Data role still not set; will export GPT+APFS image as-is"
+          diskutil apfs list "$CONTAINER" | tee apfs-list-after.txt
+          if ! diskutil apfs list "$CONTAINER" | grep -q '(Data)'; then
+            echo "::warning::Data role still not set on target container"
           fi
       - name: Export raw and gzip
         run: |
