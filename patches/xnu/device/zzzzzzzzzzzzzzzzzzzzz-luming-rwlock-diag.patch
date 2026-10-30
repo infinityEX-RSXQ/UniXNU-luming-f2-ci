@@ -1,0 +1,62 @@
+diff --git a/osfmk/kern/lock_rw.c b/osfmk/kern/lock_rw.c
+index d101e71..9a6af26 100644
+--- a/osfmk/kern/lock_rw.c
++++ b/osfmk/kern/lock_rw.c
+@@ -63,6 +63,7 @@
+ #include <kern/processor.h>
+ #include <kern/sched_prim.h>
+ #include <kern/debug.h>
++#include <pexpert/pexpert.h>
+ #include <machine/atomic.h>
+ #include <machine/machine_cpu.h>
+ 
+@@ -1124,6 +1125,9 @@ lck_rw_lock_exclusive_check_contended(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
++		kprintf("LUMING-RWLOCK: lock=%p can_sleep=%d preempt=%d caller=%p type=%s line=%d\n",
++		    (void *)lock, (int)lock->lck_rw_can_sleep, (int)get_preemption_level(),
++		    __builtin_return_address(0), __func__, __LINE__);
+ 		panic("Taking non-sleepable RW lock with preemption enabled");
+ 	}
+ 
+@@ -1158,6 +1162,9 @@ lck_rw_lock_exclusive_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
++		kprintf("LUMING-RWLOCK: lock=%p can_sleep=%d preempt=%d caller=%p type=%s line=%d\n",
++		    (void *)lock, (int)lock->lck_rw_can_sleep, (int)get_preemption_level(),
++		    __builtin_return_address(0), __func__, __LINE__);
+ 		panic("Taking non-sleepable RW lock with preemption enabled");
+ 	}
+ 
+@@ -1397,6 +1404,9 @@ lck_rw_lock_shared_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
++		kprintf("LUMING-RWLOCK: lock=%p can_sleep=%d preempt=%d caller=%p type=%s line=%d\n",
++		    (void *)lock, (int)lock->lck_rw_can_sleep, (int)get_preemption_level(),
++		    __builtin_return_address(0), __func__, __LINE__);
+ 		panic("Taking non-sleepable RW lock with preemption enabled");
+ 	}
+ 
+@@ -1944,6 +1954,9 @@ lck_rw_try_lock_shared_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
++		kprintf("LUMING-RWLOCK: lock=%p can_sleep=%d preempt=%d caller=%p type=%s line=%d\n",
++		    (void *)lock, (int)lock->lck_rw_can_sleep, (int)get_preemption_level(),
++		    __builtin_return_address(0), __func__, __LINE__);
+ 		panic("Taking non-sleepable RW lock with preemption enabled");
+ 	}
+ 
+@@ -2018,6 +2031,9 @@ lck_rw_try_lock_exclusive_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
++		kprintf("LUMING-RWLOCK: lock=%p can_sleep=%d preempt=%d caller=%p type=%s line=%d\n",
++		    (void *)lock, (int)lock->lck_rw_can_sleep, (int)get_preemption_level(),
++		    __builtin_return_address(0), __func__, __LINE__);
+ 		panic("Taking non-sleepable RW lock with preemption enabled");
+ 	}
+ 
