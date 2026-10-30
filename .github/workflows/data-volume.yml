@@ -31,7 +31,10 @@ jobs:
           mkdir -p /tmp/data
           cd /tmp/data
           # 4 GiB so both UDRW and raw fit on the 14 GiB runner disk.
-          hdiutil create -size 4g -layout GPTSPUD -fs APFS -volname Data -type UDIF -format UDRW -ov data.dmg
+          hdiutil create -size 4g -layout GPTSPUD -fs APFS -volname Data -ov data.dmg
+          hdiutil convert -format UDRW -o data-rw.dmg data.dmg
+          rm -f data.dmg
+          mv data-rw.dmg data.dmg
           hdiutil attach -readwrite -nobrowse -nomount data.dmg | tee attach.txt
           DEV=$(awk '/\/dev\/disk/ {print $1; exit}' attach.txt)
           echo "DEV=$DEV"
