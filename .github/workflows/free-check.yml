@@ -1,0 +1,12 @@
+name: free-check
+on:
+  workflow_dispatch:
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "linux-ok"; df -h /
+  macos:
+    runs-on: macos-15
+    steps:
+      - run: echo "macos-ok"; df -h /
