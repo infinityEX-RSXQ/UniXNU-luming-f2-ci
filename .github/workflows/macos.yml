@@ -171,6 +171,8 @@ jobs:
       UEFI_ARCHIVE_SHA256: ${{ inputs.uefi_archive_sha256 }}
       UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
       UNIXNU_ALLOW_NO_PANIC_SCREEN: "1"
+      # Native trust-cache runtime (startup.o -DXNU_NATIVE_TRUST_CACHE=1).
+      XNU_TRUST_CACHE_RUNTIME: "1"
       DEFCONFIG: ${{ inputs.defconfig }}
       STEPS: ${{ inputs.steps }}
       DRY_RUN: ${{ inputs.dry_run }}
@@ -424,7 +426,15 @@ jobs:
             echo "F2_DTB=$RUNNER_TEMP/f2-luming-inputs/luming.dtb" >> "$GITHUB_ENV"
           fi
           if [ -n "$trust_cache_url" ]; then
-            curl -fsSL --retry 3 "$trust_cache_url" -o "$RUNNER_TEMP/f2-luming-inputs/trustcache"
+            if [[ "$trust_cache_url" == https://api.github.com/* ]]; then
+              curl -fsSL --retry 3 -L \
+                -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" \
+                -H "Accept: application/octet-stream" \
+                "$trust_cache_url" -o "$RUNNER_TEMP/f2-luming-inputs/trustcache"
+            else
+              curl -fsSL --retry 3 "$trust_cache_url" -o "$RUNNER_TEMP/f2-luming-inputs/trustcache"
+            fi
+            shasum -a 256 "$RUNNER_TEMP/f2-luming-inputs/trustcache"
           fi
           if [ -n "$data_seed_url" ]; then
             curl -fsSL --retry 3 "$data_seed_url" -o "$RUNNER_TEMP/f2-luming-inputs/data.dbr"
