@@ -11,11 +11,16 @@ on:
         required: true
         type: string
         default: "apfs-dyld-21H461"
+      runner_label:
+        description: "macOS runner label to try (macos-15/macos-14/macos-13)"
+        required: true
+        type: string
+        default: "macos-15"
 permissions:
   contents: read
 jobs:
   prepare:
-    runs-on: macos-15
+    runs-on: ${{ inputs.runner_label }}
     timeout-minutes: 120
     env:
       PRIVATE_REPOSITORY: infinityEX-RSXQ/UniXNU-luming-f2
