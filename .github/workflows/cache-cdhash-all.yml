@@ -36,42 +36,51 @@ jobs:
           rm -f restore.ipsw
           hdiutil attach -readonly -noverify -noautofsck -nobrowse -mountpoint "$PWD/sysos" 044-76034-038.dmg
           find "$PWD/sysos/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec ls -l {} \; | tee cache-files.txt
-      - name: Compute cdhash for every cache file
+      - name: Compute cdhash for every non-symbols cache file
         run: |
           set -euo pipefail
           cd /tmp/cdhashes
-          python3 - <<'PY' | tee cache-cdhashes-all.txt
+          python3 - <<'PY'
           import struct, hashlib, glob, os
-          for p in sorted(glob.glob('/tmp/cdhashes/sysos/System/Library/Caches/com.apple.dyld/*')):
-              if not os.path.isfile(p):
-                  continue
-              data = open(p, 'rb').read()
-              name = os.path.basename(p)
-              line = {'name': name, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+          files = sorted(p for p in glob.glob('/tmp/cdhashes/sysos/System/Library/Caches/com.apple.dyld/*')
+                         if os.path.isfile(p) and not p.endswith('.symbols'))
+          plain = open('cache-cdhashes-all.txt', 'w')
+          info = open('cache-files-all.txt', 'w')
+          for path in files:
+              name = os.path.basename(path)
+              data = open(path, 'rb').read()
+              size = len(data)
+              sha = hashlib.sha256(data).hexdigest()
+              info.write(f'{name} {size} {sha}\n')
+              cdhash = 'NO_CD'
+              hash_type = '-'
+              flags = '-'
               try:
-                  assert data[:16].startswith(b'dyld_v1'), data[:16]
-                  cs_off, cs_size = struct.unpack_from('<QQ', data, 0x28)
-                  blob = data[cs_off:cs_off+cs_size]
-                  magic2, length, count = struct.unpack_from('>III', blob, 0)
-                  assert magic2 == 0xfade0cc0, hex(magic2)
-                  cds = []
-                  for i in range(count):
-                      btype, boff = struct.unpack_from('>II', blob, 12 + 8*i)
-                      bmagic, blen = struct.unpack_from('>II', blob, boff)
-                      if bmagic == 0xfade0c02:
-                          cd = blob[boff:boff+blen]
-                          cds.append({
-                              'cdhash_sha256_20': hashlib.sha256(cd).hexdigest()[:40],
-                              'hashType': cd[37],
-                              'hashSize': cd[36],
-                              'pageSize': cd[39],
-                              'version': hex(struct.unpack_from('>I', cd, 8)[0]),
-                          })
-                  line['codeDirectories'] = cds
+                  if data[:16].startswith(b'dyld_v1'):
+                      cs_off, cs_size = struct.unpack_from('<QQ', data, 0x28)
+                      if cs_off and cs_size and cs_off + cs_size <= size:
+                          blob = data[cs_off:cs_off+cs_size]
+                          magic2, length, count = struct.unpack_from('>III', blob, 0)
+                          if magic2 == 0xfade0cc0 and length <= len(blob):
+                              for i in range(count):
+                                  btype, boff = struct.unpack_from('>II', blob, 12 + 8*i)
+                                  bmagic, blen = struct.unpack_from('>II', blob, boff)
+                                  if bmagic == 0xfade0c02 and boff + blen <= len(blob):
+                                      cd = blob[boff:boff+blen]
+                                      cdhash = hashlib.sha256(cd).hexdigest()[:40]
+                                      hash_type = str(cd[37])
+                                      flags = str(struct.unpack_from('>I', cd, 12)[0])
+                                      break
               except Exception as exc:
-                  line['error'] = repr(exc)
-              print(repr(line))
+                  cdhash = f'ERROR:{exc}'
+              plain.write(f'{name} {cdhash} {hash_type} {flags}\n')
+          plain.close()
+          info.close()
           PY
+          echo '== cache-cdhashes-all.txt =='
+          cat cache-cdhashes-all.txt
+          echo '== cache-files-all.txt =='
+          cat cache-files-all.txt
           hdiutil detach "$PWD/sysos"
       - name: Upload text to private release
         run: |
@@ -81,9 +90,9 @@ jobs:
           gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
                  --title "dyld cache cdhashes $RELEASE_TAG" \
-                 --notes "All CodeDirectory cdhashes for the 21H461 SystemOS dyld shared cache split files."
+                 --notes "All non-symbols CodeDirectory cdhashes for the 21H461 SystemOS dyld shared cache."
           gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
-            cache-cdhashes-all.txt cache-files.txt
+            cache-cdhashes-all.txt cache-files-all.txt cache-files.txt
       - name: Summary
         if: always()
         run: |
