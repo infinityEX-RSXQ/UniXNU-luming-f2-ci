@@ -44,24 +44,18 @@ jobs:
           echo "CONTAINER=${CONTAINER:-none}"
           TARGET_LIST=$(diskutil apfs list "$CONTAINER")
           echo "$TARGET_LIST" | tee apfs-target-before.txt
+          TARGET_LIST=$(diskutil apfs list "$CONTAINER")
           if ! echo "$TARGET_LIST" | grep -q '(Data)'; then
-            echo "trying diskutil apfs role on ${CONTAINER}s1"
+            echo "trying diskutil apfs addVolume -role D"
             set +e
-            diskutil apfs role "${CONTAINER}s1" Data 2>&1 | tee role-cmd.txt
+            diskutil apfs addVolume "$CONTAINER" APFS DataRole -role D 2>&1 | tee addvolume-cmd.txt
             set -e
           fi
           TARGET_LIST=$(diskutil apfs list "$CONTAINER")
           if ! echo "$TARGET_LIST" | grep -q '(Data)'; then
-            echo "role command did not set Data; trying addVolume"
+            echo "still no Data role; trying newfs_apfs -R Data on /dev/${CONTAINER}s1"
             set +e
-            diskutil apfs addVolume "$CONTAINER" APFS DataRole -role Data 2>&1 | tee addvolume-cmd.txt
-            set -e
-          fi
-          TARGET_LIST=$(diskutil apfs list "$CONTAINER")
-          if ! echo "$TARGET_LIST" | grep -q '(Data)'; then
-            echo "still no Data role; trying newfs_apfs -r Data on ${CONTAINER}s1"
-            set +e
-            newfs_apfs -v Data -r Data "${CONTAINER}s1" 2>&1 | tee newfs-cmd.txt
+            newfs_apfs -v Data -R Data "/dev/${CONTAINER}s1" 2>&1 | tee newfs-cmd.txt
             set -e
           fi
           diskutil apfs list "$CONTAINER" | tee apfs-list-after.txt
