@@ -31,7 +31,7 @@ jobs:
           mkdir -p /tmp/data
           cd /tmp/data
           # 8 GiB; this runner has >100 GiB free, so UDRW+raw both fit.
-          hdiutil create -size 8g -layout GPTSPUD -fs APFS -volname Data -ov data.dmg
+          hdiutil create -size 4g -layout GPTSPUD -fs APFS -volname Data -ov data.dmg
           hdiutil convert -format UDRW -o data-rw.dmg data.dmg
           rm -f data.dmg
           mv data-rw.dmg data.dmg
@@ -45,8 +45,24 @@ jobs:
           TARGET_LIST=$(diskutil apfs list "$CONTAINER")
           echo "$TARGET_LIST" | tee apfs-target-before.txt
           if ! echo "$TARGET_LIST" | grep -q '(Data)'; then
-            echo "Data role not present on target container; creating a Data-role volume"
-            diskutil apfs addVolume "$CONTAINER" APFS DataRole -role Data || true
+            echo "trying diskutil apfs role on ${CONTAINER}s1"
+            set +e
+            diskutil apfs role "${CONTAINER}s1" Data 2>&1 | tee role-cmd.txt
+            set -e
+          fi
+          TARGET_LIST=$(diskutil apfs list "$CONTAINER")
+          if ! echo "$TARGET_LIST" | grep -q '(Data)'; then
+            echo "role command did not set Data; trying addVolume"
+            set +e
+            diskutil apfs addVolume "$CONTAINER" APFS DataRole -role Data 2>&1 | tee addvolume-cmd.txt
+            set -e
+          fi
+          TARGET_LIST=$(diskutil apfs list "$CONTAINER")
+          if ! echo "$TARGET_LIST" | grep -q '(Data)'; then
+            echo "still no Data role; trying newfs_apfs -r Data on ${CONTAINER}s1"
+            set +e
+            newfs_apfs -v Data -r Data "${CONTAINER}s1" 2>&1 | tee newfs-cmd.txt
+            set -e
           fi
           diskutil apfs list "$CONTAINER" | tee apfs-list-after.txt
           if ! diskutil apfs list "$CONTAINER" | grep -q '(Data)'; then
@@ -74,7 +90,7 @@ jobs:
           rm -f data-flat.img
           ls -lh data-flat.img.gz
           shasum -a 256 data-flat.img.gz | tee data-flat.img.gz.sha256
-          cp apfs-list-before.txt apfs-list.txt
+          cp apfs-list-after.txt apfs-list.txt 2>/dev/null || cp apfs-list-before.txt apfs-list.txt
           cp disk-list-before.txt disk-list.txt
       - name: Upload to private release
         run: |
