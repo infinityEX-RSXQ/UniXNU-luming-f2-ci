@@ -1,0 +1,119 @@
+name: apfs-dyld
+on:
+  workflow_dispatch:
+    inputs:
+      ipsw_url:
+        description: "Apple IPSW URL containing the OS and Cryptex1,SystemOS DMGs"
+        required: true
+        type: string
+      release_tag:
+        description: "Private release tag to upload the raw OS image chunks"
+        required: true
+        type: string
+        default: "apfs-dyld-21H461"
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/UniXNU-luming-f2
+      PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+      IPSW_URL: ${{ inputs.ipsw_url }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - name: Disk before
+        run: df -h /
+      - name: Download IPSW
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/apfs"
+          cd "$RUNNER_TEMP/apfs"
+          curl -fL --retry 5 --retry-all-errors "$IPSW_URL" -o restore.ipsw
+          ls -lh restore.ipsw
+      - name: Extract component DMGs
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/apfs"
+          unzip -o restore.ipsw '044-76034-038.dmg' '044-76040-038.dmg'
+          ls -lh *.dmg
+      - name: Extract dyld cache from SystemOS DMG
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/apfs"
+          mkdir -p cache
+          hdiutil attach -readonly -nobrowse -mountpoint "$PWD/sysos" 044-76034-038.dmg
+          echo "== SystemOS dyld candidates =="
+          find sysos -path '*com.apple.dyld*' -o -name 'dyld_shared_cache*' | tee /tmp/dyld-list.txt
+          if ! find sysos -name 'dyld_shared_cache*' -print -quit | grep -q .; then
+            echo "::error::no dyld_shared_cache under SystemOS"
+            exit 1
+          fi
+          # Copy the whole cache directory so symbols/map travel with the cache.
+          cache_dir=$(find sysos -type d -name 'com.apple.dyld' -print -quit)
+          [ -n "$cache_dir" ] || { echo "::error::com.apple.dyld directory missing"; exit 1; }
+          cp -a "$cache_dir" cache/
+          du -sh cache/* || true
+          hdiutil detach "$PWD/sysos"
+          rm -f 044-76034-038.dmg
+      - name: Convert OS DMG to writable raw
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/apfs"
+          hdiutil convert -format UDRW -o os-rw.dmg 044-76040-038.dmg
+          rm -f 044-76040-038.dmg
+          ls -lh os-rw.dmg
+          df -h /
+      - name: Mount OS raw read-write and copy cache
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/apfs"
+          hdiutil attach -readwrite -nobrowse -mountpoint "$PWD/osvol" os-rw.dmg
+          echo "== OS volume =="
+          df -h "$PWD/osvol" || true
+          mkdir -p "$PWD/osvol/System/Library/Caches"
+          ditto "cache/com.apple.dyld" "$PWD/osvol/System/Library/Caches/com.apple.dyld"
+          echo "== copied =="
+          find "$PWD/osvol/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec shasum -a 256 {} \;
+          sync
+          hdiutil detach "$PWD/osvol"
+      - name: Export raw image and split
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/apfs"
+          hdiutil resize -limits os-rw.dmg >/dev/null 2>&1 || true
+          # UDRW is already a raw disk image; hdiutil imageinfo confirms it.
+          mv os-rw.dmg os-flat.img
+          ls -lh os-flat.img
+          shasum -a 256 os-flat.img | tee os-flat.sha256
+          split -b 1900m os-flat.img os-flat.img.part-
+          ls -lh os-flat.img.part-*
+          rm -f os-flat.img
+          tar -czf dyld-cache.tar.gz cache
+          shasum -a 256 dyld-cache.tar.gz | tee dyld-cache.sha256
+          df -h /
+      - name: Upload to private release
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/apfs"
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "::error::gh CLI missing"
+            exit 1
+          fi
+          export GH_TOKEN="$PRIVATE_UPLOAD_TOKEN"
+          gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
+                 --title "APFS dyld-cache payload $RELEASE_TAG" \
+                 --notes "Raw OS volume with dyld shared cache copied into /System/Library/Caches/com.apple.dyld (for userdata SHNGROOT). Apple-derived; private."
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
+            os-flat.img.part-* os-flat.sha256 dyld-cache.tar.gz dyld-cache.sha256 /tmp/dyld-list.txt
+      - name: Summary
+        run: |
+          cd "$RUNNER_TEMP/apfs"
+          echo "### OS flat raw sha256" >> "$GITHUB_STEP_SUMMARY"
+          cat os-flat.sha256 >> "$GITHUB_STEP_SUMMARY"
+          echo "### dyld cache candidates" >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/dyld-list.txt >> "$GITHUB_STEP_SUMMARY"
+          echo "### chunks" >> "$GITHUB_STEP_SUMMARY"
+          ls -lh os-flat.img.part-* >> "$GITHUB_STEP_SUMMARY"
