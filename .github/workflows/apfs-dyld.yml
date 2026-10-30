@@ -131,6 +131,7 @@ jobs:
           RDEV=$(echo "$DEV" | sed 's#/dev/disk#/dev/rdisk#')
           echo "DEV=$DEV RDEV=$RDEV"
           sudo dd if="$RDEV" of=os-flat.img bs=1048576 count=$((DISKSIZE/1048576+1))
+          sudo chown "$(id -u):$(id -g)" os-flat.img
           truncate -s "$DISKSIZE" os-flat.img
           stat -f%z os-flat.img | tee os-flat.size
           shasum -a 256 os-flat.img | tee os-flat.sha256
