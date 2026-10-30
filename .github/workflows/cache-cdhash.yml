@@ -1,0 +1,119 @@
+name: cache-cdhash
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Private release tag for cache-cdhash.txt"
+        required: true
+        type: string
+        default: "cache-cdhash-21H461"
+      runner_label:
+        description: "macOS runner label"
+        required: true
+        type: string
+        default: "macos-15-intel"
+permissions:
+  contents: read
+jobs:
+  cdhash:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 60
+    env:
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
+      PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      IPSW_URL: https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw
+    steps:
+      - name: Disk before
+        run: df -h /
+      - name: Download IPSW and extract SystemOS DMG
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cdhash
+          cd /tmp/cdhash
+          curl -fL --retry 5 --retry-all-errors "$IPSW_URL" -o restore.ipsw
+          unzip -j restore.ipsw '044-76034-038.dmg'
+          rm -f restore.ipsw
+          ls -lh
+          df -h /
+      - name: Attach SystemOS and locate dyld cache
+        run: |
+          set -euo pipefail
+          cd /tmp/cdhash
+          hdiutil attach -readonly -noverify -noautofsck -nobrowse -mountpoint "$PWD/sysos" 044-76034-038.dmg
+          CACHE="$PWD/sysos/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64"
+          if [ ! -f "$CACHE" ]; then
+            CACHE=$(find "$PWD/sysos" -path '*/System/Library/Caches/com.apple.dyld/dyld_shared_cache_arm64' -print -quit)
+          fi
+          [ -f "$CACHE" ] || { echo "::error::dyld_shared_cache_arm64 not found"; find "$PWD/sysos" -name 'dyld_shared_cache*' | head -50; exit 1; }
+          echo "CACHE=$CACHE"
+          cp "$CACHE" ./dyld_shared_cache_arm64
+          shasum -a 256 ./dyld_shared_cache_arm64 | tee cache.sha256
+          stat -f%z ./dyld_shared_cache_arm64 | tee cache.size
+          hdiutil detach "$PWD/sysos"
+      - name: Compute cdhash and header details
+        run: |
+          set -euo pipefail
+          cd /tmp/cdhash
+          python3 - <<'PY' | tee cache-cdhash.txt
+          import struct, hashlib
+          p = 'dyld_shared_cache_arm64'
+          data = open(p, 'rb').read()
+          print('file', p, 'size', len(data))
+          print('magic', data[:16])
+          cs_off, cs_size = struct.unpack_from('<QQ', data, 0x28)
+          print('codeSignatureOffset', hex(cs_off), 'size', hex(cs_size))
+          assert data[:16].startswith(b'dyld_v1'), data[:16]
+          blob = data[cs_off:cs_off+cs_size]
+          magic2, length, count = struct.unpack_from('>III', blob, 0)
+          print('sig blob magic', hex(magic2), 'len', length, 'count', count)
+          assert magic2 == 0xfade0cc0, hex(magic2)
+          for i in range(count):
+              btype, boff = struct.unpack_from('>II', blob, 12 + 8*i)
+              bmagic, blen = struct.unpack_from('>II', blob, boff)
+              print(' slot type', hex(btype), 'off', boff, 'magic', hex(bmagic), 'len', blen)
+              if bmagic == 0xfade0c02:
+                  cd = blob[boff:boff+blen]
+                  print(' CD magic', hex(struct.unpack_from('>I', cd, 0)[0]))
+                  print(' CD length', blen)
+                  print(' CD version', hex(struct.unpack_from('>I', cd, 8)[0]))
+                  print(' CD flags', hex(struct.unpack_from('>I', cd, 12)[0]))
+                  print(' CD hashOffset', hex(struct.unpack_from('>I', cd, 16)[0]))
+                  print(' CD identOffset', hex(struct.unpack_from('>I', cd, 20)[0]))
+                  print(' CD nSpecialSlots', struct.unpack_from('>I', cd, 24)[0])
+                  print(' CD nCodeSlots', struct.unpack_from('>I', cd, 28)[0])
+                  print(' CD codeLimit', hex(struct.unpack_from('>I', cd, 32)[0]))
+                  print(' CD hashSize', cd[36])
+                  print(' CD hashType', cd[37], hex(cd[37]))
+                  print(' CD platform', cd[38])
+                  print(' CD pageSize', cd[39])
+                  print(' CDHASH_SHA256_20', hashlib.sha256(cd).hexdigest()[:40])
+                  print(' CDHASH_SHA1_20', hashlib.sha1(cd).hexdigest()[:40])
+          print('header[:0x40]', data[:0x40].hex())
+          PY
+          cat cache.size >> cache-cdhash.txt
+          cat cache.sha256 >> cache-cdhash.txt
+          cat cache-cdhash.txt
+      - name: Upload text to private release
+        run: |
+          set -euo pipefail
+          cd /tmp/cdhash
+          export GH_TOKEN="$PRIVATE_UPLOAD_TOKEN"
+          gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
+                 --title "dyld cache cdhash $RELEASE_TAG" \
+                 --notes "CodeDirectory cdhash and header details for the 21H461 SystemOS dyld shared cache."
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
+            cache-cdhash.txt cache.size cache.sha256
+      - name: Summary
+        if: always()
+        run: |
+          cd /tmp/cdhash || exit 0
+          {
+            echo "### cache cdhash"
+            echo '```'
+            cat cache-cdhash.txt 2>/dev/null || true
+            cat cache.size 2>/dev/null || true
+            cat cache.sha256 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
