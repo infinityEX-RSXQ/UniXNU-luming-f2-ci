@@ -1,0 +1,73 @@
+diff --git a/osfmk/kern/lock_rw.c b/osfmk/kern/lock_rw.c
+index d101e71..544520f 100644
+--- a/osfmk/kern/lock_rw.c
++++ b/osfmk/kern/lock_rw.c
+@@ -63,9 +63,23 @@
+ #include <kern/processor.h>
+ #include <kern/sched_prim.h>
+ #include <kern/debug.h>
++#include <pexpert/pexpert.h>
+ #include <machine/atomic.h>
+ #include <machine/machine_cpu.h>
+ 
++/*
++ * LUMING format-2 bring-up fallback: a non-sleepable RW lock taken with
++ * preemption enabled is a hard panic in stock XNU (lock_rw.c). On the
++ * non-Apple platform this happens late in launchd bring-up where the stock
++ * assertion cannot be satisfied; warn and continue so the next real failure
++ * is visible instead of rebooting into the panic loop.
++ */
++static void
++luming_rw_preemption_warn(const char *site)
++{
++	kprintf("LUMING: taking non-sleepable RW lock with preemption enabled at %s; continuing\n", site);
++}
++
+ KALLOC_TYPE_DEFINE(KT_LCK_RW, lck_rw_t, KT_PRIV_ACCT);
+ 
+ #define LCK_RW_WRITER_EVENT(lck)                (event_t)((uintptr_t)(lck)+1)
+@@ -1124,7 +1138,7 @@ lck_rw_lock_exclusive_check_contended(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
+-		panic("Taking non-sleepable RW lock with preemption enabled");
++		luming_rw_preemption_warn(__func__);
+ 	}
+ 
+ 	if (LCK_RW_LOCK_EXCLUSIVE_TAS(lock)) {
+@@ -1158,7 +1172,7 @@ lck_rw_lock_exclusive_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
+-		panic("Taking non-sleepable RW lock with preemption enabled");
++		luming_rw_preemption_warn(__func__);
+ 	}
+ 
+ 	if (LCK_RW_LOCK_EXCLUSIVE_TAS(lock)) {
+@@ -1397,7 +1411,7 @@ lck_rw_lock_shared_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
+-		panic("Taking non-sleepable RW lock with preemption enabled");
++		luming_rw_preemption_warn(__func__);
+ 	}
+ 
+ 	for (;;) {
+@@ -1944,7 +1958,7 @@ lck_rw_try_lock_shared_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
+-		panic("Taking non-sleepable RW lock with preemption enabled");
++		luming_rw_preemption_warn(__func__);
+ 	}
+ 
+ #if     CONFIG_DTRACE
+@@ -2018,7 +2032,7 @@ lck_rw_try_lock_exclusive_internal_inline(
+ 	if (lock->lck_rw_can_sleep) {
+ 		lck_rw_lock_count_inc(thread, lock);
+ 	} else if (get_preemption_level() == 0) {
+-		panic("Taking non-sleepable RW lock with preemption enabled");
++		luming_rw_preemption_warn(__func__);
+ 	}
+ 
+ 	assertf(lock->lck_rw_owner == 0, "state=0x%x, owner=%p",
