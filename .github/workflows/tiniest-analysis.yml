@@ -1,0 +1,95 @@
+name: tiniest-analysis
+on:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: "macOS runner label"
+        required: true
+        type: string
+        default: "macos-15-intel"
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 60
+    env:
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
+      PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+      RELEASE_TAG: tiniest-analysis
+      IPSW_URL: https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw
+    steps:
+      - name: Disk before
+        run: df -h /
+      - name: Download and attach OS
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tiniest
+          cd /tmp/tiniest
+          curl -fL --retry 5 --retry-all-errors "$IPSW_URL" -o restore.ipsw
+          unzip -j restore.ipsw '044-76040-038.dmg'
+          rm -f restore.ipsw
+          hdiutil attach -readonly -noverify -nobrowse -mountpoint "$PWD/os" 044-76040-038.dmg
+          OS="$PWD/os"
+          echo "OS mounted at $OS"
+          find "$OS" -iname '*tiniest*' -print | tee tiniest-files.txt || true
+      - name: Analyze tiniest and boot-task/fstab state
+        run: |
+          set -euo pipefail
+          cd /tmp/tiniest
+          OS="$PWD/os"
+          {
+            echo "### tiniest files"
+            cat tiniest-files.txt
+            echo
+            echo "### candidate details"
+            while IFS= read -r f; do
+              [ -e "$f" ] || continue
+              echo "==== $f"
+              file "$f" || true
+              if file "$f" | grep -q 'Mach-O'; then
+                echo '-- otool -L'
+                otool -L "$f" 2>&1 || true
+                echo '-- codesign entitlements'
+                codesign -d --entitlements :- "$f" 2>&1 || true
+                echo '-- strings (filtered)'
+                strings "$f" 2>/dev/null | grep -Ei 'com\.apple|sysctl|syscall|tiniest|boottask|entitle|private|fstab|var|mount' | head -200 || true
+              fi
+              echo
+            done < tiniest-files.txt
+            echo "### boot task references (limited paths)"
+            for d in "$OS/System/Library/LaunchDaemons" "$OS/System/Library/LaunchAgents" "$OS/usr/libexec" "$OS/System/Library/PrivateFrameworks" "$OS/private/etc"; do
+              [ -d "$d" ] || continue
+              echo "-- $d"
+              grep -RIl --binary-files=text 'tiniest' "$d" 2>/dev/null | head -50 || true
+            done
+            echo
+            echo "### fstab"
+            for f in "$OS/private/etc/fstab" "$OS/etc/fstab"; do
+              if [ -e "$f" ]; then echo "== $f"; ls -l "$f"; cat "$f"; else echo "MISSING $f"; fi
+            done
+            echo
+            echo "### /private/var"
+            ls -ld "$OS/private/var" 2>&1 || true
+            find "$OS/private/var" -maxdepth 2 -print 2>/dev/null | head -100 || true
+            echo
+            echo "### /etc and /private/etc symlinks"
+            ls -ld "$OS/etc" "$OS/private/etc" 2>&1 || true
+          } | tee tiniest-analysis.txt
+          hdiutil detach "$OS"
+      - name: Upload report
+        run: |
+          set -euo pipefail
+          cd /tmp/tiniest
+          export GH_TOKEN="$PRIVATE_UPLOAD_TOKEN"
+          gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
+                 --title "tiniest boot-task analysis" \
+                 --notes "Analysis of the 21H461 OS image tiniest boot task and Data/fstab state."
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
+            tiniest-analysis.txt tiniest-files.txt
+      - name: Summary
+        if: always()
+        run: |
+          cd /tmp/tiniest || exit 0
+          { echo '### tiniest analysis'; echo '```'; head -300 tiniest-analysis.txt 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
