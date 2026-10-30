@@ -230,6 +230,8 @@ kernel_args = [
   "luming-log=1",
   "luming-dump=1",
   "luming-dump-pa=0xE4000000",
+  # APFS root-hash auth bypass attempt (closed APFS kext; NVRAM/DT-style key).
+  "allow-root-hash-mismatch=1",
   # PMGR instrument (copied from dada, same kernelcache/slide addresses) publishes the
   # ApplePMGRNub AMFI asks for; sheng-pmgr=2 selects it in bsd_init.
   "sheng-pmgr=2",
