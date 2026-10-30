@@ -1,0 +1,80 @@
+name: data-role-analysis
+on:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: "macOS runner label"
+        required: true
+        type: string
+        default: "macos-15-intel"
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 30
+    env:
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
+      PRIVATE_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+      RELEASE_TAG: data-role-analysis
+      SOURCE_TAG: data-volume-21H461-data4g-b
+    steps:
+      - name: Disk before
+        run: df -h /
+      - name: Download and attach Data image
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/data-role
+          cd /tmp/data-role
+          rel=$(curl -fsSL -H "Authorization: Bearer $PRIVATE_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$PRIVATE_REPOSITORY/releases/tags/$SOURCE_TAG")
+          asset=$(echo "$rel" | jq -r '.assets[] | select(.name=="data-flat.img.gz") | .id')
+          [ -n "$asset" ] && [ "$asset" != null ] || { echo "::error::data-flat.img.gz missing"; exit 1; }
+          curl -fsSL -H "Authorization: Bearer $PRIVATE_TOKEN" -H "Accept: application/octet-stream" \
+            "https://api.github.com/repos/$PRIVATE_REPOSITORY/releases/assets/$asset" -o data-flat.img.gz
+          gunzip -c data-flat.img.gz > data-flat.img
+          ls -lh data-flat.img
+          hdiutil attach -readwrite -nobrowse -nomount data-flat.img | tee attach.txt
+          diskutil list | tee disk-list.txt
+          diskutil apfs list | tee apfs-list.txt
+      - name: Dump role properties
+        run: |
+          set -euo pipefail
+          cd /tmp/data-role
+          {
+            echo "### diskutil apfs list"
+            cat apfs-list.txt
+            echo
+            echo "### role Data volumes"
+            awk '/Volume disk/ {v=$3} /\(Data\)/ {print v, $0}' apfs-list.txt
+            echo
+            for dev in $(diskutil list | awk '/Apple_APFS/ {for(i=1;i<=NF;i++) if($i ~ /^disk[0-9]+s[0-9]+$/){print $i; break}}'); do
+              echo "==== /dev/$dev"
+              diskutil info "/dev/$dev" 2>&1 || true
+              echo '-- plist role keys'
+              diskutil info -plist "/dev/$dev" 2>/dev/null | plutil -p - 2>/dev/null | grep -Ei 'role|uuid|name|Volume' || true
+              echo
+            done
+            echo "### APFS role constants / raw superblock role"
+            for dev in $(awk '/Volume disk/ {print $3}' apfs-list.txt); do
+              echo "-- $dev"
+              dd if="/dev/r${dev}" bs=4096 count=1 2>/dev/null | xxd -l 128 || true
+            done
+          } | tee data-role-analysis.txt
+          hdiutil detach $(awk '/\/dev\/disk/ {print $1; exit}' attach.txt) || true
+      - name: Upload report
+        run: |
+          set -euo pipefail
+          cd /tmp/data-role
+          export GH_TOKEN="$PRIVATE_TOKEN"
+          gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
+                 --title "Data-role mount analysis" \
+                 --notes "macOS role/UUID properties for the Data-role APFS image."
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
+            data-role-analysis.txt disk-list.txt apfs-list.txt
+      - name: Summary
+        if: always()
+        run: |
+          cd /tmp/data-role || exit 0
+          { echo '### Data role analysis'; echo '```'; head -200 data-role-analysis.txt 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
