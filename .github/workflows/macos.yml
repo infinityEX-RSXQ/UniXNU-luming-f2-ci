@@ -125,6 +125,10 @@ on:
         description: "Optional Data seed (.dbr) URL for the payload (masked)"
         required: false
         default: ""
+      data_seed_release_tag:
+        description: "Private-repo release tag containing data-seed.dbr (downloaded with PRIVATE_REPO_TOKEN)"
+        required: false
+        default: ""
       grow_gib:
         description: "Grow the Data seed to this many GiB (optional)"
         required: false
@@ -392,6 +396,7 @@ jobs:
           dtb_url=$(jq -r '.inputs.dtb_url // ""' "$GITHUB_EVENT_PATH")
           trust_cache_url=$(jq -r '.inputs.trust_cache_url // ""' "$GITHUB_EVENT_PATH")
           data_seed_url=$(jq -r '.inputs.data_seed_url // ""' "$GITHUB_EVENT_PATH")
+          data_seed_release_tag=$(jq -r '.inputs.data_seed_release_tag // ""' "$GITHUB_EVENT_PATH")
           kc="$RUNNER_TEMP/f2-luming-inputs/kernelcache.macho"
           if [ -n "$kernelcache_url" ]; then
             curl -fsSL --retry 3 --retry-all-errors "$kernelcache_url" -o "$kc"
@@ -436,7 +441,19 @@ jobs:
             fi
             shasum -a 256 "$RUNNER_TEMP/f2-luming-inputs/trustcache"
           fi
-          if [ -n "$data_seed_url" ]; then
+          if [ -z "$data_seed_url" ] && [ -n "$data_seed_release_tag" ]; then
+            seed_api="https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/tags/${data_seed_release_tag}"
+            seed_asset=$(curl -fsSL -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/vnd.github+json" "$seed_api" \
+              | jq -r '.assets[] | select(.name == "data-seed.dbr") | .id' | head -n 1)
+            if [ -z "$seed_asset" ] || [ "$seed_asset" = "null" ]; then
+              echo "::error::no data-seed.dbr asset on release $data_seed_release_tag"
+              exit 1
+            fi
+            curl -fsSL -L -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/octet-stream" \
+              "https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/assets/${seed_asset}" \
+              -o "$RUNNER_TEMP/f2-luming-inputs/data.dbr"
+            echo "private Data seed downloaded from $data_seed_release_tag"
+          elif [ -n "$data_seed_url" ]; then
             curl -fsSL --retry 3 "$data_seed_url" -o "$RUNNER_TEMP/f2-luming-inputs/data.dbr"
             if [ -n "$GROW_GIB" ]; then
               git -C unixnu submodule update --init --depth 1 drivers/DarwinBoot
