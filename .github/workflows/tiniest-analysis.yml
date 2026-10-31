@@ -16,7 +16,7 @@ jobs:
     env:
       PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
       PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
-      RELEASE_TAG: tiniest-analysis
+      RELEASE_TAG: tiniest-analysis2
       IPSW_URL: https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw
     steps:
       - name: Disk before
