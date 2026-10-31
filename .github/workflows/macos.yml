@@ -730,6 +730,23 @@ jobs:
           PY
           fi
 
+      - name: Package owner payload intermediates
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'payload') }}
+        run: |
+          set -euo pipefail
+          mkdir -p ci-artifacts/intermediates
+          payload_dir=$(find unixnu/out -type d -name payload | head -n 1)
+          [ -n "$payload_dir" ] || { echo "::error::payload directory not found"; exit 1; }
+          cp -R "$payload_dir" ci-artifacts/intermediates/payload
+          cp device/board.toml ci-artifacts/intermediates/board.toml
+          cp ci-artifacts/build-manifest.json ci-artifacts/intermediates/ 2>/dev/null || true
+          for name in payload.log bootimg.log kernel.log; do
+            log=$(find unixnu/out -type f -name "$name" | head -n 1 || true)
+            [ -n "$log" ] && cp "$log" "ci-artifacts/intermediates/$name"
+          done
+          tar -czf ci-artifacts/owner-intermediates.tar.gz -C ci-artifacts/intermediates .
+          ls -lh ci-artifacts/owner-intermediates.tar.gz
+
       - name: Upload artifacts, hashes and logs (private destinations only; disabled by default in public repo)
         if: false
         uses: actions/upload-artifact@v4
@@ -800,6 +817,12 @@ jobs:
           if boot_json.is_file(): files.append((boot_json, 'boot.json'))
           manifest = root / 'ci-artifacts/build-manifest.json'
           if manifest.is_file(): files.append((manifest, 'build-manifest.json'))
+          payload_img = find_one('unixnu/out/**/payload/payload.img')
+          payload_json = find_one('unixnu/out/**/payload/payload.json')
+          if payload_img: files.append((payload_img, 'payload.img'))
+          if payload_json: files.append((payload_json, 'payload.json'))
+          intermediates = root / 'ci-artifacts/owner-intermediates.tar.gz'
+          if intermediates.is_file(): files.append((intermediates, 'owner-intermediates.tar.gz'))
           if not files:
               raise SystemExit('no kernel/boot.img files to upload')
 
