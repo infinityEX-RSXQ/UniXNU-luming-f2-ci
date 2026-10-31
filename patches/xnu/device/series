@@ -1,29 +1,34 @@
-# Reference-parity device series — CI run #9 (2026-10-29), source patches only.
-# No start-signals, boot-marks or early-console-flush diagnostics.
-# [diagnostic UI, disabled 2026-10-31] color-band patches must not be applied:
-# zzzzz-luming-start-signals.patch
-# zzzzz-luming-boot-marks.patch
+# Minimal owner bring-up device series (2026-10-31).
+#
+# The owner-native kernel uses an ADT generated from the CI profile, not the
+# hand-maintained luming diagnostic ADT.  Keep only the patches that are
+# required for the physical framebuffer, normal console, PMGR publication and
+# the trust-cache runtime; everything else is a bring-up instrument that may
+# dereference luming-only device-tree properties.
 zzzzz-fix-darwinboot-physical-framebuffer.patch
 zzzzz-luming-defer-console-init.patch
-zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
-zzzz-luming-skip-root-auth-gate-without-owner-audit.patch
-zzzzz-luming-entitlements-without-amfi.patch
-zzzzzz-luming-more-amfi-null-guards.patch
-zzzzzzzzzzzzzzz-luming-no-cs-bringup.patch
-zzzzzzz-luming-cache-path.patch
-zzzzzzz-luming-owner-cache-diagnostics.patch
-zzzzzzzz-luming-owner-cache-initproc-panic.patch
-zzzzzzzzz-luming-owner-cache-probe.patch
-zzzzzzzzzz-luming-owner-cache-root-list.patch
-zzzzzzzzzzz-luming-owner-cache-root-hex.patch
-zzzzzzzzzzzz-luming-owner-cache-dirent32.patch
-zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch
-zzzzzzzzzzzzzz-luming-owner-cache-union-env.patch
 zzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
-zzzzzzzzzzzzzzzzz-luming-ufs-log.patch
-# zzzzzzzzzzzzzzzzzzzzz-luming-lock-preemption-warn.patch  # superseded by rwlock-diag
-zzzzzzzzzzzzzzzzzzzzz-luming-rwlock-diag.patch
-# [run #17 log-friendly] disabled: this patch PSCI-resets on panic; keep the panic screen for
-# a photo of the final kernel log. Re-enable for automatic UFS/PA dump runs.
-# zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch
 zzzzzzzzzzzzzzzzzzzzz-luming-force-trust-cache-runtime.patch
+
+# Disabled for the owner build (luming custom ADT / diagnostics):
+# zzz-boot-progress-min.patch
+# zzzzz-luming-start-signals.patch
+# zzzzz-luming-boot-marks.patch
+# zzzzz-luming-owner-cache-diagnostics.patch
+# zzzzzzz-luming-cache-path.patch
+# zzzzzzzz-luming-owner-cache-initproc-panic.patch
+# zzzzzzzzz-luming-owner-cache-probe.patch
+# zzzzzzzzzz-luming-owner-cache-root-list.patch
+# zzzzzzzzzzz-luming-owner-cache-root-hex.patch
+# zzzzzzzzzzzz-luming-owner-cache-dirent32.patch
+# zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch
+# zzzzzzzzzzzzzz-luming-owner-cache-union-env.patch
+# zzzzzzzzzzzzzzzzz-luming-ufs-log.patch
+# zzzzzzzzzzzzzzzzzzzzz-luming-rwlock-diag.patch
+# zzzzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch
+# zzzzzzzzzzzzzzzzzzzzz-luming-lock-preemption-warn.patch
+# zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
+# zzzz-luming-skip-root-auth-gate-without-owner-audit.patch
+# zzzzz-luming-entitlements-without-amfi.patch
+# zzzzzz-luming-more-amfi-null-guards.patch
+# zzzzzzzzzzzzzzz-luming-no-cs-bringup.patch
