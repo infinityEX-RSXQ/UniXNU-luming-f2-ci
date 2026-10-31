@@ -132,8 +132,14 @@ jobs:
           diskutil apfs list "$CONTAINER" | tee /tmp/apfs-before-roles.txt
           set +e
           diskutil apfs addVolume -help > /tmp/addvolume-help.txt 2>&1
-          diskutil apfs addVolume "$CONTAINER" APFS Data -role D 2>&1 | tee /tmp/add-data.txt
-          # Preboot role flag name is version-dependent: try B then P and keep whatever succeeds.
+          SYSTEMVOL=$(diskutil apfs list "$CONTAINER" | awk '/APFS Volume Disk \(Role\):.*\(System\)/ {print $2; exit}')
+          echo "SYSTEMVOL=$SYSTEMVOL"
+          if [ -n "$SYSTEMVOL" ]; then
+            diskutil apfs addVolume "$CONTAINER" APFS Data -role D -groupWith "$SYSTEMVOL" 2>&1 | tee /tmp/add-data-group.txt
+            if ! diskutil apfs list "$CONTAINER" | grep -q '(Data)'; then
+              diskutil apfs addVolume "$CONTAINER" APFS Data -role D -sibling "$SYSTEMVOL" 2>&1 | tee /tmp/add-data-sibling.txt
+            fi
+          fi
           for r in B P; do
             if ! diskutil apfs list "$CONTAINER" | grep -q '(Preboot)'; then
               diskutil apfs addVolume "$CONTAINER" APFS Preboot -role "$r" 2>&1 | tee "/tmp/add-preboot-$r.txt"
@@ -143,8 +149,9 @@ jobs:
           diskutil apfs list "$CONTAINER" | tee /tmp/apfs-list.txt
           if ! grep -q '(Data)' /tmp/apfs-list.txt; then echo "::error::Data role volume missing"; exit 1; fi
           if ! grep -q '(Preboot)' /tmp/apfs-list.txt; then
-            echo "::warning::Preboot role absent; exporting image with Data only and role help below"
+            echo "::warning::Preboot role absent; exporting image with Data only"
           fi
+          grep -i -A12 'Volume Group' /tmp/apfs-list.txt | tee /tmp/volume-group.txt || true
           hdiutil detach "$DISK" -force || true
           ls -lh os-rw.dmg
       - name: Export enlarged raw image
@@ -178,6 +185,9 @@ jobs:
           shasum -a 256 os-flat.img.gz* | tee os-flat.parts.sha256
           cp /tmp/apfs-list.txt apfs-list.txt
           cp /tmp/addvolume-help.txt addvolume-help.txt 2>/dev/null || true
+          cp /tmp/volume-group.txt volume-group.txt 2>/dev/null || true
+          cp /tmp/add-data-group.txt add-data-group.txt 2>/dev/null || true
+          cp /tmp/add-data-sibling.txt add-data-sibling.txt 2>/dev/null || true
           cp /tmp/df-osvol.txt df-osvol.txt
           cp /tmp/dyld-list.txt dyld-list.txt
           cp /tmp/dyld-sha.txt dyld-sha.txt
@@ -194,7 +204,7 @@ jobs:
                  --notes "Expanded OS raw image with dyld shared cache in /System/Library/Caches/com.apple.dyld. Apple-derived; private."
           gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
             os-flat.img.gz* os-flat.size os-flat.sha256 os-flat.parts.sha256 \
-            apfs-list.txt addvolume-help.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
+            apfs-list.txt addvolume-help.txt volume-group.txt add-data-group.txt add-data-sibling.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
       - name: Summary
         if: always()
         run: |
