@@ -125,10 +125,6 @@ on:
         description: "Optional Data seed (.dbr) URL for the payload (masked)"
         required: false
         default: ""
-      data_seed_release_tag:
-        description: "Private-repo release tag containing data-seed.dbr (downloaded with PRIVATE_REPO_TOKEN)"
-        required: false
-        default: ""
       grow_gib:
         description: "Grow the Data seed to this many GiB (optional)"
         required: false
@@ -396,7 +392,6 @@ jobs:
           dtb_url=$(jq -r '.inputs.dtb_url // ""' "$GITHUB_EVENT_PATH")
           trust_cache_url=$(jq -r '.inputs.trust_cache_url // ""' "$GITHUB_EVENT_PATH")
           data_seed_url=$(jq -r '.inputs.data_seed_url // ""' "$GITHUB_EVENT_PATH")
-          data_seed_release_tag=$(jq -r '.inputs.data_seed_release_tag // ""' "$GITHUB_EVENT_PATH")
           kc="$RUNNER_TEMP/f2-luming-inputs/kernelcache.macho"
           if [ -n "$kernelcache_url" ]; then
             curl -fsSL --retry 3 --retry-all-errors "$kernelcache_url" -o "$kc"
@@ -440,6 +435,11 @@ jobs:
               curl -fsSL --retry 3 "$trust_cache_url" -o "$RUNNER_TEMP/f2-luming-inputs/trustcache"
             fi
             shasum -a 256 "$RUNNER_TEMP/f2-luming-inputs/trustcache"
+          fi
+          data_seed_release_tag=""
+          if [ -n "$data_seed_url" ] && [[ "$data_seed_url" != http://* && "$data_seed_url" != https://* ]]; then
+            data_seed_release_tag="$data_seed_url"
+            data_seed_url=""
           fi
           if [ -z "$data_seed_url" ] && [ -n "$data_seed_release_tag" ]; then
             seed_api="https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/tags/${data_seed_release_tag}"
