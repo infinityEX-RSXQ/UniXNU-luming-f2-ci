@@ -69,7 +69,7 @@ CONFIG_XNU_NATIVE_RAM_BLOCK=y
 # warning intent with flags this clang supports, so archive builders replaying the Xcode
 # compile records do not fail on -Werror,-Wunknown-warning-option.
 CONFIG_XNU_EXTRA_CFLAGS="-Wno-reserved-identifier -Wno-pre-c11-compat -Wno-missing-designated-field-initializers -Wno-suggest-override -Wno-ms-bitfield-padding -I{tree}/build/storage-abi/include"
-CONFIG_XNU_EXTRA_LD_ARCHIVES="-Wl,-force_load,{tree}/build/luming-boot-log/libLumingBootLog.a -Wl,-force_load,{tree}/build/luming-ufs/libLumingUfs.a -Wl,-force_load,{tree}/build/ram-block/libRamBlock.a -Wl,-force_load,{tree}/build/virtio-mmio-block/libVirtioMmioBlock.a -Wl,-force_load,{tree}/build/sheng-platform-power/libShengPlatformPower.a"
+CONFIG_XNU_EXTRA_LD_ARCHIVES="-Wl,-force_load,{tree}/build/luming-boot-log/libLumingBootLog.a -Wl,-force_load,{tree}/build/ram-block/libRamBlock.a -Wl,-force_load,{tree}/build/virtio-mmio-block/libVirtioMmioBlock.a -Wl,-force_load,{tree}/build/sheng-platform-power/libShengPlatformPower.a"
 
 CONFIG_XNU_LUMING_BOOT_LOG=y
 
