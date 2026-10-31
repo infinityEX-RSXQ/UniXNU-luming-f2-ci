@@ -522,6 +522,34 @@ jobs:
             fi
           fi
 
+      - name: Download the owner system-volume auth blob
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'payload') }}
+        env:
+          PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/tags/owner-auth-21H461"
+          asset_id=$(curl -fsSL -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/vnd.github+json" "$api" \
+            | jq -r '.assets[] | select(.name == "044-76040-038.dmg.root_hash") | .id' | head -n 1)
+          if [ -z "$asset_id" ] || [ "$asset_id" = "null" ]; then
+            echo "::error::no 044-76040-038.dmg.root_hash asset on owner-auth-21H461"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/f2-luming-inputs"
+          curl -fsSL -L -H "Authorization: Bearer $PRIVATE_REPO_TOKEN" -H "Accept: application/octet-stream" \
+            "https://api.github.com/repos/${PRIVATE_REPOSITORY}/releases/assets/${asset_id}" \
+            -o "$RUNNER_TEMP/f2-luming-inputs/system-volume-auth-blob"
+          shasum -a 256 "$RUNNER_TEMP/f2-luming-inputs/system-volume-auth-blob"
+          echo "UNIXNU_SYSTEM_VOLUME_AUTH_BLOB=$RUNNER_TEMP/f2-luming-inputs/system-volume-auth-blob" >> "$GITHUB_ENV"
+
+      - name: Patch the owner ADT generator
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'payload') }}
+        run: |
+          set -euo pipefail
+          python3 device/scripts/ci/patch-owner-adt.py unixnu/scripts/unixnu/devicetree.py
+          grep -n 'AAPL,phandle' unixnu/scripts/unixnu/devicetree.py | head -3
+          grep -n 'system-volume-auth-blob' unixnu/scripts/unixnu/devicetree.py | head -5
+
       - name: Device preflight / dry-run checklist
         env:
           HAS_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID != '' }}
