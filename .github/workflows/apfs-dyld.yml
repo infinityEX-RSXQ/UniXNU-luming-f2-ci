@@ -236,7 +236,7 @@ jobs:
                  --notes "Expanded OS raw image with dyld shared cache in /System/Library/Caches/com.apple.dyld. Apple-derived; private."
           gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
             os-flat.img.gz* os-flat.size os-flat.sha256 os-flat.parts.sha256 \
-            apfs-list.txt addvolume-help.txt volume-group.txt add-data-group.txt add-data-sibling.txt roles-report.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
+            apfs-list.txt addvolume-help.txt roles-report.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
       - name: Summary
         if: always()
         run: |
