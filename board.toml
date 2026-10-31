@@ -216,28 +216,15 @@ trust_cache_sha256 = ["7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235
 kernel_args = [
   "-v",
   "debug=0x14e",
-  # Upstream observability paths (docs/LOGGING.md):
-  #   serial=3   serial console selection (backend: see docs/LOGGING.md; no GENI driver yet)
-  #   keepsyms=1 symbolize backtraces in panic/console output
-  #   luming-log=1 opens the UFS log window and starts the periodic BootLog writer
-  #   boot-progress is disabled: its diagnostic color-band screen is not wanted on the user build
   "serial=3",
   "keepsyms=1",
-  "armcpu-diagnostics=1",
   "native-ufs-root=1",
-  "native-ufs-diagnostics=1",
-  "luming-log=1",
-  "luming-dump=1",
-  "luming-dump-pa=0xE4000000",
-  # APFS root-hash auth bypass attempt (closed APFS kext; NVRAM/DT-style key).
-  "allow-root-hash-mismatch=1",
-  # PMGR instrument (copied from dada, same kernelcache/slide addresses) publishes the
-  # ApplePMGRNub AMFI asks for; sheng-pmgr=2 selects it in bsd_init.
   "sheng-pmgr=2",
-  "sheng-smp=1",   # ArmCpu secondary-CPU bring-up (ArmCpu.cpp parses exactly "sheng-smp")
+  "sheng-smp=1",
   "luming-data-persist=2",
   "-apfs_shared_datavolume",
   "ml-timeout-lock-panic-scale=40",
+  "allow-root-hash-mismatch=1",
 ]
 
 [payload.adt]
