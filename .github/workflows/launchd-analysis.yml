@@ -1,0 +1,88 @@
+name: launchd-analysis
+on:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: "macOS runner label"
+        required: true
+        type: string
+        default: "macos-15-intel"
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 60
+    env:
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
+      PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+      RELEASE_TAG: launchd-analysis
+      IPSW_URL: https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw
+    steps:
+      - name: Disk before
+        run: df -h /
+      - name: Download and attach OS
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/launchd
+          cd /tmp/launchd
+          curl -fL --retry 5 --retry-all-errors "$IPSW_URL" -o restore.ipsw
+          unzip -j restore.ipsw '044-76040-038.dmg'
+          rm -f restore.ipsw
+          hdiutil attach -readonly -noverify -nobrowse -mountpoint "$PWD/os" 044-76040-038.dmg
+          OS="$PWD/os"
+          LAUNCHD="$OS/sbin/launchd"
+          [ -f "$LAUNCHD" ] || LAUNCHD=$(find "$OS" -type f -name launchd -print -quit)
+          echo "LAUNCHD=$LAUNCHD" | tee launchd-path.txt
+          file "$LAUNCHD" | tee launchd-file.txt
+          otool -L "$LAUNCHD" 2>&1 | tee launchd-otool.txt || true
+          codesign -d --entitlements :- "$LAUNCHD" 2>&1 | tee launchd-entitlements.txt || true
+          strings "$LAUNCHD" 2>/dev/null | grep -Ei 'mount|data.volume|volume.group|preboot|associated|targetsystem|apfs|get_dev_by_role|fstab|tiniest|boot.task' | tee launchd-strings.txt || true
+      - name: Search launchd configs and mount-phase references
+        run: |
+          set -euo pipefail
+          cd /tmp/launchd
+          OS="$PWD/os"
+          {
+            echo "### files containing mount-phase / volume group keywords"
+            for d in "$OS/System/Library/LaunchDaemons" "$OS/System/Library/LaunchAgents" "$OS/usr/libexec" "$OS/sbin" "$OS/private/etc" "$OS/System/Library/Frameworks" "$OS/System/Library/PrivateFrameworks"; do
+              [ -d "$d" ] || continue
+              echo "-- $d"
+              grep -RIl --binary-files=text -E 'mount-phase|data volume|volume group|associated-volume-group|targetsystemvolgroupuuid|apfs-preboot-uuid' "$d" 2>/dev/null | head -100 || true
+            done
+            echo
+            echo "### launchd strings containing mount/volume/group"
+            strings "$LAUNCHD" 2>/dev/null | grep -Ei 'mount|data.volume|volume.group|preboot|associated|targetsystem|apfs|get_dev_by_role|fstab|tiniest|boot.task' || true
+            echo
+            echo "### launchd symbols (if any)"
+            nm -m "$LAUNCHD" 2>/dev/null | grep -Ei 'mount|volume|group|apfs|preboot|fstab|tiniest' | head -200 || true
+            echo
+            echo "### boot-task plists with launchd/config hints"
+            for f in $(grep -RIl --binary-files=text -E 'tiniest|mount-phase-1|mount-phase-2' "$OS/System/Library/LaunchDaemons" "$OS/private/etc" 2>/dev/null | head -50); do
+              echo "==== $f"
+              plutil -p "$f" 2>/dev/null | head -100 || cat "$f" | head -100
+            done
+            echo
+            echo "### /private/etc/fstab and /private/var"
+            for f in "$OS/private/etc/fstab" "$OS/etc/fstab"; do
+              if [ -e "$f" ]; then echo "== $f"; cat "$f"; else echo "MISSING $f"; fi
+            done
+            ls -ld "$OS/private/var" 2>&1 || true
+          } | tee launchd-analysis.txt
+          hdiutil detach "$OS"
+      - name: Upload report
+        run: |
+          set -euo pipefail
+          cd /tmp/launchd
+          export GH_TOKEN="$PRIVATE_UPLOAD_TOKEN"
+          gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
+                 --title "launchd mount-phase analysis" \
+                 --notes "Strings/symbols/config references for launchd mount-phase and Data/volume-group lookup."
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
+            launchd-analysis.txt launchd-strings.txt launchd-path.txt launchd-file.txt launchd-otool.txt launchd-entitlements.txt
+      - name: Summary
+        if: always()
+        run: |
+          cd /tmp/launchd || exit 0
+          { echo '### launchd analysis'; echo '```'; head -300 launchd-analysis.txt 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
