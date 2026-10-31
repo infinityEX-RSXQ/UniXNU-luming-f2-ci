@@ -1,2 +1,3 @@
-# Variant E: zero device patches.
-# Use only the core arch:/soc:/os: patch series; standard XNU console path.
+# Variant G: framebuffer + deferred console (no other device patches).
+zzzzz-fix-darwinboot-physical-framebuffer.patch
+zzzzz-luming-defer-console-init.patch
