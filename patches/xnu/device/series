@@ -1,16 +1,14 @@
-# Minimal owner bring-up device series (2026-10-31).
+# Variant A: absolutely minimal owner-bring-up device series (2026-10-31).
 #
-# The owner-native kernel uses an ADT generated from the CI profile, not the
-# hand-maintained luming diagnostic ADT.  Keep only the patches that are
-# required for the physical framebuffer, normal console, PMGR publication and
-# the trust-cache runtime; everything else is a bring-up instrument that may
-# dereference luming-only device-tree properties.
+# Only the GOP physical-framebuffer fix is applied.  All console/PMGR/trust-cache
+# and diagnostic patches are disabled so a kernel data abort can be attributed
+# to the remaining patch rather than to an early instrumentation.
 zzzzz-fix-darwinboot-physical-framebuffer.patch
-zzzzz-luming-defer-console-init.patch
-zzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
-zzzzzzzzzzzzzzzzzzzzz-luming-force-trust-cache-runtime.patch
 
-# Disabled for the owner build (luming custom ADT / diagnostics):
+# Disabled for variant A:
+# zzzzz-luming-defer-console-init.patch
+# zzzzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
+# zzzzzzzzzzzzzzzzzzzzz-luming-force-trust-cache-runtime.patch
 # zzz-boot-progress-min.patch
 # zzzzz-luming-start-signals.patch
 # zzzzz-luming-boot-marks.patch
