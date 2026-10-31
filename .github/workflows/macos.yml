@@ -264,6 +264,18 @@ jobs:
             echo "disabled core zzz-boot-progress.patch (device minimal patch remains active)"
           fi
 
+      - name: Apply the owner-cache bring-up relax patch
+        run: |
+          set -euo pipefail
+          patch="device/patches/unixnu/unixnu-owner-cache-bringup.patch"
+          [ -f "$patch" ] || { echo "::error::missing $patch"; exit 1; }
+          if git -C unixnu apply --check "$patch" >/dev/null 2>&1; then
+            git -C unixnu apply "$patch"
+            echo "applied unixnu-owner-cache-bringup.patch"
+          else
+            echo "::error::owner-cache bring-up patch does not apply to the core checkout"
+            exit 1
+          fi
       - name: Prepare the UEFI bundle from the private release asset
         if: ${{ inputs.dry_run != true && inputs.uefi_archive_release_tag != '' && (contains(inputs.steps, 'firmware') || contains(inputs.steps, 'bootimg')) }}
         env:
