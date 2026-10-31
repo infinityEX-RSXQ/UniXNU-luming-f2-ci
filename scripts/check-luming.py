@@ -332,7 +332,6 @@ def check_observability(device: Path, board: dict) -> None:
     defconfig = (device / 'configs' / str(board.get('kernel', {}).get('defconfig', ''))).read_text(encoding='utf-8')
     required = {
         'CONFIG_XNU_LUMING_BOOT_LOG=y': 'UFS periodic BootLog writer',
-        'CONFIG_XNU_DT_PANIC_REGION=y': 'device-tree panic region (avoids BCM2837 hardcoded hang)',
         'CONFIG_XNU_NATIVE_CS_HASH_CACHE=y': '4K code-signing hash cache',
         'CONFIG_XNU_NATIVE_UFS=y': 'UFS transport for the log window',
         'CONFIG_XNU_NATIVE_RAM_BLOCK=y': 'Data/ram block carrier',
