@@ -351,8 +351,8 @@ def check_observability(device: Path, board: dict) -> None:
                      ('debug=0x14e', 'XNU debug flags')):
         if arg in args:
             add('PASS', f'observability kernel arg {arg} ({why})')
-        elif arg == 'luming-log=1':
-            add('WARN', 'luming-log disabled for the owner-bring-up build (BootLog diagnostics not required)')
+        elif arg in ('luming-log=1', 'serial=3', 'debug=0x14e'):
+            add('WARN', f'{arg} disabled for the owner-bring-up build')
         else:
             add('ERROR', f'observability kernel arg missing: {arg} ({why})')
     if board.get('payload', {}).get('panic_screen') is True:
