@@ -53,6 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           cd unixnu
+          mkdir -p build
           python3 scripts/prepare-owner-data-fixture.py --output build/owner-data-fixture | tee build/owner-data-fixture.log
           cat build/owner-data-fixture/seed.json
       - name: Pack and grow Data seed to requested GiB
