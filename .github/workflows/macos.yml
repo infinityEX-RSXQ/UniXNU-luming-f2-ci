@@ -305,6 +305,24 @@ jobs:
               raise SystemExit('UFS archive line not found')
           PY
           grep -n 'UFS_ARCHIVE=' unixnu/scripts/build-xnu-4k-baseline.sh | head -5
+      - name: Disable serial KDP in the owner kernel build
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('unixnu/scripts/build-xnu-4k-baseline.sh')
+          s = p.read_text()
+          old = 'CFLAGS_EXTRA="$EXTRA_CFLAGS" "${EXTRA_MAKE_ARGS[@]}"'
+          new = 'CFLAGS_EXTRA="$EXTRA_CFLAGS" MACH_KDP=0 "${EXTRA_MAKE_ARGS[@]}"'
+          if old in s:
+              p.write_text(s.replace(old, new, 1))
+              print('disabled MACH_KDP for the owner kernel link')
+          elif new in s:
+              print('MACH_KDP already disabled')
+          else:
+              raise SystemExit('kernel make line not found for MACH_KDP=0')
+          PY
+          grep -n 'MACH_KDP' unixnu/scripts/build-xnu-4k-baseline.sh | head -5
       - name: Prepare the UEFI bundle from the private release asset
         if: ${{ inputs.dry_run != true && inputs.uefi_archive_release_tag != '' && (contains(inputs.steps, 'firmware') || contains(inputs.steps, 'bootimg')) }}
         env:
