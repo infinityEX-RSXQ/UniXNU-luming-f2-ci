@@ -132,7 +132,7 @@ jobs:
           diskutil apfs list "$CONTAINER" | tee /tmp/apfs-before-roles.txt
           set +e
           diskutil apfs addVolume -help > /tmp/addvolume-help.txt 2>&1
-          SYSTEMVOL=$(diskutil apfs list "$CONTAINER" | awk '/APFS Volume Disk \(Role\):.*\(System\)/ {print $2; exit}')
+          SYSTEMVOL=$(diskutil apfs list "$CONTAINER" | awk '/APFS Volume Disk \(Role\):.*\(System\)/ {print $5; exit}')
           echo "SYSTEMVOL=$SYSTEMVOL"
           if [ -n "$SYSTEMVOL" ]; then
             diskutil apfs addVolume "$CONTAINER" APFS Data -role D -groupWith "$SYSTEMVOL" 2>&1 | tee /tmp/add-data-group.txt
