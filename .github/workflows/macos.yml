@@ -287,6 +287,24 @@ jobs:
               raise SystemExit('owner-cache gate pattern not found')
           PY
           grep -n 'offline SystemOS mount' unixnu/scripts/build-xnu-4k-baseline.sh | head -5
+      - name: Use the LumingUfs archive instead of the core ShengUfs default
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('unixnu/scripts/build-xnu-4k-baseline.sh')
+          s = p.read_text()
+          old = 'UFS_ARCHIVE=$ROOT/build/sheng-ufs/libShengUfs.a'
+          new = 'UFS_ARCHIVE=${XNU_NATIVE_UFS_ARCHIVE:-$ROOT/build/sheng-ufs/libShengUfs.a}'
+          if old in s:
+              p.write_text(s.replace(old, new, 1))
+              print('overrode the core ShengUfs archive with XNU_NATIVE_UFS_ARCHIVE')
+          elif new in s:
+              print('UFS archive override already present')
+          else:
+              raise SystemExit('UFS archive line not found')
+          PY
+          grep -n 'UFS_ARCHIVE=' unixnu/scripts/build-xnu-4k-baseline.sh | head -5
       - name: Prepare the UEFI bundle from the private release asset
         if: ${{ inputs.dry_run != true && inputs.uefi_archive_release_tag != '' && (contains(inputs.steps, 'firmware') || contains(inputs.steps, 'bootimg')) }}
         env:
