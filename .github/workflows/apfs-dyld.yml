@@ -164,10 +164,12 @@ jobs:
           hdiutil attach -readwrite -nobrowse os-rw.dmg | tee /tmp/attach-rw.txt
           OSDISK=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-rw.txt)
           echo "OSDISK=$OSDISK"
-          OVOL=""
-          for m in /Volumes/*; do
-            if [ -d "$m/System/Library" ]; then OVOL="$m"; fi
-          done
+          OVOL=$(ls -d /Volumes/DawnUpdate* 2>/dev/null | head -1)
+          if [ -z "${OVOL:-}" ]; then
+            for m in /Volumes/*; do
+              case "$m" in *DawnUpdate*) if [ -d "$m/System/Library" ]; then OVOL="$m"; fi;; esac
+            done
+          fi
           if [ -z "${OVOL:-}" ]; then
             diskutil mount "$OSDISK"
             OVOL=$(df -h | awk '/\/Volumes\// {print $NF; exit}')
