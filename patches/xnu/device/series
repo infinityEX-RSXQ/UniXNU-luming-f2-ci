@@ -1,2 +1,2 @@
-# Variant E: zero device patches.
-# Use only the core arch:/soc:/os: patch series; standard XNU console path.
+# Variant F: zero device patches + the GOP physical-framebuffer fix only.
+zzzzz-fix-darwinboot-physical-framebuffer.patch
