@@ -215,8 +215,6 @@ trust_cache_sha256 = ["7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235
 # (--trust-cache) and is never stored in the repository.
 kernel_args = [
   "-v",
-  "debug=0x14e",
-  "serial=3",
   "keepsyms=1",
   "native-ufs-root=1",
   "sheng-pmgr=2",
