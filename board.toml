@@ -220,10 +220,9 @@ kernel_args = [
   #   serial=3   serial console selection (backend: see docs/LOGGING.md; no GENI driver yet)
   #   keepsyms=1 symbolize backtraces in panic/console output
   #   luming-log=1 opens the UFS log window and starts the periodic BootLog writer
-  #   boot-progress=2 keeps the upstream boot-progress boot argument (screen needs CONFIG on)
+  #   boot-progress is disabled: its diagnostic color-band screen is not wanted on the user build
   "serial=3",
   "keepsyms=1",
-  "boot-progress=2",
   "armcpu-diagnostics=1",
   "native-ufs-root=1",
   "native-ufs-diagnostics=1",
