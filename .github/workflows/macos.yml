@@ -264,18 +264,29 @@ jobs:
             echo "disabled core zzz-boot-progress.patch (device minimal patch remains active)"
           fi
 
-      - name: Apply the owner-cache bring-up relax patch
+      - name: Relax the owner-cache gate (bring-up mode, idempotent)
         run: |
           set -euo pipefail
-          patch="device/patches/unixnu/unixnu-owner-cache-bringup.patch"
-          [ -f "$patch" ] || { echo "::error::missing $patch"; exit 1; }
-          if git -C unixnu apply --check "$patch" >/dev/null 2>&1; then
-            git -C unixnu apply "$patch"
-            echo "applied unixnu-owner-cache-bringup.patch"
-          else
-            echo "::error::owner-cache bring-up patch does not apply to the core checkout"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('unixnu/scripts/build-xnu-4k-baseline.sh')
+          s = p.read_text()
+          old = """if [ "$OWNER_CACHE_MOUNT" = 1 ] && [ "$OWNER_ROOT_TRUST" != 1 ]; then
+            echo 'The offline SystemOS mount requires real independent owner root enforcement' >&2
             exit 1
-          fi
+          fi"""
+          new = """if [ "$OWNER_CACHE_MOUNT" = 1 ] && [ "$OWNER_ROOT_TRUST" != 1 ]; then
+            echo 'warning: offline SystemOS mount without owner root trust (bring-up mode)' >&2
+          fi"""
+          if old in s:
+              p.write_text(s.replace(old, new))
+              print('relaxed owner-cache gate')
+          elif 'warning: offline SystemOS mount without owner root trust' in s:
+              print('already relaxed')
+          else:
+              raise SystemExit('owner-cache gate pattern not found')
+          PY
+          grep -n 'offline SystemOS mount' unixnu/scripts/build-xnu-4k-baseline.sh | head -5
       - name: Prepare the UEFI bundle from the private release asset
         if: ${{ inputs.dry_run != true && inputs.uefi_archive_release_tag != '' && (contains(inputs.steps, 'firmware') || contains(inputs.steps, 'bootimg')) }}
         env:
