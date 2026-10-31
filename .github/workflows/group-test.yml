@@ -13,10 +13,6 @@ jobs:
   test:
     runs-on: ${{ inputs.runner_label }}
     timeout-minutes: 20
-    outputs:
-      result:
-        description: "test result"
-        value: ${{ steps.group.outputs.ok }}
     steps:
       - name: Create test APFS image
         id: create
