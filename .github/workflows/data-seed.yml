@@ -69,7 +69,6 @@ jobs:
           stat -f '%z' build/data-seed.dbr | tee build/data-seed.size
           shasum -a 256 build/data-seed.dbr | tee build/data-seed.sha256
           cp build/owner-data-fixture/seed.json build/data-seed-report.json
-          cp build/data-seed-grow.log build/data-seed-grow.log
           ls -lh build/data-seed.dbr build/owner-data-fixture/owner-data-32.cdr
       - name: Upload Data seed
         run: |
