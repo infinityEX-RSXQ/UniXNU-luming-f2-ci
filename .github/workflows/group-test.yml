@@ -1,0 +1,73 @@
+name: group-test
+on:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: "macOS runner label"
+        required: true
+        type: string
+        default: "macos-15-intel"
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 20
+    outputs:
+      result:
+        description: "test result"
+        value: ${{ steps.group.outputs.ok }}
+    steps:
+      - name: Create test APFS image
+        id: create
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/group-test
+          cd /tmp/group-test
+          hdiutil create -size 2g -layout GPTSPUD -fs APFS -volname TestSys -ov test.dmg
+          hdiutil convert -format UDRW -o test-rw.dmg test.dmg
+          rm -f test.dmg
+          hdiutil attach -readwrite -nobrowse -nomount test-rw.dmg | tee attach.txt
+          DISK=$(awk '/\/dev\/disk/ {print $1; exit}' attach.txt)
+          echo "DISK=$DISK"
+          diskutil list "$DISK" | tee disk-list.txt
+          diskutil apfs list | tee apfs-before.txt
+      - name: Try groupWith / sibling
+        id: group
+        run: |
+          set -euo pipefail
+          cd /tmp/group-test
+          DISK=$(awk '/\/dev\/disk/ {print $1; exit}' attach.txt)
+          CONTAINER=$(diskutil list "$DISK" | awk '/Apple_APFS Container/ {print $4; exit}')
+          SYSTEMVOL=$(diskutil apfs list "$CONTAINER" | grep -E 'APFS Volume Disk \(Role\):.*\(System\)|No specific role' | head -1 | sed -E 's/.* (disk[0-9]+s[0-9]+).*/\1/')
+          echo "CONTAINER=$CONTAINER SYSTEMVOL=$SYSTEMVOL"
+          diskutil mount "$SYSTEMVOL" || true
+          set +e
+          echo '== try groupWith =='
+          diskutil apfs addVolume "$CONTAINER" APFS DataX -role D -groupWith "$SYSTEMVOL" 2>&1 | tee groupwith.txt
+          GROUP_OK=$?
+          if [ $GROUP_OK -ne 0 ]; then
+            echo '== try sibling =='
+            diskutil apfs addVolume "$CONTAINER" APFS DataX -role D -sibling "$SYSTEMVOL" 2>&1 | tee sibling.txt
+            SIB_OK=$?
+          else SIB_OK=0; fi
+          set -e
+          diskutil apfs list | tee test-apfs-list.txt
+          if grep -qi 'volume group' test-apfs-list.txt; then
+            echo "GROUP_FOUND=1" | tee -a test-apfs-list.txt
+            echo "ok=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "GROUP_FOUND=0" | tee -a test-apfs-list.txt
+            echo "ok=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload experiment report
+        run: |
+          set -euo pipefail
+          cd /tmp/group-test
+          cat test-apfs-list.txt disk-list.txt groupwith.txt sibling.txt 2>/dev/null > group-test.txt || true
+          cat group-test.txt
+      - name: Summary
+        if: always()
+        run: |
+          cd /tmp/group-test || exit 0
+          { echo '### group test'; echo '```'; cat group-test.txt 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
