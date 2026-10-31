@@ -98,28 +98,6 @@ jobs:
           df -h /
           hdiutil detach "$DISK" -force || true
           ls -lh os-rw.dmg
-      - name: Mount expanded OS, copy cache
-        run: |
-          set -euo pipefail
-          cd /tmp/apfs
-          hdiutil attach -readwrite -nobrowse os-rw.dmg | tee /tmp/attach-rw.txt
-          OSDISK=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-rw.txt)
-          echo "OSDISK=$OSDISK"
-          OVOL=$(awk '/\/Volumes\// {print $3; exit}' /tmp/attach-rw.txt || true)
-          if [ -z "${OVOL:-}" ]; then
-            diskutil mount "$OSDISK"
-            OVOL=$(df -h | awk '/\/Volumes\// {print $NF; exit}')
-          fi
-          echo "OVOL=$OVOL"
-          df -h "$OVOL" | tee /tmp/df-osvol.txt
-          mkdir -p "$OVOL/System/Library/Caches/com.apple.dyld"
-          rsync -a --exclude='*.symbols' dyldcache/ "$OVOL/System/Library/Caches/com.apple.dyld/"
-          find "$OVOL/System/Library/Caches/com.apple.dyld" -type f | wc -l
-          du -sh "$OVOL/System/Library/Caches/com.apple.dyld"
-          find "$OVOL/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec shasum -a 256 {} \; | tee /tmp/copied-sha.txt
-          sync
-          hdiutil detach "$OSDISK"
-          df -h /
       - name: Add Data and Preboot volumes inside the OS container
         run: |
           set -euo pipefail
@@ -134,6 +112,7 @@ jobs:
           diskutil apfs addVolume -help > /tmp/addvolume-help.txt 2>&1
           SYSTEMVOL=$(diskutil apfs list "$CONTAINER" | awk '/APFS Volume Disk \(Role\):.*\(System\)/ {print $5; exit}')
           echo "SYSTEMVOL=$SYSTEMVOL"
+          if [ -n "$SYSTEMVOL" ]; then diskutil mount "$SYSTEMVOL" || true; fi
           if [ -n "$SYSTEMVOL" ]; then
             diskutil apfs addVolume "$CONTAINER" APFS Data -role D -groupWith "$SYSTEMVOL" 2>&1 | tee /tmp/add-data-group.txt
             if ! diskutil apfs list "$CONTAINER" | grep -q '(Data)'; then
@@ -154,6 +133,31 @@ jobs:
           grep -i -A12 'Volume Group' /tmp/apfs-list.txt | tee /tmp/volume-group.txt || true
           hdiutil detach "$DISK" -force || true
           ls -lh os-rw.dmg
+      - name: Mount expanded OS, copy cache
+        run: |
+          set -euo pipefail
+          cd /tmp/apfs
+          hdiutil attach -readwrite -nobrowse os-rw.dmg | tee /tmp/attach-rw.txt
+          OSDISK=$(awk '/\/dev\/disk/ {print $1; exit}' /tmp/attach-rw.txt)
+          echo "OSDISK=$OSDISK"
+          OVOL=""
+          for m in /Volumes/*; do
+            if [ -d "$m/System/Library" ]; then OVOL="$m"; fi
+          done
+          if [ -z "${OVOL:-}" ]; then
+            diskutil mount "$OSDISK"
+            OVOL=$(df -h | awk '/\/Volumes\// {print $NF; exit}')
+          fi
+          echo "OVOL=$OVOL"
+          df -h "$OVOL" | tee /tmp/df-osvol.txt
+          mkdir -p "$OVOL/System/Library/Caches/com.apple.dyld"
+          rsync -a --exclude='*.symbols' dyldcache/ "$OVOL/System/Library/Caches/com.apple.dyld/"
+          find "$OVOL/System/Library/Caches/com.apple.dyld" -type f | wc -l
+          du -sh "$OVOL/System/Library/Caches/com.apple.dyld"
+          find "$OVOL/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec shasum -a 256 {} \; | tee /tmp/copied-sha.txt
+          sync
+          hdiutil detach "$OSDISK"
+          df -h /
       - name: Export enlarged raw image
         run: |
           set -euo pipefail
