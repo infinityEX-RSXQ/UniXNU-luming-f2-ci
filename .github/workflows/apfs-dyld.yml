@@ -234,9 +234,11 @@ jobs:
             || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
                  --title "APFS 10g OS raw $RELEASE_TAG" \
                  --notes "Expanded OS raw image with dyld shared cache in /System/Library/Caches/com.apple.dyld. Apple-derived; private."
-          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
-            os-flat.img.gz* os-flat.size os-flat.sha256 os-flat.parts.sha256 \
-            apfs-list.txt addvolume-help.txt roles-report.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
+          files=(os-flat.img.gz* os-flat.size os-flat.sha256 os-flat.parts.sha256 apfs-list.txt roles-report.txt)
+          for f in addvolume-help.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt volume-group.txt; do
+            [ -f "$f" ] && files+=("$f")
+          done
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber "${files[@]}"
       - name: Summary
         if: always()
         run: |
