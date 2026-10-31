@@ -1,5 +1,8 @@
 # Reference-parity device series — CI run #9 (2026-10-29), source patches only.
 # No start-signals, boot-marks or early-console-flush diagnostics.
+# [diagnostic UI, disabled 2026-10-31] color-band patches must not be applied:
+# zzzzz-luming-start-signals.patch
+# zzzzz-luming-boot-marks.patch
 zzzzz-fix-darwinboot-physical-framebuffer.patch
 zzzzz-luming-defer-console-init.patch
 zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
