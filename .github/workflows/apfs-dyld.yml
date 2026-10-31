@@ -98,7 +98,7 @@ jobs:
           df -h /
           hdiutil detach "$DISK" -force || true
           ls -lh os-rw.dmg
-      - name: Add Data and Preboot volumes inside the OS container
+      - name: Add Data and Preboot volumes and mountpoint skeletons
         run: |
           set -euo pipefail
           cd /tmp/apfs
@@ -108,29 +108,53 @@ jobs:
           CONTAINER=$(diskutil list "$DISK" | awk '/Apple_APFS Container/ {print $4; exit}')
           echo "CONTAINER=$CONTAINER"
           diskutil apfs list "$CONTAINER" | tee /tmp/apfs-before-roles.txt
-          set +e
-          diskutil apfs addVolume -help > /tmp/addvolume-help.txt 2>&1
-          SYSTEMVOL=$(diskutil apfs list "$CONTAINER" | awk '/APFS Volume Disk \(Role\):.*\(System\)/ {print $5; exit}')
+          SYSTEMVOL=$(diskutil apfs list "$CONTAINER" | grep -E 'APFS Volume Disk \(Role\):.*\(System\)' | sed -E 's/.* (disk[0-9]+s[0-9]+).*/\1/' | head -1)
           echo "SYSTEMVOL=$SYSTEMVOL"
-          if [ -n "$SYSTEMVOL" ]; then diskutil mount "$SYSTEMVOL" || true; fi
-          if [ -n "$SYSTEMVOL" ]; then
-            diskutil apfs addVolume "$CONTAINER" APFS Data -role D -groupWith "$SYSTEMVOL" 2>&1 | tee /tmp/add-data-group.txt
-            if ! diskutil apfs list "$CONTAINER" | grep -q '(Data)'; then
-              diskutil apfs addVolume "$CONTAINER" APFS Data -role D -sibling "$SYSTEMVOL" 2>&1 | tee /tmp/add-data-sibling.txt
-            fi
-          fi
-          for r in B P; do
-            if ! diskutil apfs list "$CONTAINER" | grep -q '(Preboot)'; then
-              diskutil apfs addVolume "$CONTAINER" APFS Preboot -role "$r" 2>&1 | tee "/tmp/add-preboot-$r.txt"
-            fi
-          done
-          set -e
+          [ -n "$SYSTEMVOL" ] || { echo "::error::System volume not found"; exit 1; }
+          diskutil mount "$SYSTEMVOL" || true
+          sudo diskutil apfs addVolume "$CONTAINER" APFS Data -role D
+          sudo diskutil apfs addVolume "$CONTAINER" APFS Preboot -role B
           diskutil apfs list "$CONTAINER" | tee /tmp/apfs-list.txt
-          if ! grep -q '(Data)' /tmp/apfs-list.txt; then echo "::error::Data role volume missing"; exit 1; fi
-          if ! grep -q '(Preboot)' /tmp/apfs-list.txt; then
-            echo "::warning::Preboot role absent; exporting image with Data only"
+          SYS_MOUNT=$(mount | awk '/\/Volumes\/DawnUpdate/ {print $3; exit}')
+          if [ -z "$SYS_MOUNT" ]; then
+            for m in /Volumes/*; do
+              if [ -d "$m/System/Library" ]; then SYS_MOUNT="$m"; fi
+            done
           fi
-          grep -i -A12 'Volume Group' /tmp/apfs-list.txt | tee /tmp/volume-group.txt || true
+          echo "SYS_MOUNT=$SYS_MOUNT"
+          [ -n "$SYS_MOUNT" ] || { echo "::error::System volume mountpoint not found"; exit 1; }
+          D=/Volumes/Data
+          diskutil mount -mountPoint "$D" "$(diskutil apfs list "$CONTAINER" | awk '/Volume disk/ {v=$2} /\(Data\)/ {print v; exit}')" 2>/dev/null || true
+          [ -d "$D" ] || { echo "::error::Data volume not mounted at /Volumes/Data"; exit 1; }
+          sudo mkdir -p "$SYS_MOUNT/System/Volumes/Data" "$SYS_MOUNT/System/Volumes/Preboot"
+          sudo mkdir -p "$D/private/var/log" "$D/private/var/db" "$D/private/var/tmp" "$D/private/var/run" \
+            "$D/private/var/mobile/Library" "$D/private/var/mobile/Media" "$D/private/var/root" \
+            "$D/private/var/empty" "$D/private/var/audit" "$D/private/var/vm" \
+            "$D/private/var/keychains" "$D/private/var/preferences/Logging" "$D/private/var/networkd"
+          sudo chmod 755 "$D/private" "$D/private/var"
+          VARSRC="$SYS_MOUNT/private/var"
+          {
+            echo "### firmlinks (OS volume)"
+            cat "$SYS_MOUNT/usr/share/firmlinks" 2>/dev/null || echo "no firmlinks in OS volume"
+            echo "### firmlinks (runner host)"
+            cat /usr/share/firmlinks 2>/dev/null || echo "no host firmlinks"
+            echo "### System/Volumes listing"
+            ls -la "$SYS_MOUNT/System/Volumes/"
+            echo "### Data /private/var du"
+            du -sh "$D/private/var"
+            echo "### Data df"
+            df -h "$D"
+            echo "### OS private/var size (MB)"
+            du -sm "$VARSRC" 2>/dev/null || true
+          } | tee /tmp/roles-report.txt
+          SIZE_MB=$(du -sm "$VARSRC" 2>/dev/null | awk '{print $1}' || echo 0)
+          if [ "${SIZE_MB:-0}" -lt 700 ]; then
+            echo "copying OS /private/var skeleton (${SIZE_MB}MB)"
+            sudo rsync -a --ignore-existing "$VARSRC/" "$D/private/var/" || true
+          else
+            echo "skipping OS /private/var copy (${SIZE_MB}MB >= 700MB)"
+          fi
+          du -sh "$D/private/var" | tee -a /tmp/roles-report.txt
           hdiutil detach "$DISK" -force || true
           ls -lh os-rw.dmg
       - name: Mount expanded OS, copy cache
@@ -155,6 +179,7 @@ jobs:
           find "$OVOL/System/Library/Caches/com.apple.dyld" -type f | wc -l
           du -sh "$OVOL/System/Library/Caches/com.apple.dyld"
           find "$OVOL/System/Library/Caches/com.apple.dyld" -maxdepth 1 -type f -exec shasum -a 256 {} \; | tee /tmp/copied-sha.txt
+          sudo chown -R 0:0 "$OVOL/System/Library/Caches/com.apple.dyld"
           sync
           hdiutil detach "$OSDISK"
           df -h /
@@ -190,6 +215,7 @@ jobs:
           cp /tmp/apfs-list.txt apfs-list.txt
           cp /tmp/addvolume-help.txt addvolume-help.txt 2>/dev/null || true
           cp /tmp/volume-group.txt volume-group.txt 2>/dev/null || true
+          cp /tmp/roles-report.txt roles-report.txt 2>/dev/null || true
           cp /tmp/add-data-group.txt add-data-group.txt 2>/dev/null || true
           cp /tmp/add-data-sibling.txt add-data-sibling.txt 2>/dev/null || true
           cp /tmp/df-osvol.txt df-osvol.txt
@@ -208,7 +234,7 @@ jobs:
                  --notes "Expanded OS raw image with dyld shared cache in /System/Library/Caches/com.apple.dyld. Apple-derived; private."
           gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
             os-flat.img.gz* os-flat.size os-flat.sha256 os-flat.parts.sha256 \
-            apfs-list.txt addvolume-help.txt volume-group.txt add-data-group.txt add-data-sibling.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
+            apfs-list.txt addvolume-help.txt volume-group.txt add-data-group.txt add-data-sibling.txt roles-report.txt df-osvol.txt dyld-list.txt dyld-sha.txt copied-sha.txt
       - name: Summary
         if: always()
         run: |
