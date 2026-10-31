@@ -1,0 +1,95 @@
+name: data-seed
+on:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: "macOS runner label"
+        required: true
+        type: string
+        default: "macos-15-intel"
+      unixnu_ref:
+        description: "UniXNU core ref (format-2 snapshot)"
+        required: true
+        default: "33da81310819b86d3ea62cb704f156c56407764a"
+      grow_gib:
+        description: "Grow the Data seed container to this many GiB"
+        required: true
+        default: "8"
+permissions:
+  contents: read
+jobs:
+  seed:
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 90
+    env:
+      PRIVATE_REPOSITORY: infinityEX-RSXQ/luming-macos-prep
+      PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
+      RELEASE_TAG: data-seed-21H461-8g
+      IPSW_URL: https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw
+    steps:
+      - name: Check out UniXNU core
+        uses: actions/checkout@v4
+        with:
+          repository: UniXNU/UniXNU
+          ref: ${{ inputs.unixnu_ref }}
+          path: unixnu
+          persist-credentials: false
+      - name: Init DarwinBoot submodule
+        run: |
+          set -euo pipefail
+          git -C unixnu submodule update --init --depth 1 drivers/DarwinBoot
+          test -f unixnu/drivers/DarwinBoot/Test/packed_ramdisk.py
+          test -f unixnu/scripts/prepare-owner-data-fixture.py
+      - name: Download and attach OS image
+        run: |
+          set -euo pipefail
+          mkdir -p unixnu/.cache/firmware/target-volumes/os-mount
+          cd "$RUNNER_TEMP"
+          curl -fL --retry 5 --retry-all-errors "$IPSW_URL" -o restore.ipsw
+          unzip -j restore.ipsw '044-76040-038.dmg'
+          hdiutil attach -readonly -noverify -nobrowse -mountpoint "$GITHUB_WORKSPACE/unixnu/.cache/firmware/target-volumes/os-mount" 044-76040-038.dmg
+          ls -la "$GITHUB_WORKSPACE/unixnu/.cache/firmware/target-volumes/os-mount" | head
+      - name: Build 32 MiB Data fixture
+        run: |
+          set -euo pipefail
+          cd unixnu
+          python3 scripts/prepare-owner-data-fixture.py --output build/owner-data-fixture | tee build/owner-data-fixture.log
+          cat build/owner-data-fixture/seed.json
+      - name: Pack and grow Data seed to requested GiB
+        run: |
+          set -euo pipefail
+          cd unixnu
+          python3 drivers/DarwinBoot/Test/packed_ramdisk.py \
+            build/owner-data-fixture/owner-data-32.cdr \
+            build/owner-data-fixture/owner-data-32.dbr
+          python3 scripts/seed-data-grow.py --gib "${{ inputs.grow_gib }}" \
+            build/owner-data-fixture/owner-data-32.dbr \
+            build/data-seed.dbr | tee build/data-seed-grow.log
+          stat -f '%z' build/data-seed.dbr | tee build/data-seed.size
+          shasum -a 256 build/data-seed.dbr | tee build/data-seed.sha256
+          cp build/owner-data-fixture/seed.json build/data-seed-report.json
+          cp build/data-seed-grow.log build/data-seed-grow.log
+          ls -lh build/data-seed.dbr build/owner-data-fixture/owner-data-32.cdr
+      - name: Upload Data seed
+        run: |
+          set -euo pipefail
+          export GH_TOKEN="$PRIVATE_UPLOAD_TOKEN"
+          gh release view "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" \
+                 --title "21H461 owner Data seed (8 GiB)" \
+                 --notes "DBRDISK1 Data seed built from the OS /private/var tree, APFS container grown to 8 GiB."
+          gh release upload "$RELEASE_TAG" --repo "$PRIVATE_REPOSITORY" --clobber \
+            unixnu/build/data-seed.dbr unixnu/build/data-seed.size unixnu/build/data-seed.sha256 \
+            unixnu/build/data-seed-report.json unixnu/build/data-seed-grow.log unixnu/build/owner-data-fixture/seed.json
+      - name: Summary
+        if: always()
+        run: |
+          cd unixnu || exit 0
+          {
+            echo '### Data seed'; echo '```'
+            cat build/data-seed-grow.log 2>/dev/null || true
+            cat build/owner-data-fixture/seed.json 2>/dev/null || true
+            cat build/data-seed.size 2>/dev/null || true
+            cat build/data-seed.sha256 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
