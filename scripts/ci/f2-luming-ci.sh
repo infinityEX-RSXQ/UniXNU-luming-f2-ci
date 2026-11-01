@@ -279,6 +279,17 @@ print('preflight: OK')
 PY
     ;;
   pre_build)
+    # CDX_DEBUG: dump XNU anchor context for the ASLR diagnostic patch
+    for src in "$GITHUB_WORKSPACE/unixnu/.cache/xnu-work/osfmk/kern/exception.c" "$GITHUB_WORKSPACE/unixnu/.cache/xnu-work/bsd/vm/vm_unix.c"; do
+      if [ -f "$src" ]; then
+        echo "=== CDX_DEBUG file $src ==="
+        case "$src" in
+          *exception.c) grep -n -B8 -A10 'sending exception' "$src" || true ;;
+          *vm_unix.c) grep -n -B10 -A14 'slide_amount = 0' "$src" || true ;;
+        esac
+      fi
+    done
+    find "$GITHUB_WORKSPACE" -maxdepth 7 -path '*/osfmk/kern/exception.c' 2>/dev/null | head -5 || true
     mkdir -p "$INPUTS_DIR"
     python3 - "$INPUTS_DIR" "$ART_DIR" <<'PY'
 import hashlib, json, os, sys
