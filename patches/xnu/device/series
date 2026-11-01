@@ -3,7 +3,7 @@
 # [diagnostic UI, disabled 2026-10-31] color-band patches must not be applied:
 # zzzzz-luming-start-signals.patch
 # zzzzz-luming-boot-marks.patch
-zzzzz-cdx-exception-aslr-diagnostic.patch
+# zzzzz-cdx-exception-aslr-diagnostic.patch  # applied via pre_build script (anchor-based) instead of git patch
 zzzzz-fix-darwinboot-physical-framebuffer.patch
 zzzzz-luming-defer-console-init.patch
 zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
