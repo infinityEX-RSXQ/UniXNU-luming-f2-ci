@@ -485,12 +485,16 @@ def main(argv):
     if not root.is_dir():
         fail(f"repository root does not exist: {root}")
 
-    driver = discover(root, args.driver_source,
-                      ["drivers/NativeMobileDisplay/NativeMobileDisplay.cpp", "../device/drivers/NativeMobileDisplay/NativeMobileDisplay.cpp"], "driver source")
-    probe = discover(root, args.probe_source,
-                     ["package/MobileDisplayProviderProbe.cpp",
-                      f"kits/{root.name}/MobileDisplayProviderProbe.cpp",
-                      "drivers/NativeMobileDisplay/MobileDisplayProviderProbe.cpp", "../device/package/MobileDisplayProviderProbe.cpp"], "probe source")
+    device = os.environ.get("UNIXNU_DEVICE")
+    driver_candidates = ["drivers/NativeMobileDisplay/NativeMobileDisplay.cpp"]
+    probe_candidates = ["package/MobileDisplayProviderProbe.cpp",
+                        f"kits/{root.name}/MobileDisplayProviderProbe.cpp",
+                        "drivers/NativeMobileDisplay/MobileDisplayProviderProbe.cpp"]
+    if device:
+        driver_candidates.append(str(Path(device) / "drivers/NativeMobileDisplay/NativeMobileDisplay.cpp"))
+        probe_candidates.insert(0, str(Path(device) / "package/MobileDisplayProviderProbe.cpp"))
+    driver = discover(root, args.driver_source, driver_candidates, "driver source")
+    probe = discover(root, args.probe_source, probe_candidates, "probe source")
     abi = driver.with_name("OriginalMobileFramebufferABI.h")
     if not abi.is_file():
         fail(f"vendored ABI header missing next to the driver: {abi}\n"
