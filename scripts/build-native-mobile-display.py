@@ -237,6 +237,7 @@ def replay_compile(record, source, destination, extra_flags):
             command.append(value)
         index += 1
     command.extend(extra_flags)
+    command.append("-fapple-kext")
     return command
 
 
