@@ -313,6 +313,13 @@ def make_late_object(objcopy, source_object, late_object, init_symbol):
     data = Path(source_object).read_bytes()
     sections = macho_sections(data)
     if not any(s["segname"] == MOD_INIT_SECTION[0] and s["name"] == MOD_INIT_SECTION[1] for s in sections):
+        secs = ", ".join(f"{s['segname']},{s['name']}" for s in sections)
+        note(f"sections: {secs}")
+        try:
+            names = [x["name"] for x in macho_symbols(data) if "GLOBAL__sub_I" in x["name"]]
+            note(f"init symbols: {names}")
+        except Exception as exc:
+            note(f"init symbol scan failed: {exc}")
         fail(f"{Path(source_object).name}: no __DATA,__mod_init_func section; the own "
              "constructor was not registered, the archive would never initialise the class")
     command = [objcopy,
