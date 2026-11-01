@@ -1,0 +1,8 @@
+{
+  "osfmk/console/video_console.c": {
+    "reference_sha256": "e99f3c4148118d0841fdb11bc6f6a1be7de6de76b2059dac342d6969c7742ec4"
+  },
+  "bsd/kern/kern_exit.c": {
+    "reference_sha256": "637b66ba2592ead59ee43cb74de584a76f043c0a1c93d961a00e4ef04b15b543"
+  }
+}

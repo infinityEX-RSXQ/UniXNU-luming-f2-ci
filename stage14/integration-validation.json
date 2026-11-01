@@ -1,0 +1,37 @@
+{
+  "stage": 14,
+  "applied": true,
+  "before": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "ecde85db5133b93ff4b2bcde2400a41df34c92bbc34dcd51fefe455c162cf7ae",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "b46598a56b8fbeaa52269edf5ceb0ad6eb64b2b1389c0f8cb9945c5ff74acafb",
+    "scripts/ci/instrument_aslr_short_diagnostics.py": "0539691c11bf879c803c4e79ae851de800b4c727bca694f2f7b97eaa0cfe390d"
+  },
+  "after": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "d3c4e0edc57fb9f2d5de583b80907cf4637018fd79a2791192776e3862043f0a",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "6063488553c940f4462e8722ac73ce46e99fb8f28035f219db470a95c5927bdf",
+    "scripts/ci/instrument_aslr_short_diagnostics.py": "44381ca74672e2830bc017b310d07cf47bd64b3524d4fded9f45fd4a8a2c449a",
+    "patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch": "137b514e570a4edeb593f071774c5975399a9f0a64cd8ec26e862e90c2d0e158",
+    "patches/xnu/device/series": "27c72c0c91d186e1c0fdc35d3df56f3b31d75d2ce3938077718598c6b5435fe3"
+  },
+  "device_operations": false,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "generator_output": "CDX11 source instrumentation applied; full macOS build/runtime not yet verified.\nAdded ASLR observations; compile/runtime verification still required.\nwrote D:\\Codex\\tmp\\stage14-check-1793552199760116800\\device\\patches\\xnu\\device\\zzzzz-cdx-generated-aslr.patch (4587 bytes), replayed 1 core patches\nenabled zzzzz-cdx-generated-aslr.patch in D:\\Codex\\tmp\\stage14-check-1793552199760116800\\device\\patches\\xnu\\device\\series\n",
+  "passed": true,
+  "fixture": "D:\\Codex\\tmp\\stage14-check-1793552199760116800",
+  "compatible_source_patches": [
+    "zzzzz-fix-darwinboot-physical-framebuffer.patch",
+    "zzzzzz-luming-more-amfi-null-guards.patch",
+    "zzzzzzz-luming-cache-path.patch",
+    "zzzzzzzz-luming-owner-cache-initproc-panic.patch",
+    "zzzzzzzzz-luming-owner-cache-probe.patch",
+    "zzzzzzzzzz-luming-owner-cache-root-list.patch",
+    "zzzzzzzzzzz-luming-owner-cache-root-hex.patch",
+    "zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch",
+    "zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch"
+  ],
+  "exception_instrumentation_idempotent": true,
+  "generated_patch_sha256": "16541d2ae10b2c26fc9f5db477c577d5fd32591825b5db1230a407f73730e90b",
+  "full_kernel_compiled_note": "kernel.macho built by CI run 41355834256 attempt 3; this file is refreshed by the stage14 build fix (FrameSamples14.h header guard).",
+  "build_fix_note": "Package refreshed after dropping \"#pragma once\" from FrameSamples14.h (it is appended to LegacyDisplayProbe.cpp, not included, and the pragma is -Werror in the XNU display archive) and after casting the CDX14 eq= flag to unsigned for -Wformat. Host validation only; no kernel in this package."
+}

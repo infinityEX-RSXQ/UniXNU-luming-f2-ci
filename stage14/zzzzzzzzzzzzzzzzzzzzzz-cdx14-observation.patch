@@ -1,0 +1,165 @@
+--- a/osfmk/console/video_console.c
++++ b/osfmk/console/video_console.c
+@@ -337,9 +337,43 @@
+ 	gc_ops.clear_screen(xx, yy, top, bottom, which);
+ }
+ 
++
++/* CDX14: opt-in console ownership; panic remains able to reacquire. */
++static unsigned cdx14_vt_owned, cdx14_vt_blocked, cdx14_vt_drawn;
++static boolean_t
++cdx14_vt_should_block(void)
++{
++	return __atomic_load_n(&cdx14_vt_owned, __ATOMIC_ACQUIRE) && !panic_active();
++}
++void cdx14_console_commit(void);
++void cdx14_console_snapshot(unsigned *out);
++void
++cdx14_console_commit(void)
++{
++	VCPUTC_LOCK_LOCK();
++	__atomic_store_n(&cdx14_vt_owned, 1, __ATOMIC_RELEASE);
++	gc_enabled = FALSE;
++	if (!console_is_serial()) disableConsoleOutput = TRUE;
++	VCPUTC_LOCK_UNLOCK();
++}
++void
++cdx14_console_snapshot(unsigned *out)
++{
++	if (!out) return;
++	out[0] = __atomic_load_n(&cdx14_vt_owned, __ATOMIC_ACQUIRE);
++	out[1] = gc_enabled;
++	out[2] = disableConsoleOutput;
++	out[3] = __atomic_load_n(&cdx14_vt_blocked, __ATOMIC_RELAXED);
++	out[4] = __atomic_load_n(&cdx14_vt_drawn, __ATOMIC_RELAXED);
++}
++
+ static void
+ gc_enable( boolean_t enable )
+ {
++	if (enable && cdx14_vt_should_block()) {
++		__atomic_add_fetch(&cdx14_vt_blocked, 1, __ATOMIC_RELAXED);
++		return;
++	}
+ 	unsigned char *buffer_attributes = NULL;
+ 	unsigned char *buffer_characters = NULL;
+ 	unsigned char *buffer_colorcodes = NULL;
+@@ -1230,9 +1264,12 @@
+ void
+ vcputc_options(char c, __unused bool poll)
+ {
++	if (cdx14_vt_should_block()) return;
+ 	if (gc_initialized && gc_enabled) {
+ 		VCPUTC_LOCK_LOCK();
+-		if (gc_enabled) {
++		if (gc_enabled && !cdx14_vt_should_block()) {
++			if (__atomic_load_n(&cdx14_vt_owned, __ATOMIC_RELAXED))
++				__atomic_add_fetch(&cdx14_vt_drawn, 1, __ATOMIC_RELAXED);
+ 			gc_hide_cursor(gc_x, gc_y);
+ 			gc_putchar(c);
+ 			gc_show_cursor(gc_x, gc_y);
+@@ -2801,6 +2838,12 @@
+ 	boolean_t graphics_now;
+ 	uint32_t delay;
+ 
++	if (cdx14_vt_should_block() && (op == kPEAcquireScreen ||
++	    op == kPEEnableScreen || op == kPETextScreen ||
++	    op == kPETextMode || op == kPEGraphicsMode)) {
++		__atomic_add_fetch(&cdx14_vt_blocked, 1, __ATOMIC_RELAXED);
++		return;
++	}
+ 	if (boot_vinfo) {
+ 		struct vc_info new_vinfo = vinfo;
+ 		boolean_t makeMapping = FALSE;
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -1876,6 +1876,81 @@
+ 	}
+ }
+ 
++
++/* CDX14: observe failures; do not change exit/corpse/watchdog policy. */
++struct cdx14_daemon_record { unsigned count, pid, ns; uint64_t code; };
++static struct cdx14_daemon_record cdx14_daemons[4];
++static const char *const cdx14_names[4] = {"SpringBoard", "backboardd", "watchdogd", "liveactivitiesd"};
++size_t cdx14_daemon_summary(char *out, size_t size);
++static void
++cdx14_observe_exit(proc_t p, int rv)
++{
++	for (unsigned i = 0; i < 4; ++i) {
++		if (strcmp(p->p_comm, cdx14_names[i])) continue;
++		unsigned n = __atomic_add_fetch(&cdx14_daemons[i].count, 1, __ATOMIC_RELAXED);
++		unsigned ns = PROC_HAS_EXITREASON(p) ? p->p_exit_reason->osr_namespace : 0;
++		uint64_t code = PROC_HAS_EXITREASON(p) ? p->p_exit_reason->osr_code : 0;
++		__atomic_store_n(&cdx14_daemons[i].pid, proc_getpid(p), __ATOMIC_RELAXED);
++		__atomic_store_n(&cdx14_daemons[i].ns, ns, __ATOMIC_RELAXED);
++		__atomic_store_n(&cdx14_daemons[i].code, code, __ATOMIC_RELAXED);
++		if (n <= 4) printf("CDX14 exit %.16s p=%d rv=%x ns=%u code=%llx n=%u\n",
++		    p->p_comm, proc_getpid(p), rv, ns, (unsigned long long)code, n);
++		break;
++	}
++}
++size_t
++cdx14_daemon_summary(char *out, size_t size)
++{
++	if (!out || !size) return 0;
++	size_t used = 0; out[0] = 0;
++	for (unsigned i = 0; i < 4 && used < size - 1; ++i) {
++		int n = snprintf(out + used, size - used, "%.16s n=%u p=%u ns=%u code=%llx\n", cdx14_names[i],
++		    __atomic_load_n(&cdx14_daemons[i].count, __ATOMIC_RELAXED),
++		    __atomic_load_n(&cdx14_daemons[i].pid, __ATOMIC_RELAXED),
++		    __atomic_load_n(&cdx14_daemons[i].ns, __ATOMIC_RELAXED),
++		    (unsigned long long)__atomic_load_n(&cdx14_daemons[i].code, __ATOMIC_RELAXED));
++		if (n < 0) break;
++		used += (size_t)n < size - used ? (size_t)n : size - used - 1;
++	}
++	return used;
++}
++
++struct cdx14_exception_record { unsigned count, type; uint64_t c0, c1; };
++static struct cdx14_exception_record cdx14_exceptions[4];
++void cdx14_daemon_exception(const char *, unsigned, uint64_t, uint64_t);
++size_t cdx14_exception_summary(char *, size_t);
++void
++cdx14_daemon_exception(const char *name, unsigned e, uint64_t c0, uint64_t c1)
++{
++	if (!name) return;
++	for (unsigned i = 0; i < 4; ++i) {
++		if (strcmp(name, cdx14_names[i])) continue;
++		unsigned n = __atomic_add_fetch(&cdx14_exceptions[i].count, 1, __ATOMIC_RELAXED);
++		__atomic_store_n(&cdx14_exceptions[i].type, e, __ATOMIC_RELAXED);
++		__atomic_store_n(&cdx14_exceptions[i].c0, c0, __ATOMIC_RELAXED);
++		__atomic_store_n(&cdx14_exceptions[i].c1, c1, __ATOMIC_RELAXED);
++		if (n <= 4) printf("CDX14 exc %.16s e=%u c0=%llx c1=%llx\n", name, e,
++		    (unsigned long long)c0, (unsigned long long)c1);
++		break;
++	}
++}
++size_t
++cdx14_exception_summary(char *out, size_t size)
++{
++	if (!out || !size) return 0;
++	size_t used = 0; out[0] = 0;
++	for (unsigned i = 0; i < 4 && used < size - 1; ++i) {
++		int n = snprintf(out + used, size - used, "%.16s exc=%u e=%u c0=%llx c1=%llx\n", cdx14_names[i],
++		    __atomic_load_n(&cdx14_exceptions[i].count, __ATOMIC_RELAXED),
++		    __atomic_load_n(&cdx14_exceptions[i].type, __ATOMIC_RELAXED),
++		    (unsigned long long)__atomic_load_n(&cdx14_exceptions[i].c0, __ATOMIC_RELAXED),
++		    (unsigned long long)__atomic_load_n(&cdx14_exceptions[i].c1, __ATOMIC_RELAXED));
++		if (n < 0) break;
++		used += (size_t)n < size - used ? (size_t)n : size - used - 1;
++	}
++	return used;
++}
++
+ void
+ proc_prepareexit(proc_t p, int rv, boolean_t perf_notify)
+ {
+@@ -1891,6 +1966,7 @@
+ 	bool corpse_source = false;
+ 	task_t task = proc_task(p);
+ 
++	cdx14_observe_exit(p, rv);
+ 
+ 	if (p->p_crash_behavior != 0 || p == initproc) {
+ 		proc_handle_critical_exit(p, rv);

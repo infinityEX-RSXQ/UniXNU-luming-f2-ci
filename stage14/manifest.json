@@ -1,0 +1,132 @@
+{
+  "stage": 14,
+  "base_ci_run": 41320061953,
+  "base_commit": "6535914a16f5aa5b8cf88c8e63988403397face0",
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "device_operations": false,
+  "tests": {
+    "core_policy_tests": true,
+    "provider_tests": true,
+    "daemon_logs_bounded": true,
+    "arm64_core_interface_fixture_compiled": true,
+    "arm64_provider_interface_fixture_compiled": true,
+    "no_fp_simd_in_fixtures": true,
+    "full_kernel_compiled": false,
+    "runtime_verified": false
+  },
+  "source_patch_chain_passed": true,
+  "files": [
+    {
+      "path": "abi_provider14.cpp",
+      "bytes": 1256,
+      "sha256": "89125381f892ffbb368b6bf0d37d8e50b463b7c144f914349d756767d66dd06d"
+    },
+    {
+      "path": "BUILD-REQUEST.md",
+      "bytes": 7278,
+      "sha256": "e702261b68bb3f12619406f31f58cfaad3a6dfa48aa5c0488e0a663a622283c5"
+    },
+    {
+      "path": "core-patch-reference.json",
+      "bytes": 266,
+      "sha256": "8b95447ec68bc85f004b7a76ae3fc3558530da9332a72942bfadbab81d485a52"
+    },
+    {
+      "path": "core-policy-arm64.asm",
+      "bytes": 26859,
+      "sha256": "86a4a3c6640182bb5281720f51e191c1006110e907cc551625a27dd9c1e158df"
+    },
+    {
+      "path": "example-generated-source.patch",
+      "bytes": 4587,
+      "sha256": "16541d2ae10b2c26fc9f5db477c577d5fd32591825b5db1230a407f73730e90b"
+    },
+    {
+      "path": "FrameSamples14.h",
+      "bytes": 1490,
+      "sha256": "b24f5c0475c8aa78533e0e7a61c22a01d1d7b7fb920feb17cdecd3947d0fd782"
+    },
+    {
+      "path": "host-check-output.txt",
+      "bytes": 585,
+      "sha256": "ef2fcd95ff7f5035cc3e6e407b0a8ae65bdf1e3552931379e2b9a0962cfe448e"
+    },
+    {
+      "path": "host-validation.json",
+      "bytes": 295,
+      "sha256": "5ae27a6ed188c194f749f342477fd11a9d3ad675c32df3a754fabca80958c020"
+    },
+    {
+      "path": "install_stage14.py",
+      "bytes": 4907,
+      "sha256": "53671c0d96f1107cf326ab8744ee37c855a058845dcaba4173014f07858d0497"
+    },
+    {
+      "path": "integration-validation.json",
+      "bytes": 2858,
+      "sha256": "a42ce8701d0c0b04797080cafa2a9eae19ee3fef39d1b530b84f11f7adcfc078"
+    },
+    {
+      "path": "make_core_patch.py",
+      "bytes": 6882,
+      "sha256": "40ccfd13acb838623858b14b54ff90d455ec993d504f83122f82e156dfc3a9b4"
+    },
+    {
+      "path": "package_stage14.py",
+      "bytes": 2729,
+      "sha256": "ef7cc08243b58b8b26fc5550512a32f5195bc5914f4c1235175dd09d124bb924"
+    },
+    {
+      "path": "provider-arm64.asm",
+      "bytes": 32359,
+      "sha256": "f05f5483daac5ed7bdc9c5226092734ed67b27ab9ae08fa2802cb57161ce0a1f"
+    },
+    {
+      "path": "ProviderProbe14.h",
+      "bytes": 6537,
+      "sha256": "38a1249cea25089049df6f7f3d7d52aadf8d8686cedfe5f1c2595f53838d930a"
+    },
+    {
+      "path": "qualify_stage14_kernel.py",
+      "bytes": 2500,
+      "sha256": "097b9a14ef538583bb07093aaf4cca5a2f6ee0c69313f8bbeb4e904c6f6633c3"
+    },
+    {
+      "path": "run_host_checks.py",
+      "bytes": 5209,
+      "sha256": "c6bafc246c61b8e684474d1b1d6d894a8637d087d191738a0f5ae18046e884e0"
+    },
+    {
+      "path": "runtime/LegacyDisplayProbe.cpp",
+      "bytes": 34193,
+      "sha256": "d3c4e0edc57fb9f2d5de583b80907cf4637018fd79a2791192776e3862043f0a"
+    },
+    {
+      "path": "runtime/NativeLegacyDisplay.cpp",
+      "bytes": 36680,
+      "sha256": "6063488553c940f4462e8722ac73ce46e99fb8f28035f219db470a95c5927bdf"
+    },
+    {
+      "path": "stage13-negative-test.json",
+      "bytes": 90,
+      "sha256": "a46a1d685366008e00fc2c62f85e388bc6bd1ee3693776945898a8d2d50bfa3b"
+    },
+    {
+      "path": "test_provider14.cpp",
+      "bytes": 4424,
+      "sha256": "47dce55ff0efef2d53f439274b40ab21402fbb053e4b37f81b24b080b10dc8c3"
+    },
+    {
+      "path": "validate_stage14.py",
+      "bytes": 4249,
+      "sha256": "f469079d5c49446197abe9ce761b4c17becfc94985fceed8980c9f57a18b5daf"
+    },
+    {
+      "path": "zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch",
+      "bytes": 5934,
+      "sha256": "137b514e570a4edeb593f071774c5975399a9f0a64cd8ec26e862e90c2d0e158"
+    }
+  ],
+  "notes": "Refreshed after dropping \"#pragma once\" from FrameSamples14.h (it is appended to LegacyDisplayProbe.cpp, not included; the pragma is -Werror in the XNU build) and after casting the CDX14 eq= flag to unsigned for -Wformat."
+}

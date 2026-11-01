@@ -1,0 +1,10 @@
+CDX14 exit liveactivitiesd p=120 rv=5 ns=2 code=5 n=1
+CDX14 exc liveactivitiesd e=6 c0=1 c1=1234
+CDX14 exit liveactivitiesd p=120 rv=5 ns=2 code=5 n=2
+CDX14 exc liveactivitiesd e=6 c0=1 c1=1234
+CDX14 exit liveactivitiesd p=120 rv=5 ns=2 code=5 n=3
+CDX14 exc liveactivitiesd e=6 c0=1 c1=1234
+CDX14 exit liveactivitiesd p=120 rv=5 ns=2 code=5 n=4
+CDX14 exc liveactivitiesd e=6 c0=1 c1=1234
+Stage14 core: locked ownership, serial preservation, panic bypass, daemon records/bounds PASS
+Stage14 provider: padded rows, mismatch/mutation/gap, bounded sampling, opt-in snapshot PASS

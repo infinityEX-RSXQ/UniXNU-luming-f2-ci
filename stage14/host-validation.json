@@ -1,0 +1,10 @@
+{
+  "core_policy_tests": true,
+  "provider_tests": true,
+  "daemon_logs_bounded": true,
+  "arm64_core_interface_fixture_compiled": true,
+  "arm64_provider_interface_fixture_compiled": true,
+  "no_fp_simd_in_fixtures": true,
+  "full_kernel_compiled": false,
+  "runtime_verified": false
+}
