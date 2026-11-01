@@ -312,7 +312,7 @@ def objcopy_tool(explicit):
 def make_late_object(objcopy, source_object, late_object, init_symbol):
     data = Path(source_object).read_bytes()
     sections = macho_sections(data)
-    if not any(s["segname"] == MOD_INIT_SECTION[0] and s["name"] == MOD_INIT_SECTION[1] for s in sections):
+    if not any(s["name"] == MOD_INIT_SECTION[1] for s in sections):
         secs = ", ".join(f"{s['segname']},{s['name']}" for s in sections)
         note(f"sections: {secs}")
         try:
