@@ -72,14 +72,14 @@ def main():
         git(tmp, "add", "-A")
         git(tmp, "-c", "user.email=ci@local", "-c", "user.name=ci", "commit", "-qm", "core")
 
-    inst = Path(__file__).with_name("instrument_aslr_diagnostics.py")
+    inst = Path(__file__).with_name("instrument_aslr_short_diagnostics.py")
     r = subprocess.run([sys.executable, str(inst), str(tmp)], capture_output=True, text=True)
     if r.returncode != 0:
         raise SystemExit(f"instrumentation failed: {r.stderr.strip()}")
     print(r.stdout.strip())
 
     diff = git(tmp, "diff", "--", *TARGETS).stdout
-    if "sending exception" not in diff or "CDX_ASLR_MAP" not in diff:
+    if "CDX_ASLR" not in diff or "CDX_EXC" not in diff or "CDX_ASLR_MAP" not in diff:
         raise SystemExit("generated diff does not contain the diagnostics")
     out_patch.write_text(diff, encoding="utf-8")
     print(f"wrote {out_patch} ({len(diff)} bytes), replayed {applied} core patches")
