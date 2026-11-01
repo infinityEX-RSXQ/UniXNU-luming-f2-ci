@@ -1,4 +1,4 @@
-name: macOS build (format-2 luming)
+name: macOS build (format-2 luming)# cdx-test
 
 # Route ① (sheng/dada format-2, "6S Pro way") macOS CI for the Xiaomi Civi 5 Pro
 # (luming, Qualcomm SM8735). Adapted by windows-ci (task-328) from:
