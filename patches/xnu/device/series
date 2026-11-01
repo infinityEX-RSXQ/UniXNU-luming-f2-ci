@@ -3,6 +3,7 @@
 # [diagnostic UI, disabled 2026-10-31] color-band patches must not be applied:
 # zzzzz-luming-start-signals.patch
 # zzzzz-luming-boot-marks.patch
+zzzzz-cdx-exception-aslr-diagnostic.patch
 zzzzz-fix-darwinboot-physical-framebuffer.patch
 zzzzz-luming-defer-console-init.patch
 zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
@@ -27,4 +28,3 @@ zzzzzzzzzzzzzzzzzzzzz-luming-rwlock-diag.patch
 # a photo of the final kernel log. Re-enable for automatic UFS/PA dump runs.
 # zzzzzzzzzzzzzzzzzzz-luming-msgbuf-phys-dump.patch
 zzzzzzzzzzzzzzzzzzzzz-luming-force-trust-cache-runtime.patch
-zzzzz-cdx-exception-aslr-diagnostic.patch
