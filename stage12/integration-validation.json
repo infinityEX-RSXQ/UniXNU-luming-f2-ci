@@ -1,0 +1,35 @@
+{
+  "stage": 12,
+  "before": {
+    "scripts/ci/instrument_crash_snapshot.py": "f3f75d2e7841580c5fd1d6ca6037efa06efa2867651a505021f06afe65c4d481",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "5c1ff177f2ddd833bf2df385d35700a19bd2a92faf987dfbdb7e89acd4f38d04",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "0ab790c93a086aad4639529126ec65b7228a7bb2fb4b921ebf4b9e590fe990a1"
+  },
+  "after": {
+    "scripts/ci/instrument_crash_snapshot.py": "756d8bf8637f3b75abff7ac7422d7ebf78b08c21fac46105fae45f674979b3f6",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "b46598a56b8fbeaa52269edf5ceb0ad6eb64b2b1389c0f8cb9945c5ff74acafb",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "a716b01d3bdbd056edf644edb89f5676f945e2ea596802a17149285c146780c1"
+  },
+  "applied": true,
+  "refresh_fix_requires_boot_arg": "luming-display-refresh-publish=1 and sheng-vsync=60",
+  "mode_capture": "64 bytes copyin at qualified FBSDisplayMode fatal only",
+  "full_kernel_compiled": false,
+  "device_operations": false,
+  "generator": "CDX11 source instrumentation applied; full macOS build/runtime not yet verified.\nAdded ASLR observations; compile/runtime verification still required.\nwrote C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage12-mode\\fixture-1793531905167978500\\device\\patches\\xnu\\device\\zzzzz-cdx-generated-aslr.patch (4171 bytes), replayed 1 core patches\nenabled zzzzz-cdx-generated-aslr.patch in C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage12-mode\\fixture-1793531905167978500\\device\\patches\\xnu\\device\\series\n",
+  "passed": true,
+  "instrumentation_idempotent": true,
+  "policy_removal_roundtrip": true,
+  "arm_saved_state_api_checked": true,
+  "copyin_prototype_checked": true,
+  "compatible_later_device_patches": [
+    "zzzzzz-luming-more-amfi-null-guards.patch",
+    "zzzzzzz-luming-cache-path.patch",
+    "zzzzzzzz-luming-owner-cache-initproc-panic.patch",
+    "zzzzzzzzz-luming-owner-cache-probe.patch",
+    "zzzzzzzzzz-luming-owner-cache-root-list.patch",
+    "zzzzzzzzzzz-luming-owner-cache-root-hex.patch",
+    "zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch"
+  ],
+  "fixture": "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage12-mode\\fixture-1793531905167978500",
+  "generated_patch_sha256": "953928609e4b9b3c8080a1b5d7f468012a0ff4997523958c8f85151a5682605b"
+}

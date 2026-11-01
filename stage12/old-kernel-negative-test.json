@@ -1,0 +1,5 @@
+{
+  "passed": true,
+  "old_stage11_rejected": true,
+  "reason": "Missing defined symbol _cdx12_capture_mode"
+}

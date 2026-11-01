@@ -1,0 +1,13 @@
+                 U ___stack_chk_fail
+                 U ___stack_chk_guard
+                 U _bzero
+0000000000004184 T _cdx12_append_mode_summary
+0000000000004404 T _cdx12_caller
+0000000000004000 T _cdx12_capture_mode
+000000000000c004 S _cdx12_refresh_calls
+000000000000c008 S _cdx12_refresh_present
+                 U _copyin
+                 U _memcpy
+                 U _memset
+                 U _snprintf
+                 U _strnlen

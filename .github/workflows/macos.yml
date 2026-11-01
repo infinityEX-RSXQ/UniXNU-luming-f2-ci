@@ -564,6 +564,15 @@ jobs:
           # zzzzz-cdx-generated-aslr.patch also carries the kern_exit.c summary
           # hook and the installed Probe (not a temporary tree copy) is compiled.
           python3 device/stage11/install_stage11.py --device device --apply
+          # stage12: append the qualified FBSDisplayMode capture to the stage11
+          # summary and add the default-off 60Hz IOMFBDisplayRefresh publish.
+          # Must run after stage11 (it pins the stage11 output hashes) and before
+          # the unchanged stage9 pre_build generator, so the single generated
+          # zzzzz-cdx-generated-aslr.patch carries the CDX12 mode hooks and the
+          # installed Probe/backend are the sources the stage10 installer copies.
+          mkdir -p ci-artifacts/logs
+          python3 device/stage12/install_stage12.py --device device --apply \
+            | tee ci-artifacts/stage12-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -590,6 +599,82 @@ jobs:
           if [ -n "${UNIXNU_KERNELCACHE:-}" ]; then args+=(--kernelcache "$UNIXNU_KERNELCACHE"); fi
           if [ -n "${UNIXNU_IPSW:-}" ]; then args+=(--ipsw "$UNIXNU_IPSW"); fi
           ./unixnu build kernel "${args[@]}" -j 3 2>&1 | tee ../ci-artifacts/logs/kernel.log
+
+      - name: Check the stage12 mode/refresh markers in the built kernel
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'kernel') }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, struct
+          from pathlib import Path
+          kernels = sorted(Path('unixnu/out').glob('**/kernel/kernel.macho'))
+          if len(kernels) != 1:
+              raise SystemExit('expected exactly one built kernel.macho, found %r' % (kernels,))
+          path = kernels[0]
+          data = path.read_bytes()
+          if data[:4] != b'\xcf\xfa\xed\xfe':
+              raise SystemExit('expected an arm64 Mach-O kernel')
+          # Same nlist filter as the host-side qualify_stage10_kernel.inspect().
+          off, symtab, prelink = 32, None, None
+          for _ in range(struct.unpack_from('<I', data, 16)[0]):
+              cmd, size = struct.unpack_from('<II', data, off)
+              if size < 8 or off + size > len(data):
+                  raise SystemExit('malformed load command')
+              if cmd == 2:
+                  symtab = struct.unpack_from('<IIII', data, off + 8)
+              if cmd == 0x19 and data[off + 8:off + 24].rstrip(b'\0') == b'__PRELINK_INFO':
+                  fo, fs = struct.unpack_from('<QQ', data, off + 40)
+                  prelink = data[fo:fo + fs].rstrip(b'\0')
+              off += size
+          if symtab is None or not prelink:
+              raise SystemExit('need LC_SYMTAB and __PRELINK_INFO, not only strings')
+          so, ns, st, ss = symtab
+          defined = set()
+          for i in range(ns):
+              index, ntype, nsect, ndesc, nvalue = struct.unpack_from('<IBBHQ', data, so + 16 * i)
+              if not ntype & 0xe0 and ntype & 0xe and nsect and nvalue:
+                  end = data.find(b'\0', st + index, st + ss)
+                  if end >= 0:
+                      defined.add(data[st + index:end].decode('latin1'))
+          required = ['_cdx11_capture_exception', '_cdx11_crash_summary',
+                      '_cdx12_capture_mode', '_cdx12_append_mode_summary', '_cdx12_refresh_observed']
+          missing = [name for name in required if name not in defined]
+          if missing:
+              raise SystemExit('missing defined kernel symbols: ' + ', '.join(missing))
+          markers = {
+              'cdx11_format_strings': [b'CDX11 pid=%d match=%u busy=%u n=%u drop=%u',
+                                       b'CDX11 first e=%d c0=%llx c1=%llx',
+                                       b'CDX11 last e=%d off=%u sl=%x c0=%llx c1=%llx',
+                                       b'CDX11 st=%u fail=%u reg=%u cl=%u rc=%x',
+                                       b'CDX11 val=%u ok=%u why=%u cp=%u rc=%x',
+                                       b'CDX11 ret=%u vs=%u'],
+              'cdx12_format_strings': [b'CDX12 mode got=%u err=%d busy=%u',
+                                       b'CDX12 w=%llu h=%llu pref=%llu rot=%llu',
+                                       b'CDX12 scaleBits=%llx rateBits=%llx',
+                                       b'CDX12 gamut=%llu hdr=%llu pub=%u prop=%u',
+                                       b'CDX12 refresh publish=%u property=%u'],
+              'boot_args': [b'luming-display-refresh-publish'],
+          }
+          absent = [token.decode('latin1') for group in markers.values()
+                    for token in group if token not in data]
+          if absent:
+              raise SystemExit('missing kernel strings: ' + ', '.join(absent))
+          result = {
+              'kernel': str(path),
+              'bytes': len(data),
+              'sha256': hashlib.sha256(data).hexdigest(),
+              'defined_symbols': required,
+              'markers': {name: [token.decode('latin1') for token in group]
+                          for name, group in markers.items()},
+              'qualified': True,
+              'runtime_verified': False,
+          }
+          Path('ci-artifacts/stage12-kernel-check.json').write_text(
+              json.dumps(result, indent=2) + '\n', encoding='utf-8')
+          print('stage12 markers present in %s (%d bytes) sha256=%s'
+                % (path, result['bytes'], result['sha256']))
+          print('CDX12 symbols: ' + ', '.join(required[2:]))
+          PY
 
       - name: Build the UniXNU package
         id: package
@@ -837,11 +922,18 @@ jobs:
           if intermediates.is_file(): files.append((intermediates, 'owner-intermediates.tar.gz'))
           # stage10 CPU Legacy/GOP display build evidence (report, generated ABI header,
           # install report and the per-archive logs) is uploaded for host-side review.
-          display_dirs = [root / 'unixnu/build/native-legacy-display',
-                          *sorted(root.glob('unixnu/out/**/tree/build/native-legacy-display'))]
+          # Prefer the build tree the kernel actually compiled (out/**/tree) and add
+          # each evidence filename once, so the private upload cannot reject a
+          # duplicate asset name.
+          display_dirs = [*sorted(root.glob('unixnu/out/**/tree/build/native-legacy-display')),
+                          root / 'unixnu/build/native-legacy-display']
+          seen_display = set()
           for directory in display_dirs:
               for name in ('build-report.json', 'OriginalLegacyFramebufferABI.h'):
-                  if (directory / name).is_file(): files.append((directory / name, name))
+                  if name in seen_display or not (directory / name).is_file():
+                      continue
+                  seen_display.add(name)
+                  files.append((directory / name, name))
           install_report = root / 'unixnu/kits/luming-cpu-display/install-report.json'
           if install_report.is_file(): files.append((install_report, 'stage10-install-report.json'))
           archive_logs = sorted(root.glob('unixnu/out/**/logs/archive-*.log'))
@@ -856,6 +948,12 @@ jobs:
           generated_patch = root / 'device/patches/xnu/device/zzzzz-cdx-generated-aslr.patch'
           if generated_patch.is_file():
               files.append((generated_patch, 'zzzzz-cdx-generated-aslr.patch'))
+          # stage12: device-side install report (mode capture + 60Hz publish, default
+          # off) and the in-CI marker check of the built kernel.
+          for name in ('stage12-install-report.json', 'stage12-kernel-check.json'):
+              path = root / 'ci-artifacts' / name
+              if path.is_file():
+                  files.append((path, name))
           if not files:
               raise SystemExit('no kernel/boot.img files to upload')
 

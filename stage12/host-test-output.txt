@@ -1,0 +1,6 @@
+old panic
+CDX12 mode got=1 err=0 busy=0
+CDX12 w=1220 h=2712 pref=2 rot=0
+CDX12 scaleBits=0 rateBits=404e000000000000
+CDX12 gamut=0 hdr=0 pub=0 prop=0
+PASS: exact 64-byte copy, error/PID isolation, raw float bits, contention, bounded output
