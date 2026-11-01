@@ -102,7 +102,7 @@ slide = "-0x1000000"
 # AppleMobileFileIntegrity's initializer before trust_cache_runtime_init(); dropping it (the
 # intermediate no-AMFI variant) dead-ends in AMFI NULL walls after launchd.
 early_security_init = "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0"
-# 27 roots: the profile's 31 minus the GPU/graphics/HID families that need components this board
+# 28 roots: the profile's 31 minus the GPU/HID families that need components this board
 # does not have yet (IOGPUFamily, IOMobileGraphicsFamily, IOHIDFamily, IOHIDEventDriver).
 # AMFI, PMGR, sandbox and AppleImage4 are included on purpose.
 roots = [
@@ -123,6 +123,7 @@ roots = [
   "com.apple.iokit.IOCECFamily",
   "com.apple.iokit.IOCryptoAcceleratorFamily",
   "com.apple.iokit.IOHDCPFamily",
+  "com.apple.iokit.IOMobileGraphicsFamily",
   "com.apple.iokit.IOReportFamily",
   "com.apple.iokit.IOSlowAdaptiveClockingFamily",
   "com.apple.iokit.IOStorageFamily",
