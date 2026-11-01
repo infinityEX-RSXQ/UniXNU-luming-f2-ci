@@ -1,0 +1,19 @@
+/* Diagnostic thread-call context only, after the CPU writer lease drains.
+ * Not a general panic hook: normal renderer ownership remains unchanged.
+ */
+unsigned cdx14p1_console_reclaim(void);
+unsigned
+cdx14p1_console_reclaim(void)
+{
+    if (!gc_initialized) return 0;
+    VCPUTC_LOCK_LOCK();
+    __atomic_store_n(&cdx14_vt_owned, 0, __ATOMIC_RELEASE);
+    VCPUTC_LOCK_UNLOCK();
+    /* Release any stale acquisition, select text, then explicitly acquire.
+     * This runs BEFORE panic() while allocation/console locks are usable.
+     */
+    initialize_screen(NULL, kPEReleaseScreen);
+    initialize_screen(NULL, kPETextMode);
+    initialize_screen(NULL, kPEAcquireScreen);
+    return gc_enabled && !disableConsoleOutput;
+}

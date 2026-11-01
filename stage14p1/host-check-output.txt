@@ -1,0 +1,2 @@
+Stage14.1 quiesce: in-flight drain, RAII return, freeze refusal, bounded timeout PASS
+Stage14.1 reclaim: uninitialized guard, latch clear, release/text/acquire order PASS

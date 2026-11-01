@@ -592,6 +592,13 @@ jobs:
           # change the display ABI: the Probe/backend are diagnostics-only.
           python3 device/stage14/install_stage14.py --device device --apply \
             | tee ci-artifacts/stage14-install-report.json
+          # stage14p1: after the successful Stage14 sources, add the diagnostic-only
+          # text-console reclaim (RAII scanout lease, bounded quiesce, then
+          # release/text/acquire before panic) and append the CDX14.1
+          # console-reclaim patch last in the device series. It does not change the
+          # display ABI and runs before the unchanged pre_build generator.
+          python3 device/stage14p1/install_stage14p1.py --device device --apply \
+            | tee ci-artifacts/stage14p1-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -768,6 +775,17 @@ jobs:
                   if stage14.get('before', {}).get(rel) != materialized[rel]:
                       raise SystemExit('stage14 did not start from the stage13 source: ' + rel)
               materialized = stage14['after']
+          # stage14p1 is installed after stage14 and supersedes the two display
+          # sources again. When it ran, it must start from exactly the stage14
+          # hashes and the archive must contain the stage14p1 sources.
+          if Path('ci-artifacts/stage14p1-install-report.json').is_file():
+              stage14p1 = json.loads(Path('ci-artifacts/stage14p1-install-report.json')
+                                     .read_text(encoding='utf-8-sig'))
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage14p1.get('before', {}).get(rel) != materialized[rel]:
+                      raise SystemExit('stage14p1 did not start from the stage14 source: ' + rel)
+              materialized = stage14p1['after']
           # The stage10 display report proves which sources the archive compiled.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -880,11 +898,17 @@ jobs:
           missing = [name for name in required if name not in defined]
           if missing:
               raise SystemExit('missing defined kernel symbols: ' + ', '.join(missing))
+          stage14p1_installed = Path('ci-artifacts/stage14p1-install-report.json').is_file()
+          # The Stage14.1 installer replaces the Stage14 panic marker in the same
+          # callback, so accept whichever marker the installed source produced.
+          cdx14_panic_marker = (b'CDX14.1 diagnostic snapshot (intentional)'
+                                if stage14p1_installed
+                                else b'CDX14 diagnostic snapshot (intentional)')
           markers = {
               'cdx14_boot_args': [b'luming-display-vt-latch', b'luming-display-frame-probe',
                                   b'luming-display-snapshot'],
               'cdx14_registry_and_panic': [b'CDX14FrameSamples',
-                                           b'CDX14 diagnostic snapshot (intentional)',
+                                           cdx14_panic_marker,
                                            b'f=%llu sampled=%u blank=%u valid=%u src=%llx dst=%llx'],
               'cdx14_log_lines': [b'CDX14 blank=%u', b'CDX14 f=%llu src=%llx dst=%llx',
                                   b'CDX14 eq=%u mutate=%u between=%u own=%u block=%u',
@@ -918,13 +942,36 @@ jobs:
                       'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
               if install['before'].get(rel) != install13['after'].get(rel):
                   raise SystemExit('stage13 -> stage14 chain broken: ' + rel)
-          # The appended CDX14 patch must stay last and the generated patch must be enabled.
+          materialized = expected['after']
+          stage14p1_supersedes = stage14p1_installed
+          if stage14p1_supersedes:
+              stage14p1 = json.loads(Path('ci-artifacts/stage14p1-install-report.json')
+                                     .read_text(encoding='utf-8-sig'))
+              if stage14p1.get('applied') is not True:
+                  raise SystemExit('stage14p1 installer did not report applied=true')
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp',
+                          'patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'):
+                  if stage14p1.get('before', {}).get(rel) != materialized.get(rel):
+                      raise SystemExit('stage14 -> stage14p1 chain broken: ' + rel)
+              materialized = stage14p1['after']
+          # The appended CDX14 patch must stay last unless the Stage14.1
+          # console-reclaim patch directly follows it; the generated patch must be
+          # enabled in either case.
           entries = [l.strip() for l in Path('device/patches/xnu/device/series')
                      .read_text(encoding='utf-8').splitlines()
                      if l.strip() and not l.strip().startswith('#')]
           cdx14_patch = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
-          if entries.count(cdx14_patch) != 1 or entries[-1] != cdx14_patch:
-              raise SystemExit('the CDX14 observation patch is not the last device-series entry')
+          cdx14p1_patch = 'zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch'
+          if entries.count(cdx14_patch) != 1:
+              raise SystemExit('the CDX14 observation patch is missing or duplicated')
+          tail = entries[entries.index(cdx14_patch) + 1:]
+          if tail not in ([], [cdx14p1_patch]):
+              raise SystemExit('the CDX14 observation patch is not last and is not followed only by stage14p1')
+          if stage14p1_supersedes and tail != [cdx14p1_patch]:
+              raise SystemExit('the stage14p1 patch is not last in the device series')
+          if not stage14p1_supersedes and tail:
+              raise SystemExit('unexpected device-series entry after the CDX14 patch')
           if 'zzzzz-cdx-generated-aslr.patch' not in entries:
               raise SystemExit('the generated ASLR patch is missing from the device series')
           # The compiled display archive proves the current sources and the ABI guard.
@@ -934,11 +981,11 @@ jobs:
               raise SystemExit('display build-report.json not found')
           report = json.loads(report_paths[0].read_text(encoding='utf-8'))
           if report['source_sha256'].get('kits/luming-cpu-display/LegacyDisplayProbe.cpp') != \
-                  expected['after']['stage10/stage10-runtime/LegacyDisplayProbe.cpp']:
-              raise SystemExit('materialized LegacyDisplayProbe.cpp is not the stage14 source')
+                  materialized['stage10/stage10-runtime/LegacyDisplayProbe.cpp']:
+              raise SystemExit('materialized LegacyDisplayProbe.cpp is not the stage14 (or stage14p1) source')
           if report['source_sha256'].get('drivers/GopFramebuffer/NativeLegacyDisplay.cpp') != \
-                  expected['after']['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
-              raise SystemExit('materialized NativeLegacyDisplay.cpp is not the stage14 source')
+                  materialized['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
+              raise SystemExit('materialized NativeLegacyDisplay.cpp is not the stage14 (or stage14p1) source')
           if report.get('generated_abi_sha256') != '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016':
               raise SystemExit('generated legacy ABI changed')
           if report.get('virtual_entries') != 358 or report.get('original_instructions_modified'):
@@ -978,7 +1025,8 @@ jobs:
                           for name, group in markers.items()},
               'install_after_equals_expected': True,
               'stage13_to_stage14_chain': True,
-              'cdx14_series_last': True,
+              'cdx14_series_last': bool(not tail),
+              'stage14p1_supersedes_sources': stage14p1_supersedes,
               'materialized_sources_expected': True,
               'legacy_abi_sha256': report.get('generated_abi_sha256'),
               'virtual_entries': report.get('virtual_entries'),
@@ -994,6 +1042,198 @@ jobs:
           print('CDX14 symbols defined: ' + ', '.join(required[8:]))
           print('CDX14 boot args: ' + ', '.join(token.decode() for token in markers['cdx14_boot_args']))
           print('stage14 generated patch: %d bytes %s' % (patch_facts['bytes'], patch_facts['sha256']))
+          PY
+
+      - name: Check the stage14p1 console-reclaim markers in the built kernel
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'kernel') }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, re, struct
+          from pathlib import Path
+
+          kernels = sorted(Path('unixnu/out').glob('**/kernel/kernel.macho'))
+          if len(kernels) != 1:
+              raise SystemExit('expected exactly one built kernel.macho, found %r' % (kernels,))
+          path = kernels[0]
+          data = path.read_bytes()
+          if data[:4] != b'\xcf\xfa\xed\xfe':
+              raise SystemExit('expected an arm64 Mach-O kernel')
+          # Same nlist filter as the stage12/stage13/stage14 checks.
+          off, symtab = 32, None
+          for _ in range(struct.unpack_from('<I', data, 16)[0]):
+              cmd, size = struct.unpack_from('<II', data, off)
+              if size < 8 or off + size > len(data):
+                  raise SystemExit('malformed load command')
+              if cmd == 2:
+                  symtab = struct.unpack_from('<IIII', data, off + 8)
+              off += size
+          if symtab is None:
+              raise SystemExit('need LC_SYMTAB')
+          so, ns, st, ss = symtab
+          defined = set()
+          for i in range(ns):
+              index, ntype, nsect, ndesc, nvalue = struct.unpack_from('<IBBHQ', data, so + 16 * i)
+              if not ntype & 0xe0 and ntype & 0xe and nsect and nvalue:
+                  end = data.find(b'\0', st + index, st + ss)
+                  if end >= 0:
+                      defined.add(data[st + index:end].decode('latin1'))
+          required = ['_cdx11_capture_exception', '_cdx11_crash_summary',
+                      '_cdx12_capture_mode', '_cdx12_append_mode_summary', '_cdx12_refresh_observed',
+                      '_cdx13_publish_ui_scale', '_cdx13_capture_validity', '_cdx13_append_mode_summary',
+                      '_cdx14_console_commit', '_cdx14_console_snapshot', '_cdx14_frame_begin',
+                      '_cdx14_frame_end', '_cdx14_frame_gap', '_cdx14_after_release',
+                      '_cdx14_daemon_exception', '_cdx14_daemon_summary', '_cdx14_exception_summary',
+                      '_cdx14p1_scanout_enter', '_cdx14p1_scanout_leave', '_cdx14p1_console_reclaim',
+                      '_cdx14p1_schedule_snapshot']
+          missing = [name for name in required if name not in defined]
+          if missing:
+              raise SystemExit('missing defined kernel symbols: ' + ', '.join(missing))
+          markers = {
+              'cdx14p1_panic': [b'CDX14.1 diagnostic snapshot (intentional)',
+                                b'quiet=%u active=%u reclaim=%u before=%u/%u/%u'],
+              'cdx14_registry_and_panic': [b'CDX14FrameSamples',
+                                           b'f=%llu sampled=%u blank=%u valid=%u src=%llx dst=%llx'],
+              'cdx14_log_lines': [b'CDX14 blank=%u', b'CDX14 f=%llu src=%llx dst=%llx',
+                                  b'CDX14 eq=%u mutate=%u between=%u own=%u block=%u',
+                                  b'CDX14 exit %.16s p=%d rv=%x ns=%u code=%llx n=%u',
+                                  b'CDX14 exc %.16s e=%u c0=%llx c1=%llx'],
+              'cdx14_boot_args': [b'luming-display-vt-latch', b'luming-display-frame-probe',
+                                  b'luming-display-snapshot'],
+              'cdx13_regression': [b'CDX13 got=%u err=%d busy=%u', b'luming-display-ui-scale'],
+          }
+          absent = [token.decode('latin1') for group in markers.values()
+                    for token in group if token not in data]
+          if absent:
+              raise SystemExit('missing kernel strings: ' + ', '.join(absent))
+          # Device install report: the four deterministic Stage14.1 outputs, the
+          # Stage14 -> Stage14.1 source chain and the unchanged Stage14 observation patch.
+          expected = json.loads(Path('device/stage14p1/integration-validation.json')
+                                .read_text(encoding='utf-8-sig'))
+          install14 = json.loads(Path('ci-artifacts/stage14-install-report.json')
+                                 .read_text(encoding='utf-8-sig'))
+          install = json.loads(Path('ci-artifacts/stage14p1-install-report.json')
+                               .read_text(encoding='utf-8-sig'))
+          if install.get('applied') is not True:
+              raise SystemExit('stage14p1 installer did not report applied=true')
+          if install.get('after') != expected.get('after'):
+              raise SystemExit('stage14p1 installed hashes differ from integration-validation.json')
+          if install.get('before') != expected.get('before'):
+              raise SystemExit('stage14p1 installer did not start from the stage14 outputs')
+          for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                      'stage10/stage10-runtime/NativeLegacyDisplay.cpp',
+                      'patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'):
+              if install['before'].get(rel) != install14['after'].get(rel):
+                  raise SystemExit('stage14 -> stage14p1 chain broken: ' + rel)
+          # The p1 patch must be the last series entry, once, after the Stage14 patch.
+          entries = [l.strip() for l in Path('device/patches/xnu/device/series')
+                     .read_text(encoding='utf-8').splitlines()
+                     if l.strip() and not l.strip().startswith('#')]
+          cdx14_patch = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
+          cdx14p1_patch = 'zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch'
+          if entries.count(cdx14p1_patch) != 1 or entries[-1] != cdx14p1_patch:
+              raise SystemExit('the CDX14.1 console-reclaim patch is not the last device-series entry')
+          if len(entries) < 2 or entries[-2] != cdx14_patch:
+              raise SystemExit('the CDX14.1 patch does not directly follow the Stage14 patch')
+          if 'zzzzz-cdx-generated-aslr.patch' not in entries:
+              raise SystemExit('the generated ASLR patch is missing from the device series')
+          # The p1 patch text is the installed one and preserves release/text/acquire order.
+          p1_path = Path('device/patches/xnu/device') / cdx14p1_patch
+          p1_bytes = p1_path.read_bytes().replace(b'\r\n', b'\n')
+          if hashlib.sha256(p1_bytes).hexdigest() != expected['after'][str(p1_path.relative_to('device')).replace('\\', '/')]:
+              raise SystemExit('installed CDX14.1 patch SHA differs from integration-validation.json')
+          p1_text = p1_bytes.decode('utf-8')
+          order_tokens = ['initialize_screen(NULL, kPEReleaseScreen)',
+                          'initialize_screen(NULL, kPETextMode)',
+                          'initialize_screen(NULL, kPEAcquireScreen)']
+          if [p1_text.find(token) for token in order_tokens] != sorted(
+                  p1_text.find(token) for token in order_tokens) or p1_text.find(order_tokens[0]) < 0:
+              raise SystemExit('CDX14.1 reclaim is not release -> text -> acquire')
+          for token in ('cdx14p1_console_reclaim', '__atomic_store_n(&cdx14_vt_owned, 0'):
+              if token not in p1_text:
+                  raise SystemExit('CDX14.1 patch lacks ' + token)
+          # The installed provider sources contain the quiesce lease and the order.
+          probe = Path('device/stage10/stage10-runtime/LegacyDisplayProbe.cpp').read_text(encoding='utf-8')
+          backend = Path('device/stage10/stage10-runtime/NativeLegacyDisplay.cpp').read_text(encoding='utf-8')
+          if probe.count('thread_call_allocate(cdx14_snapshot_callback') != 1:
+              raise SystemExit('the snapshot timer allocation changed')
+          order = [probe.find('bool quiet=cdx14p1_quiesce();'),
+                   probe.find('unsigned reclaimed=quiet?cdx14p1_console_reclaim():0;'),
+                   probe.find('panic("CDX14.1 diagnostic snapshot (intentional)')]
+          if order != sorted(order) or order[0] < 0:
+              raise SystemExit('callback order is not quiesce -> reclaim -> panic')
+          if backend.count('Cdx14p1ScanoutLease lease;if(!lease.held)return;') != 1:
+              raise SystemExit('the per-kick scanout lease is missing')
+          # The compiled display archive proves the current sources and the ABI guard.
+          report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
+                          *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
+          if not report_paths:
+              raise SystemExit('display build-report.json not found')
+          report = json.loads(report_paths[0].read_text(encoding='utf-8'))
+          if report['source_sha256'].get('kits/luming-cpu-display/LegacyDisplayProbe.cpp') != \
+                  expected['after']['stage10/stage10-runtime/LegacyDisplayProbe.cpp']:
+              raise SystemExit('materialized LegacyDisplayProbe.cpp is not the stage14p1 source')
+          if report['source_sha256'].get('drivers/GopFramebuffer/NativeLegacyDisplay.cpp') != \
+                  expected['after']['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
+              raise SystemExit('materialized NativeLegacyDisplay.cpp is not the stage14p1 source')
+          if report.get('generated_abi_sha256') != '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016':
+              raise SystemExit('generated legacy ABI changed')
+          if report.get('virtual_entries') != 358 or report.get('original_instructions_modified'):
+              raise SystemExit('vtable/original-instruction guard changed')
+          if report.get('original_kernelcache_sha256') != 'f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7':
+              raise SystemExit('kernelcache input changed')
+          # The generated patch still carries the Stage13/Stage14 hooks (no regression).
+          patch_text = Path('device/patches/xnu/device/zzzzz-cdx-generated-aslr.patch').read_bytes() \
+              .replace(b'\r\n', b'\n').decode('utf-8')
+          patch_facts = {
+              'bytes': len(patch_text.encode('utf-8')),
+              'sha256': hashlib.sha256(patch_text.encode('utf-8')).hexdigest(),
+              'CDX11_CAPTURE': patch_text.count('CDX11_CAPTURE:'),
+              'CDX11_FINAL': patch_text.count('CDX11_FINAL:'),
+              'CDX12_MODE': patch_text.count('CDX12_MODE:'),
+              'cdx13_capture_validity': patch_text.count('cdx13_capture_validity'),
+              'x28_validity': patch_text.count('get_saved_state_reg(thread->machine.upcb, 28)'),
+              'cdx13_append_mode_summary': patch_text.count('cdx13_append_mode_summary'),
+              'CDX14_DAEMON_EXC': patch_text.count('/* CDX14_DAEMON_EXC */'),
+              'cdx14_daemon_exception': patch_text.count('cdx14_daemon_exception'),
+              'CDX_ASLR_EXC': patch_text.count('CDX_ASLR_EXC'),
+              'CDX_ASLR_MAP': patch_text.count('CDX_ASLR_MAP'),
+              'files': sorted(set(re.findall(r'^\+\+\+ b/(\S+)$', patch_text, re.M))),
+          }
+          if patch_facts['CDX14_DAEMON_EXC'] != 1 or patch_facts['cdx14_daemon_exception'] != 2:
+              raise SystemExit('generated patch lacks the CDX14 daemon-exception hook')
+          if not patch_facts['cdx13_capture_validity'] or not patch_facts['x28_validity'] \
+                  or patch_facts['cdx13_append_mode_summary'] < 2:
+              raise SystemExit('generated patch lost the CDX13 validity/summary hooks')
+          if 'bsd/kern/kern_exit.c' not in patch_facts['files']:
+              raise SystemExit('generated patch no longer instruments bsd/kern/kern_exit.c')
+          result = {
+              'kernel': str(path),
+              'bytes': len(data),
+              'sha256': hashlib.sha256(data).hexdigest(),
+              'stage': '14.1',
+              'defined_symbols': required,
+              'markers': {name: [token.decode('latin1') for token in group]
+                          for name, group in markers.items()},
+              'install_after_equals_expected': True,
+              'stage14_to_stage14p1_chain': True,
+              'cdx14p1_series_last': True,
+              'callback_order_quiesce_reclaim_panic': True,
+              'materialized_sources_expected': True,
+              'legacy_abi_sha256': report.get('generated_abi_sha256'),
+              'virtual_entries': report.get('virtual_entries'),
+              'original_instructions_modified': bool(report.get('original_instructions_modified')),
+              'generated_patch': patch_facts,
+              'qualified': True,
+              'runtime_verified': False,
+          }
+          Path('ci-artifacts/stage14p1-kernel-check.json').write_text(
+              json.dumps(result, indent=2) + '\n', encoding='utf-8')
+          print('stage14p1 markers present in %s (%d bytes) sha256=%s'
+                % (path, result['bytes'], result['sha256']))
+          print('CDX14.1 symbols defined: ' + ', '.join(required[8:]))
+          print('CDX14.1 panic marker and quiet/active/reclaim/before format present')
+          print('stage14p1 series last; stage14 -> stage14p1 source chain verified')
           PY
 
       - name: Build the UniXNU package
@@ -1273,6 +1513,11 @@ jobs:
           cdx14_patch = root / 'device/patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
           if cdx14_patch.is_file():
               files.append((cdx14_patch, 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'))
+          # stage14p1: the diagnostic console-reclaim patch is returned next to the
+          # Stage14 observation patch, plus the final device series below.
+          cdx14p1_patch = root / 'device/patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch'
+          if cdx14p1_patch.is_file():
+              files.append((cdx14p1_patch, 'zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch'))
           device_series = root / 'device/patches/xnu/device/series'
           if device_series.is_file():
               files.append((device_series, 'device-series.txt'))
@@ -1281,7 +1526,8 @@ jobs:
           # daemon records) and the in-CI marker checks of the built kernel.
           for name in ('stage12-install-report.json', 'stage12-kernel-check.json',
                        'stage13-install-report.json', 'stage13-kernel-check.json',
-                       'stage14-install-report.json', 'stage14-kernel-check.json'):
+                       'stage14-install-report.json', 'stage14-kernel-check.json',
+                       'stage14p1-install-report.json', 'stage14p1-kernel-check.json'):
               path = root / 'ci-artifacts' / name
               if path.is_file():
                   files.append((path, name))

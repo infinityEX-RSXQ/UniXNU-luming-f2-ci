@@ -1,0 +1,99 @@
+{
+  "stage": "14.1",
+  "base_ci_run": 41359974470,
+  "base_commit": "d47f17cf5e640fce1c382bc4a840c641f407a715",
+  "checks": {
+    "quiesce_test": true,
+    "reclaim_test": true,
+    "arm64_provider_fixture": true,
+    "arm64_reclaim_fixture": true,
+    "full_kernel_compiled": false,
+    "runtime_verified": false
+  },
+  "source_patch_check": true,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "device_operations": false,
+  "files": [
+    {
+      "path": "BUILD-REQUEST.md",
+      "bytes": 5120,
+      "sha256": "1b62454326e032e7f689d4b80b279c84abf8059edfb2946816d3fadda064615a"
+    },
+    {
+      "path": "core_reclaim.c.inc",
+      "bytes": 724,
+      "sha256": "b1c2fab7e32f6b256ab088537814cb7fc30c509a767c0721d4a10032afd68db6"
+    },
+    {
+      "path": "host-check-output.txt",
+      "bytes": 173,
+      "sha256": "835ac5cf4777d035dcb43a019a6b3e608309f422762a950fc13ec5583cdf9acc"
+    },
+    {
+      "path": "host-validation.json",
+      "bytes": 186,
+      "sha256": "06ad15725443085266ea45283c3a7a8d632e3a54aa16700827e9b56372cea942"
+    },
+    {
+      "path": "install_stage14p1.py",
+      "bytes": 4564,
+      "sha256": "8303fb14d9a886258c4ba0799862ed0f8f72649d30a24339edb6649269476536"
+    },
+    {
+      "path": "integration-validation.json",
+      "bytes": 1290,
+      "sha256": "ef00dc808c1bb960e4584195889858661c2382758f385832b8874ea7af99a6b8"
+    },
+    {
+      "path": "package_stage14p1.py",
+      "bytes": 2849,
+      "sha256": "d175f338a85a812ab89a78e1cf168c2343e71e6faa4a265ead09bd9e739e68a4"
+    },
+    {
+      "path": "qualify_stage14p1_kernel.py",
+      "bytes": 2159,
+      "sha256": "1b7f94a8d351e8f3782efb1c91e4b5a29e8d61d6271c8531f60e7780b9bdb488"
+    },
+    {
+      "path": "run_checks.py",
+      "bytes": 3223,
+      "sha256": "83a2e283737daa01b66aad8741f7ea97f6f36bcb24833e38b12dc2c2bc304f27"
+    },
+    {
+      "path": "runtime/LegacyDisplayProbe.cpp",
+      "bytes": 35684,
+      "sha256": "f3f236517c920eaa6905404ac4601970db0cf2ed74233b94f36105fab255b775"
+    },
+    {
+      "path": "runtime/NativeLegacyDisplay.cpp",
+      "bytes": 37127,
+      "sha256": "8624070dc2a0c0b177b3799ea65b59d3f469dd4be8ab5ffbab59f02be9caa09b"
+    },
+    {
+      "path": "ScanoutQuiesce.h",
+      "bytes": 928,
+      "sha256": "0ecb89aa5719d13c23d4af5f9bf78daff1783351a67e495ae79d4bc1a88fd652"
+    },
+    {
+      "path": "stage14-negative-test.json",
+      "bytes": 93,
+      "sha256": "66141854b909af3ed1bed78164e7972a589cb2fbd44e7e5b7157b97536963fa1"
+    },
+    {
+      "path": "test_quiesce.cpp",
+      "bytes": 1316,
+      "sha256": "55217f25e21321b88bfde72043ca9dae5e0208dbcc80e4b6409cd3672070149c"
+    },
+    {
+      "path": "validate_stage14p1.py",
+      "bytes": 3354,
+      "sha256": "446d508c3ceab40104d7e3cbccd13befc5beb1a62cef592e6df155875d21c235"
+    },
+    {
+      "path": "zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch",
+      "bytes": 886,
+      "sha256": "6f495723a41214d857b64e0776c0e56efcbe57cb203fcf3fc8c30119507931e2"
+    }
+  ]
+}

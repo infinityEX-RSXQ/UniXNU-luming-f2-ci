@@ -1,0 +1,8 @@
+{
+  "quiesce_test": true,
+  "reclaim_test": true,
+  "arm64_provider_fixture": true,
+  "arm64_reclaim_fixture": true,
+  "full_kernel_compiled": false,
+  "runtime_verified": false
+}

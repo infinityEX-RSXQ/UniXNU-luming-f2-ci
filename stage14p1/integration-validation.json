@@ -1,0 +1,23 @@
+{
+  "stage": "14.1",
+  "applied": true,
+  "before": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "d3c4e0edc57fb9f2d5de583b80907cf4637018fd79a2791192776e3862043f0a",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "6063488553c940f4462e8722ac73ce46e99fb8f28035f219db470a95c5927bdf",
+    "patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch": "137b514e570a4edeb593f071774c5975399a9f0a64cd8ec26e862e90c2d0e158"
+  },
+  "after": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "f3f236517c920eaa6905404ac4601970db0cf2ed74233b94f36105fab255b775",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "8624070dc2a0c0b177b3799ea65b59d3f469dd4be8ab5ffbab59f02be9caa09b",
+    "patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch": "6f495723a41214d857b64e0776c0e56efcbe57cb203fcf3fc8c30119507931e2",
+    "patches/xnu/device/series": "55426c54c788777c5985c494b050f1d664abf55c107358db753fcd1f314d0813"
+  },
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "device_operations": false,
+  "passed": true,
+  "fixture": "D:\\Codex\\tmp\\stage14p1-check-1793575969544442500",
+  "core_patch_applied_after_stage14": true,
+  "base_ci_run": 41359974470,
+  "base_commit": "d47f17cf5e640fce1c382bc4a840c641f407a715"
+}
