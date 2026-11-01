@@ -1,0 +1,14 @@
+[
+  {
+    "path": "bsd/kern/kern_exit.c",
+    "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/d8b80295118ef25ac3a784134bcf95cd8e88109f/bsd/kern/kern_exit.c",
+    "sha256": "637b66ba2592ead59ee43cb74de584a76f043c0a1c93d961a00e4ef04b15b543",
+    "bytes": 115609
+  },
+  {
+    "path": "osfmk/kern/exception.c",
+    "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/d8b80295118ef25ac3a784134bcf95cd8e88109f/osfmk/kern/exception.c",
+    "sha256": "f1a6efe08a81f76afd1c364304e8c9e971337c104fbb9720640fb46de1ed0564",
+    "bytes": 26145
+  }
+]

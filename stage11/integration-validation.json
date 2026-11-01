@@ -1,0 +1,33 @@
+{
+  "source_before": {
+    "scripts/ci/gen_aslr_patch.py": "5d8cc19a4e007e765e7e4f0646710b8ba05a7e78f4127c10fa1952661bf1c36a",
+    "scripts/ci/instrument_aslr_short_diagnostics.py": "0539691c11bf879c803c4e79ae851de800b4c727bca694f2f7b97eaa0cfe390d",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "1095ed281386e808eee075b17a7b0180e4c7161a179c9e2dda213071df061485"
+  },
+  "source_after": {
+    "scripts/ci/gen_aslr_patch.py": "71409fad55df327032d8ce10c5b21cf5fcc8a717ad04c562914690f05f367aad",
+    "scripts/ci/instrument_crash_snapshot.py": "f3f75d2e7841580c5fd1d6ca6037efa06efa2867651a505021f06afe65c4d481",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "5c1ff177f2ddd833bf2df385d35700a19bd2a92faf987dfbdb7e89acd4f38d04"
+  },
+  "stage10_backend_unchanged": true,
+  "board_defconfig_unchanged": true,
+  "full_kernel_compiled": false,
+  "device_operations": false,
+  "applied": true,
+  "generator_stdout": "CDX11 source instrumentation applied; full macOS build/runtime not yet verified.\nAdded ASLR observations; compile/runtime verification still required.\nwrote C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage11-diagnostic\\validation-fixture-1793527171603884900\\device\\patches\\xnu\\device\\zzzzz-cdx-generated-aslr.patch (3173 bytes), replayed 1 core patches\nenabled zzzzz-cdx-generated-aslr.patch in C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage11-diagnostic\\validation-fixture-1793527171603884900\\device\\patches\\xnu\\device\\series\n",
+  "passed": true,
+  "selected_later_device_patches": [
+    "zzzzzz-luming-more-amfi-null-guards.patch",
+    "zzzzzzz-luming-cache-path.patch",
+    "zzzzzzzz-luming-owner-cache-initproc-panic.patch",
+    "zzzzzzzzz-luming-owner-cache-probe.patch",
+    "zzzzzzzzzz-luming-owner-cache-root-list.patch",
+    "zzzzzzzzzzz-luming-owner-cache-root-hex.patch",
+    "zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch"
+  ],
+  "generated_patch_sha256": "fe0e5ee857ec2eeac990eabbf53832450a68be85a552163969bcd800bfba572c",
+  "generated_patch_bytes": 3173,
+  "policy_removal_roundtrip": true,
+  "instrumentation_idempotent": true,
+  "anchor_drift_rejected": true
+}

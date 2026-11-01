@@ -1,0 +1,5 @@
+{
+  "passed": true,
+  "old_stage10_kernel_rejected": true,
+  "reason": "Missing defined stage11 function _cdx11_capture_exception"
+}

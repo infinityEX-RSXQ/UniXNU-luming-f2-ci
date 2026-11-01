@@ -1,0 +1,70 @@
+diff --git a/bsd/kern/kern_exit.c b/bsd/kern/kern_exit.c
+index 11a8212..7cbad6a 100644
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -1865,6 +1865,16 @@ proc_handle_critical_exit(proc_t p, int rv)
+ 
+ 	sync(p, (void *)NULL, (int *)NULL);
+ 
++#if DEVELOPMENT || DEBUG
++	/* CDX11_FINAL: after the existing coredump/sync, before the existing panic. */
++	extern int cdx11_crash_summary(int, const char *, const char *, char *, size_t);
++	char cdx11_reason[640];
++	if (cdx11_crash_summary(proc_getpid(p), p->p_name, prefix_str,
++	    cdx11_reason, sizeof(cdx11_reason))) {
++		prefix_str = cdx11_reason;
++	}
++#endif
++
+ 	if (p->p_exit_reason == OS_REASON_NULL) {
+ 		panic_with_options(0, NULL, DEBUGGER_OPTION_INITPROC_PANIC, "%s -- no exit reason available -- (signal %d, exit status %d %s)",
+ 		    prefix_str, WTERMSIG(rv), WEXITSTATUS(rv), ((proc_getcsflags(p) & CS_KILLED) ? "CS_KILLED" : ""));
+diff --git a/bsd/vm/vm_unix.c b/bsd/vm/vm_unix.c
+index dcebcb8..bc829d3 100644
+--- a/bsd/vm/vm_unix.c
++++ b/bsd/vm/vm_unix.c
+@@ -3048,6 +3048,13 @@ shared_region_map_and_slide_2_np(
+ 	if (bootarg_disable_aslr) {
+ 		slide_amount = 0;
+ 	}
++	/* CDX_ASLR_MAP: observe existing selection, never alter it. */
++	extern unsigned int exception_log_max_pid;
++	if ((unsigned int)proc_getpid(p) <= exception_log_max_pid) {
++		printf("CDX_ASLR_MAP pid=%d comm=%.16s disable=%u max=0x%x selected=0x%x\n",
++		    proc_getpid(p), p->p_comm, (unsigned int)bootarg_disable_aslr,
++		    (unsigned int)max_slide, (unsigned int)slide_amount);
++	}
+ #endif /* DEVELOPMENT || DEBUG */
+ 
+ 	/*
+diff --git a/osfmk/kern/exception.c b/osfmk/kern/exception.c
+index 5c88e69..602d529 100644
+--- a/osfmk/kern/exception.c
++++ b/osfmk/kern/exception.c
+@@ -808,10 +808,23 @@ exception_triage(
+ 
+ #if (DEVELOPMENT || DEBUG)
+ #ifdef MACH_BSD
++	/* CDX_ASLR_EXC */
++	extern bool bootarg_disable_aslr;
++	/* CDX11_CAPTURE: independent of exception_log_max_pid. */
++	extern void cdx11_capture_exception(int, const char *, int,
++	    uint64_t, uint64_t, unsigned int, unsigned int);
++	cdx11_capture_exception(proc_pid(get_bsdtask_info(task)),
++	    proc_name_address(get_bsdtask_info(task)), exception,
++	    code[0], codeCnt > 1 ? code[1] : 0,
++	    (unsigned int)task->task_shared_region_slide,
++	    (unsigned int)bootarg_disable_aslr);
+ 	if (proc_pid(get_bsdtask_info(task)) <= exception_log_max_pid) {
+-		record_system_event(SYSTEM_EVENT_TYPE_INFO, SYSTEM_EVENT_SUBSYSTEM_PROCESS, "process exit",
+-		    "exception_log_max_pid: pid %d (%s): sending exception %d (0x%llx 0x%llx)",
+-		    proc_pid(get_bsdtask_info(task)), proc_name_address(get_bsdtask_info(task)),
++		record_system_event(SYSTEM_EVENT_TYPE_INFO, SYSTEM_EVENT_SUBSYSTEM_PROCESS, "CDX_ASLR",
++		    "p=%d n=%.16s off=%u slide=%x", proc_pid(get_bsdtask_info(task)),
++		    proc_name_address(get_bsdtask_info(task)), (unsigned int)bootarg_disable_aslr,
++		    (unsigned int)task->task_shared_region_slide);
++		record_system_event(SYSTEM_EVENT_TYPE_INFO, SYSTEM_EVENT_SUBSYSTEM_PROCESS, "CDX_EXC",
++		    "p=%d e=%d c0=%llx c1=%llx", proc_pid(get_bsdtask_info(task)),
+ 		    exception, code[0], codeCnt > 1 ? code[1] : 0);
+ 	}
+ #endif /* MACH_BSD */

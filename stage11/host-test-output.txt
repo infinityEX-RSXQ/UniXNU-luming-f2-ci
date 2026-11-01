@@ -1,0 +1,8 @@
+SpringBoard[812] exited
+CDX11 pid=812 match=1 busy=0 n=1 drop=0
+CDX11 first e=6 c0=1 c1=19f3df2ec
+CDX11 last e=6 off=1 sl=0 c0=1 c1=19f3df2ec
+CDX11 st=10 fail=0 reg=1 cl=1 rc=0
+CDX11 val=0 ok=0 why=0 cp=0 rc=ffffffff
+CDX11 ret=0 vs=0
+PASS: name/PID isolation, secondary notification, first/last, contention and bounded formatting

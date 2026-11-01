@@ -558,6 +558,12 @@ jobs:
         if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' }}
         run: |
           set -euo pipefail
+          # stage11: install the compact SpringBoard crash summary into the device
+          # sources that the stage10 installer consumes. This runs before the
+          # unchanged stage9 pre_build generator, so the generated single
+          # zzzzz-cdx-generated-aslr.patch also carries the kern_exit.c summary
+          # hook and the installed Probe (not a temporary tree copy) is compiled.
+          python3 device/stage11/install_stage11.py --device device --apply
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -845,6 +851,11 @@ jobs:
                   for path in archive_logs:
                       tf.add(path, arcname=str(path.relative_to(root)))
               files.append((log_tar, 'stage10-archive-logs.tar.gz'))
+          # stage11: return the single generated device patch (exception capture +
+          # kern_exit summary hooks) as source text for host-side review.
+          generated_patch = root / 'device/patches/xnu/device/zzzzz-cdx-generated-aslr.patch'
+          if generated_patch.is_file():
+              files.append((generated_patch, 'zzzzz-cdx-generated-aslr.patch'))
           if not files:
               raise SystemExit('no kernel/boot.img files to upload')
 

@@ -1,0 +1,87 @@
+{
+  "stage": 11,
+  "purpose": "compact SpringBoard crash and display-counter summary",
+  "base_ci_run": 41274600288,
+  "host_tests_passed": true,
+  "arm64_abi_fixture_linked": true,
+  "full_kernel_compiled": false,
+  "device_operations": false,
+  "ci_dispatched": false,
+  "files": [
+    {
+      "path": "abi_caller.c",
+      "bytes": 436,
+      "sha256": "c21b53599aa2fd1a112063c4f2fc00c4a179593fdad0961a1a49a5b48c5d06cd"
+    },
+    {
+      "path": "abi_fixture.cpp",
+      "bytes": 178,
+      "sha256": "546be827a9fe9e33d4139e33e26ef0c996e17e24db105d64421857d7e2fc8673"
+    },
+    {
+      "path": "arm64-abi-symbols.txt",
+      "bytes": 863,
+      "sha256": "9e0f621d68d4b8728f26013e5a98a3c8da3b7f9f5fc4216f2b3700cf12e84924"
+    },
+    {
+      "path": "BUILD-REQUEST.md",
+      "bytes": 4980,
+      "sha256": "8e3086adbaedb2dac116d41d1db18a58562e34296087424b05bb6f97bfef19bf"
+    },
+    {
+      "path": "CrashSnapshot.h",
+      "bytes": 3945,
+      "sha256": "e9b1fbe9105d9ef982277bef924541ce6584d86456fc19d8db744471e35d21cc"
+    },
+    {
+      "path": "example-generated-source.patch",
+      "bytes": 3173,
+      "sha256": "fe0e5ee857ec2eeac990eabbf53832450a68be85a552163969bcd800bfba572c"
+    },
+    {
+      "path": "host-test-output.txt",
+      "bytes": 338,
+      "sha256": "b0425bef3ed7bd4485832a571b260dc1482264b2b11952d0166c297617ea54c4"
+    },
+    {
+      "path": "install_stage11.py",
+      "bytes": 4090,
+      "sha256": "de01769833cdd69dfd0a9339bde009b64956aaa5d15cf0b8282724fff07cd379"
+    },
+    {
+      "path": "instrument_crash_snapshot.py",
+      "bytes": 2880,
+      "sha256": "f3f75d2e7841580c5fd1d6ca6037efa06efa2867651a505021f06afe65c4d481"
+    },
+    {
+      "path": "integration-validation.json",
+      "bytes": 2180,
+      "sha256": "51fe6c2a901b483b184c55433f31aaae01ca93014ccbec2189669ce3ac37dc21"
+    },
+    {
+      "path": "old-kernel-negative-test.json",
+      "bytes": 136,
+      "sha256": "b582abc561cd0d9a7f8c520be31364adb71e641272f269604bb9fc2e0420a8c7"
+    },
+    {
+      "path": "qualify_stage11_kernel.py",
+      "bytes": 1834,
+      "sha256": "22b53c5e34ac693bcfc21554308916ef85e910049f955d47ad46222dc199e250"
+    },
+    {
+      "path": "reference-FETCH.json",
+      "bytes": 588,
+      "sha256": "f00b7764be851431a31d2d576b49b751e03219a885a71fc84ada3635282f4c62"
+    },
+    {
+      "path": "test_snapshot.cpp",
+      "bytes": 2601,
+      "sha256": "508a523d0d9bb502bfabb721317c5c7fa57af00ef0b9af704c53d44dbd3e68cf"
+    },
+    {
+      "path": "validate_integration.py",
+      "bytes": 5425,
+      "sha256": "f132598fbdf734ed2ff67d44f7ec733905fb3ffb1117897bbb80f2fe40cd0fc8"
+    }
+  ]
+}
