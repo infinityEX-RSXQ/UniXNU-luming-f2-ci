@@ -1,0 +1,82 @@
+{
+  "duplicate_c_linkage_definitions_reproduce_link_failure": true,
+  "extern_storage_declaration_fix_links": true,
+  "scope": "Minimal two-object proof only, not full native kernel compile",
+  "records": [
+    {
+      "argv": [
+        "D:\\civitoip20\\.tools\\llvm\\clang+llvm-23.1.4-x86_64-pc-windows-msvc\\bin\\clang++.exe",
+        "-target",
+        "arm64-apple-ios17.0",
+        "-c",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_a.cpp",
+        "-o",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_a.o"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "argv": [
+        "D:\\civitoip20\\.tools\\llvm\\clang+llvm-23.1.4-x86_64-pc-windows-msvc\\bin\\clang++.exe",
+        "-target",
+        "arm64-apple-ios17.0",
+        "-c",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_b.cpp",
+        "-o",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_b.o"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "argv": [
+        "D:\\civitoip20\\.tools\\llvm\\clang+llvm-23.1.4-x86_64-pc-windows-msvc\\bin\\clang++.exe",
+        "-target",
+        "arm64-apple-ios17.0",
+        "-c",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\declaration_a.cpp",
+        "-o",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\declaration_a.o"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "argv": [
+        "D:\\civitoip20\\.tools\\llvm\\clang+llvm-23.1.4-x86_64-pc-windows-msvc\\bin\\ld64.lld.exe",
+        "-dylib",
+        "-arch",
+        "arm64",
+        "-platform_version",
+        "ios",
+        "17.0",
+        "17.0",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_a.o",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_b.o",
+        "-o",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate.dylib"
+      ],
+      "exit_code": 1,
+      "output": "ld64.lld: error: duplicate symbol: _native_legacy_early_retires\n>>> defined in C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_a.o\n>>> defined in C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_b.o\n\nld64.lld: error: duplicate symbol: _native_legacy_early_failures\n>>> defined in C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_a.o\n>>> defined in C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_b.o\n"
+    },
+    {
+      "argv": [
+        "D:\\civitoip20\\.tools\\llvm\\clang+llvm-23.1.4-x86_64-pc-windows-msvc\\bin\\ld64.lld.exe",
+        "-dylib",
+        "-arch",
+        "arm64",
+        "-platform_version",
+        "ios",
+        "17.0",
+        "17.0",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\declaration_a.o",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\duplicate_b.o",
+        "-o",
+        "C:\\Users\\HONOR\\Documents\\Codex\\2026-10-29\\zai\\work\\stage10-review\\declaration.dylib"
+      ],
+      "exit_code": 0,
+      "output": ""
+    }
+  ]
+}

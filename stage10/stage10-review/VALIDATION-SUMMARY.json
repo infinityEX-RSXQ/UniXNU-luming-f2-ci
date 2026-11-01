@@ -1,0 +1,14 @@
+{
+  "source_contract_passed": true,
+  "portable_request_and_copy_assertions_passed": true,
+  "original_358_slot_abi_and_binding_byte_guards_passed": true,
+  "duplicate_symbol_reproduced_and_fixed_in_tiny_macho_fixture": true,
+  "compile_replay_output_isolation_fixture_passed": true,
+  "source_generator_regeneration_identical": true,
+  "family_only_kernel_rejected": true,
+  "full_cpp_archive_compiled": false,
+  "native_kernel_linked": false,
+  "device_display_service_verified": false,
+  "cadisplay_enumeration_verified": false,
+  "visible_ui_verified": false
+}

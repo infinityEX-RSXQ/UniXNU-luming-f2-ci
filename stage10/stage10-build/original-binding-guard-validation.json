@@ -1,0 +1,19 @@
+{
+  "all_retained_original_byte_guards_passed": true,
+  "raw_cache_sha256": "f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7",
+  "family_text_sha256": "2e044ee68c1650397e1435234ca6459206262e4c7ed709cb7131c6f664f9bd9b",
+  "slide": -16777216,
+  "surface_refresh_vsync_bindings": {
+    "_native_legacy_surface_descriptor": "0xfffffff004b9ead0",
+    "_native_legacy_surface_width": "0xfffffff004b9ebbc",
+    "_native_legacy_surface_height": "0xfffffff004b9ebc4",
+    "_native_legacy_surface_stride": "0xfffffff004b9ebd4",
+    "_native_legacy_surface_allocation": "0xfffffff004b9ebfc",
+    "_native_legacy_surface_format": "0xfffffff004b9ebac",
+    "_native_legacy_surface_planes": "0xfffffff004b9ebf4",
+    "_native_legacy_vsync_notify": "0xfffffff005796720",
+    "_native_legacy_set_refresh_properties": "0xfffffff00579ebb8"
+  },
+  "owned_cpp_compiled": false,
+  "runtime_tested": false
+}

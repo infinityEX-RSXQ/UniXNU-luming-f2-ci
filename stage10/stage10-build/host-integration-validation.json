@@ -1,0 +1,8 @@
+{
+  "board_changed_only_two_arrays": true,
+  "root_count": 28,
+  "archive_added_at_end": "build-luming-cpu-legacy-display.py",
+  "defconfig_on": true,
+  "idempotent": true,
+  "compiled": false
+}

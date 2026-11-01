@@ -1,0 +1,3567 @@
+{
+  "raw_kernel": "D:\\civitoip20\\lumingios-cdx\\stock-ipsw-analysis\\kernelcache.ipad7.macho",
+  "raw_original_path": "D:\\civitoip20\\lumingios-cdx\\stock-ipsw-analysis\\kernelcache.ipad7.macho",
+  "raw_sha256": "f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7",
+  "original_sha256": "f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7",
+  "intended_prelink_slide": -16777216,
+  "family": {
+    "CFBundleName": "IOMobileGraphicsFamily",
+    "DTSDKName": "iphoneos17.7.internal",
+    "DTXcode": "1500",
+    "NSHumanReadableCopyright": "Copyright \u00a9 2009 Apple Inc. All rights reserved.",
+    "_PrelinkExecutableLoadAddr": 18446744005080209280,
+    "_PrelinkKmodInfo": 18446744005119239872,
+    "DTSDKBuild": "21H442",
+    "_PrelinkExecutableSize": 38664,
+    "CFBundleDevelopmentRegion": "English",
+    "CFBundleVersion": "343.0.0",
+    "BuildMachineOSBuild": "22A380019",
+    "DTPlatformName": "iphoneos",
+    "CFBundlePackageType": "KEXT",
+    "CFBundleShortVersionString": "343.0.0",
+    "CFBundleSupportedPlatforms": [
+      "iPhoneOS"
+    ],
+    "OSBundleCompatibleVersion": "1.0",
+    "_PrelinkExecutableSourceAddr": 18446744005080209280,
+    "_PrelinkExecutableRelativePath": "IOMobileGraphicsFamily",
+    "CFBundleInfoDictionaryVersion": "6.0",
+    "CFBundleExecutable": "IOMobileGraphicsFamily",
+    "DTCompiler": "com.apple.compilers.llvm.clang.1_0",
+    "UIRequiredDeviceCapabilities": [
+      "arm64"
+    ],
+    "MinimumOSVersion": "17.7",
+    "CFBundleIdentifier": "com.apple.iokit.IOMobileGraphicsFamily",
+    "UIDeviceFamily": [
+      1
+    ],
+    "CFBundleSignature": "????",
+    "DTPlatformVersion": "17.7",
+    "DTXcodeBuild": "15E6079e",
+    "OSBundleLibraries": {
+      "com.apple.kpi.bsd": "8.4.1",
+      "com.apple.driver.AppleMobileFileIntegrity": "1.0.1",
+      "com.apple.kpi.libkern": "8.0",
+      "com.apple.iokit.IOSurface": "52.7.0",
+      "com.apple.driver.AppleM2ScalerCSCDriver": "1.0.0",
+      "com.apple.kpi.iokit": "8.0",
+      "com.apple.kpi.mach": "8.0",
+      "com.apple.kpi.unsupported": "8.0",
+      "com.apple.driver.AppleARMPlatform": "1.0.0",
+      "com.apple.iokit.IOAVFamily": "1.0.0",
+      "com.apple.kpi.private": "10.0.0d3"
+    },
+    "_PrelinkBundlePath": "/System/Library/Extensions/IOMobileGraphicsFamily.kext",
+    "DTPlatformBuild": "21H442"
+  },
+  "family_text": {
+    "address": "0xfffffff00676c000",
+    "size": 225140,
+    "sha256": "2e044ee68c1650397e1435234ca6459206262e4c7ed709cb7131c6f664f9bd9b"
+  },
+  "original_family_text_sha256": "2e044ee68c1650397e1435234ca6459206262e4c7ed709cb7131c6f664f9bd9b",
+  "raw_base_vptr": "0xfffffff006f35da0",
+  "raw_service_vptr": "0xfffffff006f36680",
+  "raw_legacy_vptr": "0xfffffff006f38570",
+  "base_vptr": "0xfffffff005f35da0",
+  "service_vptr": "0xfffffff005f36680",
+  "legacy_vptr": "0xfffffff005f38570",
+  "legacy_slots": 358,
+  "legacy_virtual_entries": 358,
+  "legacy_instance_bytes": 6304,
+  "abstract_slots": [
+    211,
+    213,
+    245,
+    246,
+    306,
+    307,
+    337,
+    338,
+    345
+  ],
+  "changed_slots": [
+    0,
+    1,
+    7,
+    14,
+    21,
+    44,
+    79,
+    85,
+    86,
+    87,
+    111,
+    141,
+    155,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199,
+    200,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    212,
+    214,
+    215,
+    216,
+    217,
+    218,
+    219,
+    220,
+    221,
+    222,
+    223,
+    224,
+    225,
+    226,
+    227,
+    228,
+    229,
+    230,
+    231,
+    232,
+    233,
+    234,
+    235,
+    236,
+    237,
+    238,
+    239,
+    240,
+    241,
+    242,
+    243,
+    244,
+    247,
+    248,
+    249,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261
+  ],
+  "inherited_generic_changes": [
+    0,
+    1,
+    7,
+    14,
+    21,
+    44,
+    79,
+    85,
+    86,
+    87,
+    111,
+    141,
+    155,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199,
+    200,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    212,
+    214,
+    215,
+    216,
+    217,
+    218,
+    219,
+    220,
+    221,
+    222,
+    223,
+    224,
+    225,
+    226,
+    227,
+    228,
+    229,
+    230,
+    231,
+    232,
+    233,
+    234,
+    235,
+    236,
+    237,
+    238,
+    239,
+    240,
+    241,
+    242,
+    243,
+    244,
+    247,
+    248,
+    249,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261
+  ],
+  "methods": [
+    {
+      "slot": 0,
+      "raw_address": "0xfffffff006786644",
+      "address": "0xfffffff005786644",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 1,
+      "raw_address": "0xfffffff006786658",
+      "address": "0xfffffff005786658",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 2,
+      "raw_address": "0xfffffff00774e018",
+      "address": "0xfffffff00774e018",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject7releaseEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 3,
+      "raw_address": "0xfffffff00774e02c",
+      "address": "0xfffffff00774e02c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject14getRetainCountEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 4,
+      "raw_address": "0xfffffff00774e034",
+      "address": "0xfffffff00774e034",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject6retainEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 5,
+      "raw_address": "0xfffffff00774e044",
+      "address": "0xfffffff00774e044",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject7releaseEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 6,
+      "raw_address": "0xfffffff00774e054",
+      "address": "0xfffffff00774e054",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject9serializeEP11OSSerialize"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 7,
+      "raw_address": "0xfffffff006786664",
+      "address": "0xfffffff005786664",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 8,
+      "raw_address": "0xfffffff00774b56c",
+      "address": "0xfffffff00774b56c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15OSMetaClassBase9isEqualToEPKS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 9,
+      "raw_address": "0xfffffff00774e178",
+      "address": "0xfffffff00774e178",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject12taggedRetainEPKv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 10,
+      "raw_address": "0xfffffff00774e1fc",
+      "address": "0xfffffff00774e1fc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject13taggedReleaseEPKv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 11,
+      "raw_address": "0xfffffff00774e20c",
+      "address": "0xfffffff00774e20c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK8OSObject13taggedReleaseEPKvi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 12,
+      "raw_address": "0xfffffff007795ba0",
+      "address": "0xfffffff007795ba0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService8DispatchE5IORPC"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 13,
+      "raw_address": "0xfffffff00774e2cc",
+      "address": "0xfffffff00774e2cc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN8OSObject4initEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 14,
+      "raw_address": "0xfffffff006787030",
+      "address": "0xfffffff005787030",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 15,
+      "raw_address": "0xfffffff0077acbcc",
+      "address": "0xfffffff0077acbcc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12copyPropertyEPKcPK15IORegistryPlanej"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 16,
+      "raw_address": "0xfffffff0077acd48",
+      "address": "0xfffffff0077acd48",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12copyPropertyEPK8OSStringPK15IORegistryPlanej"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 17,
+      "raw_address": "0xfffffff0077acec4",
+      "address": "0xfffffff0077acec4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12copyPropertyEPK8OSSymbolPK15IORegistryPlanej"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 18,
+      "raw_address": "0xfffffff0077ad040",
+      "address": "0xfffffff0077ad040",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry15copyParentEntryEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 19,
+      "raw_address": "0xfffffff0077ad0c0",
+      "address": "0xfffffff0077ad0c0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry14copyChildEntryEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 20,
+      "raw_address": "0xfffffff0077ad140",
+      "address": "0xfffffff0077ad140",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry17runPropertyActionEPFiP8OSObjectPvS2_S2_S2_ES1_S2_S2_S2_S2_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 21,
+      "raw_address": "0xfffffff006786e20",
+      "address": "0xfffffff005786e20",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 22,
+      "raw_address": "0xfffffff0077ad49c",
+      "address": "0xfffffff0077ad49c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry16setPropertyTableEP12OSDictionary"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 23,
+      "raw_address": "0xfffffff0077ad5b8",
+      "address": "0xfffffff0077ad5b8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setPropertyEPK8OSSymbolP8OSObject"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 24,
+      "raw_address": "0xfffffff0077ad798",
+      "address": "0xfffffff0077ad798",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setPropertyEPK8OSStringP8OSObject"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 25,
+      "raw_address": "0xfffffff0077ad7fc",
+      "address": "0xfffffff0077ad7fc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setPropertyEPKcP8OSObject"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 26,
+      "raw_address": "0xfffffff0077ad860",
+      "address": "0xfffffff0077ad860",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setPropertyEPKcS1_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 27,
+      "raw_address": "0xfffffff0077ad8e4",
+      "address": "0xfffffff0077ad8e4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setPropertyEPKcb"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 28,
+      "raw_address": "0xfffffff0077ad970",
+      "address": "0xfffffff0077ad970",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setPropertyEPKcyj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 29,
+      "raw_address": "0xfffffff0077ada38",
+      "address": "0xfffffff0077ada38",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setPropertyEPKcPvj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 30,
+      "raw_address": "0xfffffff0077adb00",
+      "address": "0xfffffff0077adb00",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry14removePropertyEPK8OSSymbol"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 31,
+      "raw_address": "0xfffffff0077adbfc",
+      "address": "0xfffffff0077adbfc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry14removePropertyEPK8OSString"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 32,
+      "raw_address": "0xfffffff0077adc44",
+      "address": "0xfffffff0077adc44",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry14removePropertyEPKc"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 33,
+      "raw_address": "0xfffffff0077adc8c",
+      "address": "0xfffffff0077adc8c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11getPropertyEPK8OSSymbol"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 34,
+      "raw_address": "0xfffffff0077add88",
+      "address": "0xfffffff0077add88",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11getPropertyEPK8OSString"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 35,
+      "raw_address": "0xfffffff0077adddc",
+      "address": "0xfffffff0077adddc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11getPropertyEPKc"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 36,
+      "raw_address": "0xfffffff0077ade30",
+      "address": "0xfffffff0077ade30",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11getPropertyEPK8OSSymbolPK15IORegistryPlanej"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 37,
+      "raw_address": "0xfffffff0077adfac",
+      "address": "0xfffffff0077adfac",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11getPropertyEPK8OSStringPK15IORegistryPlanej"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 38,
+      "raw_address": "0xfffffff0077ae128",
+      "address": "0xfffffff0077ae128",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11getPropertyEPKcPK15IORegistryPlanej"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 39,
+      "raw_address": "0xfffffff0077ae2a4",
+      "address": "0xfffffff0077ae2a4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12copyPropertyEPK8OSSymbol"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 40,
+      "raw_address": "0xfffffff0077ae3b4",
+      "address": "0xfffffff0077ae3b4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12copyPropertyEPK8OSString"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 41,
+      "raw_address": "0xfffffff0077ae4c4",
+      "address": "0xfffffff0077ae4c4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12copyPropertyEPKc"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 42,
+      "raw_address": "0xfffffff0077ae5d4",
+      "address": "0xfffffff0077ae5d4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry24dictionaryWithPropertiesEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 43,
+      "raw_address": "0xfffffff0077b48bc",
+      "address": "0xfffffff0077b48bc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService19serializePropertiesEP11OSSerialize"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 44,
+      "raw_address": "0xfffffff006792404",
+      "address": "0xfffffff005792404",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 45,
+      "raw_address": "0xfffffff0077ae85c",
+      "address": "0xfffffff0077ae85c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry17getParentIteratorEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 46,
+      "raw_address": "0xfffffff0077ae9b8",
+      "address": "0xfffffff0077ae9b8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry14applyToParentsEPFvPS_PvES1_PK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 47,
+      "raw_address": "0xfffffff0077aead4",
+      "address": "0xfffffff0077aead4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry14getParentEntryEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 48,
+      "raw_address": "0xfffffff0077aeb14",
+      "address": "0xfffffff0077aeb14",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry16getChildIteratorEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 49,
+      "raw_address": "0xfffffff0077aec70",
+      "address": "0xfffffff0077aec70",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry15applyToChildrenEPFvPS_PvES1_PK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 50,
+      "raw_address": "0xfffffff0077aed8c",
+      "address": "0xfffffff0077aed8c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry13getChildEntryEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 51,
+      "raw_address": "0xfffffff0077aedcc",
+      "address": "0xfffffff0077aedcc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry7isChildEPS_PK15IORegistryPlaneb"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 52,
+      "raw_address": "0xfffffff0077aef0c",
+      "address": "0xfffffff0077aef0c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry8isParentEPS_PK15IORegistryPlaneb"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 53,
+      "raw_address": "0xfffffff0077af04c",
+      "address": "0xfffffff0077af04c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry7inPlaneEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 54,
+      "raw_address": "0xfffffff0077af1a0",
+      "address": "0xfffffff0077af1a0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry8getDepthEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 55,
+      "raw_address": "0xfffffff0077af2c4",
+      "address": "0xfffffff0077af2c4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry14attachToParentEPS_PK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 56,
+      "raw_address": "0xfffffff0077af5fc",
+      "address": "0xfffffff0077af5fc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry16detachFromParentEPS_PK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 57,
+      "raw_address": "0xfffffff0077af85c",
+      "address": "0xfffffff0077af85c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry13attachToChildEPS_PK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 58,
+      "raw_address": "0xfffffff0077af988",
+      "address": "0xfffffff0077af988",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry15detachFromChildEPS_PK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 59,
+      "raw_address": "0xfffffff0077afbe8",
+      "address": "0xfffffff0077afbe8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11detachAboveEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 60,
+      "raw_address": "0xfffffff0077afc88",
+      "address": "0xfffffff0077afc88",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry9detachAllEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 61,
+      "raw_address": "0xfffffff0077afe64",
+      "address": "0xfffffff0077afe64",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry7getNameEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 62,
+      "raw_address": "0xfffffff0077aff20",
+      "address": "0xfffffff0077aff20",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry8copyNameEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 63,
+      "raw_address": "0xfffffff0077affe8",
+      "address": "0xfffffff0077affe8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12compareNamesEP8OSObjectPP8OSString"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 64,
+      "raw_address": "0xfffffff0077b0144",
+      "address": "0xfffffff0077b0144",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11compareNameEP8OSStringPS1_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 65,
+      "raw_address": "0xfffffff0077b01d0",
+      "address": "0xfffffff0077b01d0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry7setNameEPK8OSSymbolPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 66,
+      "raw_address": "0xfffffff0077b02a0",
+      "address": "0xfffffff0077b02a0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry7setNameEPKcPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 67,
+      "raw_address": "0xfffffff0077b030c",
+      "address": "0xfffffff0077b030c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry11getLocationEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 68,
+      "raw_address": "0xfffffff0077b035c",
+      "address": "0xfffffff0077b035c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry12copyLocationEPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 69,
+      "raw_address": "0xfffffff0077b03e8",
+      "address": "0xfffffff0077b03e8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setLocationEPK8OSSymbolPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 70,
+      "raw_address": "0xfffffff0077b046c",
+      "address": "0xfffffff0077b046c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry11setLocationEPKcPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 71,
+      "raw_address": "0xfffffff0077b04d8",
+      "address": "0xfffffff0077b04d8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry7getPathEPcPiPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 72,
+      "raw_address": "0xfffffff0077b0a08",
+      "address": "0xfffffff0077b0a08",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK15IORegistryEntry16getPathComponentEPcPiPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 73,
+      "raw_address": "0xfffffff0077b0b00",
+      "address": "0xfffffff0077b0b00",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN15IORegistryEntry13childFromPathEPKcPK15IORegistryPlanePcPi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 74,
+      "raw_address": "0xfffffff0077b48c0",
+      "address": "0xfffffff0077b48c0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService4initEP15IORegistryEntryPK15IORegistryPlane"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 75,
+      "raw_address": "0xfffffff0077b4974",
+      "address": "0xfffffff0077b4974",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16requestTerminateEPS_j"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 76,
+      "raw_address": "0xfffffff0077b49dc",
+      "address": "0xfffffff0077b49dc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService13willTerminateEPS_j"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 77,
+      "raw_address": "0xfffffff0077b4a00",
+      "address": "0xfffffff0077b4a00",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService12didTerminateEPS_jPb"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 78,
+      "raw_address": "0xfffffff0077e0dd8",
+      "address": "0xfffffff0077e0dd8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15nextIdleTimeoutEyyj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 79,
+      "raw_address": "0xfffffff00678b0a8",
+      "address": "0xfffffff00578b0a8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 80,
+      "raw_address": "0xfffffff0077b4ad8",
+      "address": "0xfffffff0077b4ad8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService22copyClientWithCategoryEPK8OSSymbol"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 81,
+      "raw_address": "0xfffffff0077b4bdc",
+      "address": "0xfffffff0077b4bdc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15configureReportEP19IOReportChannelListjPvS2_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 82,
+      "raw_address": "0xfffffff0077b4e9c",
+      "address": "0xfffffff0077b4e9c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService12updateReportEP19IOReportChannelListjPvS2_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 83,
+      "raw_address": "0xfffffff0077b516c",
+      "address": "0xfffffff0077b516c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService8getStateEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 84,
+      "raw_address": "0xfffffff0077b5174",
+      "address": "0xfffffff0077b5174",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15registerServiceEj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 85,
+      "raw_address": "0xfffffff006787060",
+      "address": "0xfffffff005787060",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 86,
+      "raw_address": "0xfffffff0067872e8",
+      "address": "0xfffffff0057872e8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 87,
+      "raw_address": "0xfffffff00678886c",
+      "address": "0xfffffff00578886c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 88,
+      "raw_address": "0xfffffff0077b53d8",
+      "address": "0xfffffff0077b53d8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService4openEPS_jPv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 89,
+      "raw_address": "0xfffffff0077b5504",
+      "address": "0xfffffff0077b5504",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService5closeEPS_j"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 90,
+      "raw_address": "0xfffffff0077b5628",
+      "address": "0xfffffff0077b5628",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService6isOpenEPKS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 91,
+      "raw_address": "0xfffffff0077b5684",
+      "address": "0xfffffff0077b5684",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService10handleOpenEPS_jPv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 92,
+      "raw_address": "0xfffffff0077b56f0",
+      "address": "0xfffffff0077b56f0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService11handleCloseEPS_j"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 93,
+      "raw_address": "0xfffffff0077b5708",
+      "address": "0xfffffff0077b5708",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService12handleIsOpenEPKS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 94,
+      "raw_address": "0xfffffff0077b5728",
+      "address": "0xfffffff0077b5728",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService9terminateEj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 95,
+      "raw_address": "0xfffffff0077b5730",
+      "address": "0xfffffff0077b5730",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService8finalizeEj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 96,
+      "raw_address": "0xfffffff0077b5914",
+      "address": "0xfffffff0077b5914",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService18lockForArbitrationEb"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 97,
+      "raw_address": "0xfffffff0077b5d18",
+      "address": "0xfffffff0077b5d18",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService20unlockForArbitrationEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 98,
+      "raw_address": "0xfffffff0077b5ed8",
+      "address": "0xfffffff0077b5ed8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15terminateClientEPS_j"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 99,
+      "raw_address": "0xfffffff0077b5f3c",
+      "address": "0xfffffff0077b5f3c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService12getBusyStateEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 100,
+      "raw_address": "0xfffffff0077b5f48",
+      "address": "0xfffffff0077b5f48",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService10adjustBusyEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 101,
+      "raw_address": "0xfffffff0077b5f90",
+      "address": "0xfffffff0077b5f90",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService18matchPropertyTableEP12OSDictionaryPi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 102,
+      "raw_address": "0xfffffff0077b5f9c",
+      "address": "0xfffffff0077b5f9c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService18matchPropertyTableEP12OSDictionary"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 103,
+      "raw_address": "0xfffffff0077b5fa4",
+      "address": "0xfffffff0077b5fa4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService13matchLocationEPS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 104,
+      "raw_address": "0xfffffff0077b5fe8",
+      "address": "0xfffffff0077b5fe8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService17addNeededResourceEPKc"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 105,
+      "raw_address": "0xfffffff0077b6170",
+      "address": "0xfffffff0077b6170",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15comparePropertyEP12OSDictionaryPKc"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 106,
+      "raw_address": "0xfffffff0077b6204",
+      "address": "0xfffffff0077b6204",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15comparePropertyEP12OSDictionaryPK8OSString"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 107,
+      "raw_address": "0xfffffff0077b6298",
+      "address": "0xfffffff0077b6298",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService17comparePropertiesEP12OSDictionaryP12OSCollection"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 108,
+      "raw_address": "0xfffffff0077b63ac",
+      "address": "0xfffffff0077b63ac",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService6attachEPS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 109,
+      "raw_address": "0xfffffff0077b6740",
+      "address": "0xfffffff0077b6740",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService6detachEPS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 110,
+      "raw_address": "0xfffffff0077b6af4",
+      "address": "0xfffffff0077b6af4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService11getProviderEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 111,
+      "raw_address": "0xfffffff00678cb78",
+      "address": "0xfffffff00578cb78",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 112,
+      "raw_address": "0xfffffff0077b6b90",
+      "address": "0xfffffff0077b6b90",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService19getProviderIteratorEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 113,
+      "raw_address": "0xfffffff0077b6ba4",
+      "address": "0xfffffff0077b6ba4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService23getOpenProviderIteratorEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 114,
+      "raw_address": "0xfffffff0077b6cc0",
+      "address": "0xfffffff0077b6cc0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService9getClientEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 115,
+      "raw_address": "0xfffffff0077b6cd4",
+      "address": "0xfffffff0077b6cd4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService17getClientIteratorEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 116,
+      "raw_address": "0xfffffff0077b6ce8",
+      "address": "0xfffffff0077b6ce8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZNK9IOService21getOpenClientIteratorEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 117,
+      "raw_address": "0xfffffff0077b6e04",
+      "address": "0xfffffff0077b6e04",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService20callPlatformFunctionEPK8OSSymbolbPvS3_S3_S3_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 118,
+      "raw_address": "0xfffffff0077b716c",
+      "address": "0xfffffff0077b716c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService20callPlatformFunctionEPKcbPvS2_S2_S2_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 119,
+      "raw_address": "0xfffffff0077b7210",
+      "address": "0xfffffff0077b7210",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService12getResourcesEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 120,
+      "raw_address": "0xfffffff0077b7218",
+      "address": "0xfffffff0077b7218",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService20getDeviceMemoryCountEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 121,
+      "raw_address": "0xfffffff0077b728c",
+      "address": "0xfffffff0077b728c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService24getDeviceMemoryWithIndexEj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 122,
+      "raw_address": "0xfffffff0077b7308",
+      "address": "0xfffffff0077b7308",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService24mapDeviceMemoryWithIndexEjj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 123,
+      "raw_address": "0xfffffff0077b734c",
+      "address": "0xfffffff0077b734c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15getDeviceMemoryEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 124,
+      "raw_address": "0xfffffff0077b73b0",
+      "address": "0xfffffff0077b73b0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15setDeviceMemoryEP7OSArray"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 125,
+      "raw_address": "0xfffffff0077b73c8",
+      "address": "0xfffffff0077b73c8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService17registerInterruptEiP8OSObjectPFvS1_PvPS_iES2_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 126,
+      "raw_address": "0xfffffff0077b7498",
+      "address": "0xfffffff0077b7498",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService19unregisterInterruptEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 127,
+      "raw_address": "0xfffffff0077b7540",
+      "address": "0xfffffff0077b7540",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16getInterruptTypeEiPi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 128,
+      "raw_address": "0xfffffff0077b75f4",
+      "address": "0xfffffff0077b75f4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15enableInterruptEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 129,
+      "raw_address": "0xfffffff0077b7674",
+      "address": "0xfffffff0077b7674",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16disableInterruptEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 130,
+      "raw_address": "0xfffffff0077b76f4",
+      "address": "0xfffffff0077b76f4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService14causeInterruptEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 131,
+      "raw_address": "0xfffffff0077b7774",
+      "address": "0xfffffff0077b7774",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService12requestProbeEj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 132,
+      "raw_address": "0xfffffff0077b7780",
+      "address": "0xfffffff0077b7780",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService7messageEjPS_Pv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 133,
+      "raw_address": "0xfffffff0077b778c",
+      "address": "0xfffffff0077b778c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService13messageClientEjP8OSObjectPvm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 134,
+      "raw_address": "0xfffffff0077b7ad4",
+      "address": "0xfffffff0077b7ad4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService14messageClientsEjPvm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 135,
+      "raw_address": "0xfffffff0077b7b24",
+      "address": "0xfffffff0077b7b24",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16registerInterestEPK8OSSymbolPFiPvS3_jPS_S3_mES3_S3_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 136,
+      "raw_address": "0xfffffff0077b7c48",
+      "address": "0xfffffff0077b7c48",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16applyToProvidersEPFvPS_PvES1_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 137,
+      "raw_address": "0xfffffff0077b7c5c",
+      "address": "0xfffffff0077b7c5c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService14applyToClientsEPFvPS_PvES1_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 138,
+      "raw_address": "0xfffffff0077b7c70",
+      "address": "0xfffffff0077b7c70",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService17applyToInterestedEPK8OSSymbolPFvP8OSObjectPvES5_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 139,
+      "raw_address": "0xfffffff0077b7cd8",
+      "address": "0xfffffff0077b7cd8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService23acknowledgeNotificationEPvj"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 140,
+      "raw_address": "0xfffffff0077b7ce4",
+      "address": "0xfffffff0077b7ce4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService13newUserClientEP4taskPvjP12OSDictionaryPP12IOUserClient"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 141,
+      "raw_address": "0xfffffff006789080",
+      "address": "0xfffffff005789080",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 142,
+      "raw_address": "0xfffffff0077b7f64",
+      "address": "0xfffffff0077b7f64",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16stringFromReturnEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 143,
+      "raw_address": "0xfffffff0077b7fdc",
+      "address": "0xfffffff0077b7fdc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15errnoFromReturnEi"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 144,
+      "raw_address": "0xfffffff0077d0bb0",
+      "address": "0xfffffff0077d0bb0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService6PMinitEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 145,
+      "raw_address": "0xfffffff0077dea44",
+      "address": "0xfffffff0077dea44",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService6PMstopEv"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 146,
+      "raw_address": "0xfffffff0077dea28",
+      "address": "0xfffffff0077dea28",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService10joinPMtreeEPS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 147,
+      "raw_address": "0xfffffff0077df5ac",
+      "address": "0xfffffff0077df5ac",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService19registerPowerDriverEPS_P14IOPMPowerStatem"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 148,
+      "raw_address": "0xfffffff0077dffe0",
+      "address": "0xfffffff0077dffe0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService23requestPowerDomainStateEmP17IOPowerConnectionm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 149,
+      "raw_address": "0xfffffff0077e0bc8",
+      "address": "0xfffffff0077e0bc8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService14activityTickleEmm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 150,
+      "raw_address": "0xfffffff0077e0e38",
+      "address": "0xfffffff0077e0e38",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService17setAggressivenessEmm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 151,
+      "raw_address": "0xfffffff0077e0e40",
+      "address": "0xfffffff0077e0e40",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService17getAggressivenessEmPm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 152,
+      "raw_address": "0xfffffff0077ded30",
+      "address": "0xfffffff0077ded30",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService13addPowerChildEPS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 153,
+      "raw_address": "0xfffffff0077df3f4",
+      "address": "0xfffffff0077df3f4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16removePowerChildEP17IOPowerConnection"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 154,
+      "raw_address": "0xfffffff0077e0c34",
+      "address": "0xfffffff0077e0c34",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService18setIdleTimerPeriodEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 155,
+      "raw_address": "0xfffffff0067972b0",
+      "address": "0xfffffff0057972b0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 156,
+      "raw_address": "0xfffffff0077e20f8",
+      "address": "0xfffffff0077e20f8",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService27maxCapabilityForDomainStateEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 157,
+      "raw_address": "0xfffffff0077e2140",
+      "address": "0xfffffff0077e2140",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService31initialPowerStateForDomainStateEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 158,
+      "raw_address": "0xfffffff0077e2194",
+      "address": "0xfffffff0077e2194",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService24powerStateForDomainStateEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 159,
+      "raw_address": "0xfffffff0077e21dc",
+      "address": "0xfffffff0077e21dc",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService22powerStateWillChangeToEmmPS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 160,
+      "raw_address": "0xfffffff0077e21e4",
+      "address": "0xfffffff0077e21e4",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService21powerStateDidChangeToEmmPS_"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 161,
+      "raw_address": "0xfffffff0077e0f74",
+      "address": "0xfffffff0077e0f74",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService13askChangeDownEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 162,
+      "raw_address": "0xfffffff0077e0f80",
+      "address": "0xfffffff0077e0f80",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService14tellChangeDownEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 163,
+      "raw_address": "0xfffffff0077e0f8c",
+      "address": "0xfffffff0077e0f8c",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16tellNoChangeDownEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 164,
+      "raw_address": "0xfffffff0077e1578",
+      "address": "0xfffffff0077e1578",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService12tellChangeUpEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 165,
+      "raw_address": "0xfffffff0077e1584",
+      "address": "0xfffffff0077e1584",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService16allowPowerChangeEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 166,
+      "raw_address": "0xfffffff0077e1604",
+      "address": "0xfffffff0077e1604",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService17cancelPowerChangeEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 167,
+      "raw_address": "0xfffffff0077e21ec",
+      "address": "0xfffffff0077e21ec",
+      "family_internal": false,
+      "kernel_export_names": [
+        "__ZN9IOService15powerChangeDoneEm"
+      ],
+      "abstract": false
+    },
+    {
+      "slot": 168,
+      "raw_address": "0xfffffff00679fb24",
+      "address": "0xfffffff00579fb24",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 169,
+      "raw_address": "0xfffffff0067891d8",
+      "address": "0xfffffff0057891d8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 170,
+      "raw_address": "0xfffffff00678c998",
+      "address": "0xfffffff00578c998",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 171,
+      "raw_address": "0xfffffff00678cb00",
+      "address": "0xfffffff00578cb00",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 172,
+      "raw_address": "0xfffffff00678cb10",
+      "address": "0xfffffff00578cb10",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 173,
+      "raw_address": "0xfffffff00678cb90",
+      "address": "0xfffffff00578cb90",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 174,
+      "raw_address": "0xfffffff00678cbf8",
+      "address": "0xfffffff00578cbf8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 175,
+      "raw_address": "0xfffffff006792774",
+      "address": "0xfffffff005792774",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 176,
+      "raw_address": "0xfffffff00678d998",
+      "address": "0xfffffff00578d998",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 177,
+      "raw_address": "0xfffffff00678e290",
+      "address": "0xfffffff00578e290",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 178,
+      "raw_address": "0xfffffff00678f224",
+      "address": "0xfffffff00578f224",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 179,
+      "raw_address": "0xfffffff006791ffc",
+      "address": "0xfffffff005791ffc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 180,
+      "raw_address": "0xfffffff006798404",
+      "address": "0xfffffff005798404",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 181,
+      "raw_address": "0xfffffff006798538",
+      "address": "0xfffffff005798538",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 182,
+      "raw_address": "0xfffffff00679fb3c",
+      "address": "0xfffffff00579fb3c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 183,
+      "raw_address": "0xfffffff006797470",
+      "address": "0xfffffff005797470",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 184,
+      "raw_address": "0xfffffff00678cb20",
+      "address": "0xfffffff00578cb20",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 185,
+      "raw_address": "0xfffffff00679748c",
+      "address": "0xfffffff00579748c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 186,
+      "raw_address": "0xfffffff0067980e0",
+      "address": "0xfffffff0057980e0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 187,
+      "raw_address": "0xfffffff00678cbb4",
+      "address": "0xfffffff00578cbb4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 188,
+      "raw_address": "0xfffffff006798184",
+      "address": "0xfffffff005798184",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 189,
+      "raw_address": "0xfffffff0067982bc",
+      "address": "0xfffffff0057982bc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 190,
+      "raw_address": "0xfffffff0067974ac",
+      "address": "0xfffffff0057974ac",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 191,
+      "raw_address": "0xfffffff0067978b0",
+      "address": "0xfffffff0057978b0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 192,
+      "raw_address": "0xfffffff006797d74",
+      "address": "0xfffffff005797d74",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 193,
+      "raw_address": "0xfffffff006798014",
+      "address": "0xfffffff005798014",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 194,
+      "raw_address": "0xfffffff0067977c8",
+      "address": "0xfffffff0057977c8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 195,
+      "raw_address": "0xfffffff006795bec",
+      "address": "0xfffffff005795bec",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 196,
+      "raw_address": "0xfffffff006795c08",
+      "address": "0xfffffff005795c08",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 197,
+      "raw_address": "0xfffffff006795c24",
+      "address": "0xfffffff005795c24",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 198,
+      "raw_address": "0xfffffff006795e00",
+      "address": "0xfffffff005795e00",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 199,
+      "raw_address": "0xfffffff006795c60",
+      "address": "0xfffffff005795c60",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 200,
+      "raw_address": "0xfffffff006795c44",
+      "address": "0xfffffff005795c44",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 201,
+      "raw_address": "0xfffffff006795cb8",
+      "address": "0xfffffff005795cb8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 202,
+      "raw_address": "0xfffffff006795c7c",
+      "address": "0xfffffff005795c7c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 203,
+      "raw_address": "0xfffffff006795c9c",
+      "address": "0xfffffff005795c9c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 204,
+      "raw_address": "0xfffffff006795d10",
+      "address": "0xfffffff005795d10",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 205,
+      "raw_address": "0xfffffff006795d5c",
+      "address": "0xfffffff005795d5c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 206,
+      "raw_address": "0xfffffff006795d78",
+      "address": "0xfffffff005795d78",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 207,
+      "raw_address": "0xfffffff006795de4",
+      "address": "0xfffffff005795de4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 208,
+      "raw_address": "0xfffffff006795e14",
+      "address": "0xfffffff005795e14",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 209,
+      "raw_address": "0xfffffff0067960f0",
+      "address": "0xfffffff0057960f0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 210,
+      "raw_address": "0xfffffff006794058",
+      "address": "0xfffffff005794058",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 211,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 212,
+      "raw_address": "0xfffffff00679fb50",
+      "address": "0xfffffff00579fb50",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 213,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 214,
+      "raw_address": "0xfffffff006796b7c",
+      "address": "0xfffffff005796b7c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 215,
+      "raw_address": "0xfffffff006796d0c",
+      "address": "0xfffffff005796d0c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 216,
+      "raw_address": "0xfffffff006796f0c",
+      "address": "0xfffffff005796f0c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 217,
+      "raw_address": "0xfffffff0067893bc",
+      "address": "0xfffffff0057893bc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 218,
+      "raw_address": "0xfffffff00678961c",
+      "address": "0xfffffff00578961c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 219,
+      "raw_address": "0xfffffff00678dde4",
+      "address": "0xfffffff00578dde4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 220,
+      "raw_address": "0xfffffff00679ed9c",
+      "address": "0xfffffff00579ed9c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 221,
+      "raw_address": "0xfffffff00679edb4",
+      "address": "0xfffffff00579edb4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 222,
+      "raw_address": "0xfffffff00679edd0",
+      "address": "0xfffffff00579edd0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 223,
+      "raw_address": "0xfffffff00679fb64",
+      "address": "0xfffffff00579fb64",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 224,
+      "raw_address": "0xfffffff00679fb98",
+      "address": "0xfffffff00579fb98",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 225,
+      "raw_address": "0xfffffff00679fbcc",
+      "address": "0xfffffff00579fbcc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 226,
+      "raw_address": "0xfffffff00679fc00",
+      "address": "0xfffffff00579fc00",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 227,
+      "raw_address": "0xfffffff00679edec",
+      "address": "0xfffffff00579edec",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 228,
+      "raw_address": "0xfffffff00679efb0",
+      "address": "0xfffffff00579efb0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 229,
+      "raw_address": "0xfffffff0067973b8",
+      "address": "0xfffffff0057973b8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 230,
+      "raw_address": "0xfffffff00679ae68",
+      "address": "0xfffffff00579ae68",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 231,
+      "raw_address": "0xfffffff00679a2a8",
+      "address": "0xfffffff00579a2a8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 232,
+      "raw_address": "0xfffffff00679a2fc",
+      "address": "0xfffffff00579a2fc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 233,
+      "raw_address": "0xfffffff006795cd8",
+      "address": "0xfffffff005795cd8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 234,
+      "raw_address": "0xfffffff006795cf4",
+      "address": "0xfffffff005795cf4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 235,
+      "raw_address": "0xfffffff00679a318",
+      "address": "0xfffffff00579a318",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 236,
+      "raw_address": "0xfffffff00679a338",
+      "address": "0xfffffff00579a338",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 237,
+      "raw_address": "0xfffffff00679a354",
+      "address": "0xfffffff00579a354",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 238,
+      "raw_address": "0xfffffff00679a370",
+      "address": "0xfffffff00579a370",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 239,
+      "raw_address": "0xfffffff00679a2c4",
+      "address": "0xfffffff00579a2c4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 240,
+      "raw_address": "0xfffffff00679a2e0",
+      "address": "0xfffffff00579a2e0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 241,
+      "raw_address": "0xfffffff00679fc28",
+      "address": "0xfffffff00579fc28",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 242,
+      "raw_address": "0xfffffff00678b390",
+      "address": "0xfffffff00578b390",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 243,
+      "raw_address": "0xfffffff00678b450",
+      "address": "0xfffffff00578b450",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 244,
+      "raw_address": "0xfffffff00679fc48",
+      "address": "0xfffffff00579fc48",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 245,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 246,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 247,
+      "raw_address": "0xfffffff00679fc5c",
+      "address": "0xfffffff00579fc5c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 248,
+      "raw_address": "0xfffffff00679fc74",
+      "address": "0xfffffff00579fc74",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 249,
+      "raw_address": "0xfffffff00679fc8c",
+      "address": "0xfffffff00579fc8c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 250,
+      "raw_address": "0xfffffff00679fcfc",
+      "address": "0xfffffff00579fcfc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 251,
+      "raw_address": "0xfffffff00679fd10",
+      "address": "0xfffffff00579fd10",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 252,
+      "raw_address": "0xfffffff00679fd24",
+      "address": "0xfffffff00579fd24",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 253,
+      "raw_address": "0xfffffff00679fd38",
+      "address": "0xfffffff00579fd38",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 254,
+      "raw_address": "0xfffffff00679fd54",
+      "address": "0xfffffff00579fd54",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 255,
+      "raw_address": "0xfffffff00679fd68",
+      "address": "0xfffffff00579fd68",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 256,
+      "raw_address": "0xfffffff00679fd80",
+      "address": "0xfffffff00579fd80",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 257,
+      "raw_address": "0xfffffff00679fd9c",
+      "address": "0xfffffff00579fd9c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 258,
+      "raw_address": "0xfffffff00679fdb8",
+      "address": "0xfffffff00579fdb8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 259,
+      "raw_address": "0xfffffff00679fdd0",
+      "address": "0xfffffff00579fdd0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 260,
+      "raw_address": "0xfffffff00679fde8",
+      "address": "0xfffffff00579fde8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 261,
+      "raw_address": "0xfffffff00679fdfc",
+      "address": "0xfffffff00579fdfc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 262,
+      "raw_address": "0xfffffff00679fe14",
+      "address": "0xfffffff00579fe14",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 263,
+      "raw_address": "0xfffffff00679fe2c",
+      "address": "0xfffffff00579fe2c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 264,
+      "raw_address": "0xfffffff006796a40",
+      "address": "0xfffffff005796a40",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 265,
+      "raw_address": "0xfffffff0067969f8",
+      "address": "0xfffffff0057969f8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 266,
+      "raw_address": "0xfffffff00679fe44",
+      "address": "0xfffffff00579fe44",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 267,
+      "raw_address": "0xfffffff00679fe60",
+      "address": "0xfffffff00579fe60",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 268,
+      "raw_address": "0xfffffff00679fe78",
+      "address": "0xfffffff00579fe78",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 269,
+      "raw_address": "0xfffffff00679fe90",
+      "address": "0xfffffff00579fe90",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 270,
+      "raw_address": "0xfffffff00679fea8",
+      "address": "0xfffffff00579fea8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 271,
+      "raw_address": "0xfffffff00679fecc",
+      "address": "0xfffffff00579fecc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 272,
+      "raw_address": "0xfffffff00679fedc",
+      "address": "0xfffffff00579fedc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 273,
+      "raw_address": "0xfffffff00679fef8",
+      "address": "0xfffffff00579fef8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 274,
+      "raw_address": "0xfffffff00679ff08",
+      "address": "0xfffffff00579ff08",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 275,
+      "raw_address": "0xfffffff00679ff24",
+      "address": "0xfffffff00579ff24",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 276,
+      "raw_address": "0xfffffff00679ff40",
+      "address": "0xfffffff00579ff40",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 277,
+      "raw_address": "0xfffffff00679ff5c",
+      "address": "0xfffffff00579ff5c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 278,
+      "raw_address": "0xfffffff00679ff78",
+      "address": "0xfffffff00579ff78",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 279,
+      "raw_address": "0xfffffff00679ff94",
+      "address": "0xfffffff00579ff94",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 280,
+      "raw_address": "0xfffffff00679ffac",
+      "address": "0xfffffff00579ffac",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 281,
+      "raw_address": "0xfffffff00679ffc4",
+      "address": "0xfffffff00579ffc4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 282,
+      "raw_address": "0xfffffff00679ffdc",
+      "address": "0xfffffff00579ffdc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 283,
+      "raw_address": "0xfffffff00679fffc",
+      "address": "0xfffffff00579fffc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 284,
+      "raw_address": "0xfffffff0067a001c",
+      "address": "0xfffffff0057a001c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 285,
+      "raw_address": "0xfffffff0067a004c",
+      "address": "0xfffffff0057a004c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 286,
+      "raw_address": "0xfffffff0067a007c",
+      "address": "0xfffffff0057a007c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 287,
+      "raw_address": "0xfffffff00679fa18",
+      "address": "0xfffffff00579fa18",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 288,
+      "raw_address": "0xfffffff00679278c",
+      "address": "0xfffffff00579278c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 289,
+      "raw_address": "0xfffffff0067927a4",
+      "address": "0xfffffff0057927a4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 290,
+      "raw_address": "0xfffffff006794030",
+      "address": "0xfffffff005794030",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 291,
+      "raw_address": "0xfffffff0067927c8",
+      "address": "0xfffffff0057927c8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 292,
+      "raw_address": "0xfffffff0067927e0",
+      "address": "0xfffffff0057927e0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 293,
+      "raw_address": "0xfffffff0067927b4",
+      "address": "0xfffffff0057927b4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 294,
+      "raw_address": "0xfffffff0067a0090",
+      "address": "0xfffffff0057a0090",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 295,
+      "raw_address": "0xfffffff006795b88",
+      "address": "0xfffffff005795b88",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 296,
+      "raw_address": "0xfffffff006795bb4",
+      "address": "0xfffffff005795bb4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 297,
+      "raw_address": "0xfffffff006795bd0",
+      "address": "0xfffffff005795bd0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 298,
+      "raw_address": "0xfffffff0067a00bc",
+      "address": "0xfffffff0057a00bc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 299,
+      "raw_address": "0xfffffff006793694",
+      "address": "0xfffffff005793694",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 300,
+      "raw_address": "0xfffffff00678d87c",
+      "address": "0xfffffff00578d87c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 301,
+      "raw_address": "0xfffffff00679ea5c",
+      "address": "0xfffffff00579ea5c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 302,
+      "raw_address": "0xfffffff0067a00d0",
+      "address": "0xfffffff0057a00d0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 303,
+      "raw_address": "0xfffffff0067985e8",
+      "address": "0xfffffff0057985e8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 304,
+      "raw_address": "0xfffffff0067a00e4",
+      "address": "0xfffffff0057a00e4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 305,
+      "raw_address": "0xfffffff006794040",
+      "address": "0xfffffff005794040",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 306,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 307,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 308,
+      "raw_address": "0xfffffff0067a00f4",
+      "address": "0xfffffff0057a00f4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 309,
+      "raw_address": "0xfffffff00679c5ac",
+      "address": "0xfffffff00579c5ac",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 310,
+      "raw_address": "0xfffffff00679c9d8",
+      "address": "0xfffffff00579c9d8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 311,
+      "raw_address": "0xfffffff00679c6c0",
+      "address": "0xfffffff00579c6c0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 312,
+      "raw_address": "0xfffffff00679cf6c",
+      "address": "0xfffffff00579cf6c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 313,
+      "raw_address": "0xfffffff00679d228",
+      "address": "0xfffffff00579d228",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 314,
+      "raw_address": "0xfffffff00679d584",
+      "address": "0xfffffff00579d584",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 315,
+      "raw_address": "0xfffffff00679d85c",
+      "address": "0xfffffff00579d85c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 316,
+      "raw_address": "0xfffffff00679ea44",
+      "address": "0xfffffff00579ea44",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 317,
+      "raw_address": "0xfffffff00679af20",
+      "address": "0xfffffff00579af20",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 318,
+      "raw_address": "0xfffffff00679af40",
+      "address": "0xfffffff00579af40",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 319,
+      "raw_address": "0xfffffff0067a0108",
+      "address": "0xfffffff0057a0108",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 320,
+      "raw_address": "0xfffffff0067a0124",
+      "address": "0xfffffff0057a0124",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 321,
+      "raw_address": "0xfffffff0067a0138",
+      "address": "0xfffffff0057a0138",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 322,
+      "raw_address": "0xfffffff006798af4",
+      "address": "0xfffffff005798af4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 323,
+      "raw_address": "0xfffffff0067a014c",
+      "address": "0xfffffff0057a014c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 324,
+      "raw_address": "0xfffffff0067a0164",
+      "address": "0xfffffff0057a0164",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 325,
+      "raw_address": "0xfffffff00679a13c",
+      "address": "0xfffffff00579a13c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 326,
+      "raw_address": "0xfffffff0067a017c",
+      "address": "0xfffffff0057a017c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 327,
+      "raw_address": "0xfffffff0067a0190",
+      "address": "0xfffffff0057a0190",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 328,
+      "raw_address": "0xfffffff0067a01b0",
+      "address": "0xfffffff0057a01b0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 329,
+      "raw_address": "0xfffffff0067a01c8",
+      "address": "0xfffffff0057a01c8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 330,
+      "raw_address": "0xfffffff0067a01e4",
+      "address": "0xfffffff0057a01e4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 331,
+      "raw_address": "0xfffffff0067a0200",
+      "address": "0xfffffff0057a0200",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 332,
+      "raw_address": "0xfffffff0067a0220",
+      "address": "0xfffffff0057a0220",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 333,
+      "raw_address": "0xfffffff00678cca8",
+      "address": "0xfffffff00578cca8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 334,
+      "raw_address": "0xfffffff00678b2e8",
+      "address": "0xfffffff00578b2e8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 335,
+      "raw_address": "0xfffffff00678d91c",
+      "address": "0xfffffff00578d91c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 336,
+      "raw_address": "0xfffffff0067a023c",
+      "address": "0xfffffff0057a023c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 337,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 338,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 339,
+      "raw_address": "0xfffffff00679e150",
+      "address": "0xfffffff00579e150",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 340,
+      "raw_address": "0xfffffff006789698",
+      "address": "0xfffffff005789698",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 341,
+      "raw_address": "0xfffffff0067a0254",
+      "address": "0xfffffff0057a0254",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 342,
+      "raw_address": "0xfffffff0067a026c",
+      "address": "0xfffffff0057a026c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 343,
+      "raw_address": "0xfffffff006796524",
+      "address": "0xfffffff005796524",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 344,
+      "raw_address": "0xfffffff006797224",
+      "address": "0xfffffff005797224",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 345,
+      "raw_address": "0xfffffff0077785e0",
+      "address": "0xfffffff0077785e0",
+      "family_internal": false,
+      "kernel_export_names": [
+        "___cxa_pure_virtual"
+      ],
+      "abstract": true
+    },
+    {
+      "slot": 346,
+      "raw_address": "0xfffffff00678a428",
+      "address": "0xfffffff00578a428",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 347,
+      "raw_address": "0xfffffff0067941f8",
+      "address": "0xfffffff0057941f8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 348,
+      "raw_address": "0xfffffff0067942c0",
+      "address": "0xfffffff0057942c0",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 349,
+      "raw_address": "0xfffffff006794318",
+      "address": "0xfffffff005794318",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 350,
+      "raw_address": "0xfffffff0067a0288",
+      "address": "0xfffffff0057a0288",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 351,
+      "raw_address": "0xfffffff0067a029c",
+      "address": "0xfffffff0057a029c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 352,
+      "raw_address": "0xfffffff0067a02ac",
+      "address": "0xfffffff0057a02ac",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 353,
+      "raw_address": "0xfffffff0067a02bc",
+      "address": "0xfffffff0057a02bc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 354,
+      "raw_address": "0xfffffff0067970cc",
+      "address": "0xfffffff0057970cc",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 355,
+      "raw_address": "0xfffffff0067a02d4",
+      "address": "0xfffffff0057a02d4",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 356,
+      "raw_address": "0xfffffff0067971f8",
+      "address": "0xfffffff0057971f8",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    },
+    {
+      "slot": 357,
+      "raw_address": "0xfffffff00679720c",
+      "address": "0xfffffff00579720c",
+      "family_internal": true,
+      "kernel_export_names": [],
+      "abstract": false
+    }
+  ],
+  "iosurface_getters": [
+    {
+      "name": "descriptor",
+      "raw": "0xfffffff005b9ead0",
+      "rebased": "0xfffffff004b9ead0",
+      "field": 48,
+      "wide": true
+    },
+    {
+      "name": "width",
+      "raw": "0xfffffff005b9ebbc",
+      "rebased": "0xfffffff004b9ebbc",
+      "field": 88,
+      "wide": true
+    },
+    {
+      "name": "height",
+      "raw": "0xfffffff005b9ebc4",
+      "rebased": "0xfffffff004b9ebc4",
+      "field": 96,
+      "wide": true
+    },
+    {
+      "name": "stride",
+      "raw": "0xfffffff005b9ebd4",
+      "rebased": "0xfffffff004b9ebd4",
+      "field": 104,
+      "wide": true
+    },
+    {
+      "name": "allocation",
+      "raw": "0xfffffff005b9ebfc",
+      "rebased": "0xfffffff004b9ebfc",
+      "field": 144,
+      "wide": true
+    },
+    {
+      "name": "format",
+      "raw": "0xfffffff005b9ebac",
+      "rebased": "0xfffffff004b9ebac",
+      "field": 128,
+      "wide": false
+    },
+    {
+      "name": "planes",
+      "raw": "0xfffffff005b9ebf4",
+      "rebased": "0xfffffff004b9ebf4",
+      "field": 152,
+      "wide": false
+    }
+  ],
+  "instance_extent": {
+    "value": 6304,
+    "status": "statically proven in exact class-name/parent metaclass constructor",
+    "raw_size_instruction": "0xfffffff0067866b4",
+    "raw_metaclass": "0xfffffff007b35940",
+    "raw_parent_metaclass": "0xfffffff007b31400"
+  },
+  "new_user_client_abi": "IOService::newUserClient(task_t,void*,UInt32,IOUserClient**)",
+  "static_dispatch_audit": true,
+  "legacy_runtime_instance_created": false,
+  "original_instructions_modified": false,
+  "warning": "Only family-internal method addresses receive kext slide. Kernel-export slots are rebound by native prelink and retain RAW addresses here solely for original symbol-name qualification.",
+  "firmware_power_setter": {
+    "slot": 354,
+    "raw_address": "0xfffffff0067970cc",
+    "address": "0xfffffff0057970cc",
+    "abi": "int(self, StateRequest*, bool)",
+    "request_offsets": {
+      "skip_requested": 0,
+      "requested": 4,
+      "skip_powered": 8,
+      "powered": 12,
+      "no_change": 16
+    },
+    "original_powered_only_caller": "0xfffffff00678b920",
+    "changed_callback_slot": 298,
+    "changed_callback_is_original_return_zero": true
+  }
+}

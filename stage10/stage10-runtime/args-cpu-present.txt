@@ -1,0 +1,1 @@
+offline-mobile-graphics-load=1 offline-legacy-register=1 offline-legacy-phase=4 offline-legacy-gop=1 offline-legacy-pm=1 offline-legacy-validate=1 offline-legacy-transfer=1 offline-legacy-retire=1 offline-legacy-cpu-present=1 sheng-vsync=60 luming-display-console-handoff=1

@@ -563,6 +563,12 @@ jobs:
           else
             echo "::warning::no device/scripts/ci/f2-luming-ci.sh pre_build hook"
           fi
+          # stage10: appended after the unchanged stage9 short-log pre_build hook.
+          # Adds the IOMobileGraphicsFamily prelink root and the owned CPU
+          # Legacy/GOP archive recipe, enables CONFIG_XNU_NATIVE_LEGACY_DISPLAY,
+          # then regenerates the resolved configuration for the extra inputs.
+          python3 device/stage10/stage10-build/install_stage10_build.py --tree unixnu --device device --kernelcache "$UNIXNU_KERNELCACHE" --runtime-dir device/stage10/stage10-runtime --audit-dir device/stage10/stage10-audit --apply
+          (cd unixnu && ./unixnu defconfig "$DEFCONFIG" -D ../device)
 
       - name: Build the native XNU kernel and prelink
         id: kernel
@@ -798,7 +804,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, urllib.error, urllib.request
+          import hashlib, json, os, pathlib, tarfile, urllib.error, urllib.request
           repo = os.environ['PRIVATE_REPOSITORY']
           token = os.environ['PRIVATE_UPLOAD_TOKEN']
           tag = f"ci-defer-console-{os.environ['GITHUB_RUN_ID']}"
@@ -823,6 +829,22 @@ jobs:
           if payload_json: files.append((payload_json, 'payload.json'))
           intermediates = root / 'ci-artifacts/owner-intermediates.tar.gz'
           if intermediates.is_file(): files.append((intermediates, 'owner-intermediates.tar.gz'))
+          # stage10 CPU Legacy/GOP display build evidence (report, generated ABI header,
+          # install report and the per-archive logs) is uploaded for host-side review.
+          display_dirs = [root / 'unixnu/build/native-legacy-display',
+                          *sorted(root.glob('unixnu/out/**/tree/build/native-legacy-display'))]
+          for directory in display_dirs:
+              for name in ('build-report.json', 'OriginalLegacyFramebufferABI.h'):
+                  if (directory / name).is_file(): files.append((directory / name, name))
+          install_report = root / 'unixnu/kits/luming-cpu-display/install-report.json'
+          if install_report.is_file(): files.append((install_report, 'stage10-install-report.json'))
+          archive_logs = sorted(root.glob('unixnu/out/**/logs/archive-*.log'))
+          if archive_logs:
+              log_tar = root / 'ci-artifacts/stage10-archive-logs.tar.gz'
+              with tarfile.open(log_tar, 'w:gz') as tf:
+                  for path in archive_logs:
+                      tf.add(path, arcname=str(path.relative_to(root)))
+              files.append((log_tar, 'stage10-archive-logs.tar.gz'))
           if not files:
               raise SystemExit('no kernel/boot.img files to upload')
 

@@ -1,0 +1,257 @@
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+// Luming CPU GOP publication for the audited, unchanged 21H461 Legacy family.
+// The original family supplies its IOService/user-client lifecycle. This file
+// supplies only a real firmware memory resource and bounded observations.
+#include <IOKit/IOPlatformExpert.h>
+#include <IOKit/IODeviceMemory.h>
+#include <IOKit/IODeviceTreeSupport.h>
+#include <IOKit/IOLib.h>
+#include <IOKit/IOUserClient.h>
+#include <IOKit/IOMemoryDescriptor.h>
+#include <libkern/c++/OSArray.h>
+#include <libkern/c++/OSData.h>
+#include <libkern/c++/OSMetaClass.h>
+#include <kern/task.h>
+#include <sys/proc.h>
+#include <pexpert/pexpert.h>
+#include <mach/kmod.h>
+#include <machine/machine_routines.h>
+
+extern "C" kmod_info_t g_kernel_kmod_info;
+extern "C" void native_legacy_display_static_init(void)
+    __asm__("__GLOBAL__sub_I_NativeLegacyDisplay.cpp");
+extern "C" IOService *native_legacy_display_allocate(void);
+
+static IOService *pendingLegacyDisplay;
+// These owned references deliberately survive until reboot. No driver unload
+// is offered by this built-in experiment, and published clients may retain it.
+static IOService *activeLegacyDisplay;
+static IOPlatformDevice *activeGOPNub;
+static unsigned consoleOwnership;
+
+static bool validVideo(const PE_Video &v) {
+    return v.v_baseAddr && !(v.v_baseAddr&3) && v.v_width && v.v_height &&
+        v.v_depth==32 && !v.v_rotate && !v.v_offset && !(v.v_rowBytes&3) &&
+        v.v_display<=1 && v.v_width<=16384 && v.v_height<=16384 &&
+        v.v_rowBytes>=v.v_width*4 && v.v_rowBytes<=65536 &&
+        v.v_rowBytes<=UINT64_MAX/v.v_height &&
+        (!v.v_length || v.v_length>=v.v_rowBytes*v.v_height) &&
+        v.v_baseAddr<=UINT64_MAX-v.v_rowBytes*v.v_height;
+}
+static unsigned option(const char *name) {
+    unsigned value=0;PE_parse_boot_argn(name,&value,sizeof(value));return value;
+}
+
+extern "C" {
+// Separate lifecycle results from user-client and real-transfer observations.
+volatile uint32_t native_legacy_stage,native_legacy_failure;
+volatile int native_legacy_meta_status=-1,native_legacy_surface_status=-1;
+volatile uint32_t native_legacy_init_result,native_legacy_start_result;
+volatile uint32_t native_legacy_parent_match,native_legacy_probe_match;
+volatile uint32_t native_legacy_surface_found,native_legacy_dt_attached;
+volatile uint32_t native_legacy_registration_calls,native_legacy_client_calls;
+volatile uint32_t native_legacy_pm_calls;
+volatile int native_legacy_client_pid,native_legacy_client_status=-1;
+volatile uint32_t native_legacy_client_type;
+volatile uint64_t native_legacy_object,native_legacy_nub;
+volatile uint64_t native_legacy_gop_physical,native_legacy_gop_virtual,native_legacy_gop_bytes;
+volatile uint32_t native_legacy_gop_width,native_legacy_gop_height;
+volatile uint32_t native_legacy_swap_validation_calls,native_legacy_swap_validation_result;
+volatile uint32_t native_legacy_swap_validation_reason,native_legacy_transfer_calls;
+volatile int native_legacy_transfer_status=-1;
+volatile uint64_t native_legacy_transfer_bytes,native_legacy_copy_ticks,native_legacy_copy_bytes;
+volatile uint32_t native_legacy_retirement_calls,native_legacy_vsync_count;
+volatile uint32_t native_legacy_guard_slot;
+volatile uint64_t native_legacy_early_retires,native_legacy_early_failures;
+extern kern_return_t OSKextLoadKextWithIdentifier(const char *);
+
+__attribute__((noinline)) void native_legacy_display_checkpoint(void) {
+    __asm__ volatile("" ::: "memory");
+}
+static void failed(unsigned reason) {
+    native_legacy_failure=reason;native_legacy_stage=8;
+    IOLog("CDX_DISP failed reason=%u\n",reason);
+    native_legacy_display_checkpoint();
+}
+
+// The exact original backend vtable still has unknown leaves. They cannot
+// return a made-up success or return value; report the slot and stop.
+__attribute__((noreturn,noinline)) void native_legacy_backend_guard(
+    unsigned slot,void *object,void *caller) {
+    native_legacy_guard_slot=slot;
+    panic("CDX_DISP guard slot=%u stage=%u obj=%p caller=%p",
+        slot,native_legacy_stage,object,caller);
+}
+
+// Called only after NativeLegacyDisplay validates an actual destination and
+// source (or a validated blank swap). Keep the boot console until that point.
+bool native_legacy_prepare_scanout(void) {
+    if(ml_at_interrupt_context() || !ml_get_interrupts_enabled())return false;
+    if(option("luming-display-console-handoff")!=1)return true;
+    if(__atomic_load_n(&consoleOwnership,__ATOMIC_ACQUIRE)==2)return true;
+    unsigned empty=0;
+    if(!__atomic_compare_exchange_n(&consoleOwnership,&empty,1,false,
+        __ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE))return false;
+    // Public platform console lifecycle; never write the console's private
+    // state or video vtable. The panic path can still reacquire the screen.
+    PE_initialize_console(nullptr,kPEReleaseScreen);
+    __atomic_store_n(&consoleOwnership,2,__ATOMIC_RELEASE);
+    return true;
+}
+
+bool native_legacy_gop_mapping_observed(IOService *display,IOMemoryMap *mapping,
+    uint32_t width,uint32_t height) {
+    PE_Video v={};
+    if((uintptr_t)display!=native_legacy_object || !mapping ||
+       PE_current_console(&v) || !validVideo(v) || width!=v.v_width || height!=v.v_height ||
+       mapping->getPhysicalAddress()!=v.v_baseAddr ||
+       mapping->getLength()!=v.v_rowBytes*v.v_height || !mapping->getVirtualAddress())return false;
+    native_legacy_gop_physical=mapping->getPhysicalAddress();
+    native_legacy_gop_virtual=mapping->getVirtualAddress();
+    native_legacy_gop_bytes=mapping->getLength();
+    native_legacy_gop_width=width;native_legacy_gop_height=height;
+    IOLog("CDX_DISP mapped w=%u h=%u\n",width,height);
+    return true;
+}
+void native_legacy_registration_observed(IOService *display) {
+    native_legacy_registration_calls=native_legacy_registration_calls+1;
+    IOLog("CDX_DISP registered class=%s\n",display->getMetaClass()->getClassName());
+}
+void native_legacy_client_enter(task_t task,uint32_t type) {
+    native_legacy_client_calls=native_legacy_client_calls+1;native_legacy_client_type=type;
+    native_legacy_client_pid=task?proc_pid((proc_t)get_bsdtask_info(task)):0;
+}
+void native_legacy_client_observed(IOReturn status,IOUserClient *) {
+    native_legacy_client_status=status;
+    if(native_legacy_client_calls<=8)
+        IOLog("CDX_DISP client pid=%d status=%x\n",native_legacy_client_pid,(unsigned)status);
+}
+void native_legacy_pm_observed(unsigned stage,IOReturn status,unsigned long ordinal) {
+    native_legacy_pm_calls=native_legacy_pm_calls+1;
+    if(native_legacy_pm_calls<=8)
+        IOLog("CDX_DISP pm stage=%u state=%u status=%x\n",stage,(unsigned)ordinal,(unsigned)status);
+}
+void native_legacy_swap_stage(unsigned) {}
+void native_legacy_swap_validation_observed(bool accepted,unsigned reason,const void *,const void *) {
+    native_legacy_swap_validation_calls=native_legacy_swap_validation_calls+1;
+    native_legacy_swap_validation_result=accepted;native_legacy_swap_validation_reason=reason;
+    if(native_legacy_swap_validation_calls<=8)
+        IOLog("CDX_DISP validate accepted=%u reason=%u\n",(unsigned)accepted,reason);
+}
+void native_legacy_surface_rejected(uint64_t,uint64_t,uint32_t,uint32_t,uint64_t,uint64_t,uint64_t) {}
+void native_legacy_frame_observed(unsigned,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t) {}
+void native_legacy_frame_colors_observed(const uint32_t *,const uint64_t *,uint64_t) {}
+void native_legacy_copy_timing_observed(uint64_t ticks,uint64_t bytes) {
+    native_legacy_copy_ticks=ticks;native_legacy_copy_bytes=bytes;
+}
+void native_legacy_transfer_observed(IOReturn status,const void *,uint64_t bytes) {
+    native_legacy_transfer_calls=native_legacy_transfer_calls+1;native_legacy_transfer_status=status;native_legacy_transfer_bytes=bytes;
+    if(native_legacy_transfer_calls<=8)
+        IOLog("CDX_DISP copy status=%x bytes=%llu\n",(unsigned)status,(unsigned long long)bytes);
+}
+void native_legacy_retirement_observed(IOService *) {native_legacy_retirement_calls=native_legacy_retirement_calls+1;}
+void native_legacy_vsync_observed(unsigned event,unsigned) {
+    if(event==1)native_legacy_vsync_count=native_legacy_vsync_count+1;
+}
+// CPU-only transport: never offer memory to any SM8550/Adreno service. The
+// shared backend immediately uses its normal bounded CPU copy when false.
+bool native_legacy_gpu_offer(void *,IOMemoryDescriptor *,uint64_t,uint32_t,uint32_t) {return false;}
+void native_legacy_gpu_fallback_observed(int) {}
+
+void native_legacy_display_probe(void) {
+    if(native_legacy_stage)return;
+    if(option("offline-legacy-register")!=1 || option("offline-legacy-phase")!=4)return;
+    native_legacy_stage=1;
+    IOLog("CDX_DISP ctor begin\n");
+    void *handle=OSMetaClass::preModLoad(g_kernel_kmod_info.name);
+    if(!handle){failed(1);return;}
+    native_legacy_display_static_init();
+    native_legacy_meta_status=OSMetaClass::postModLoad(handle);
+    if(native_legacy_meta_status){failed(2);return;}
+    native_legacy_stage=2;
+    PE_Video v={};
+    if(PE_current_console(&v) || !validVideo(v)) {
+        IOLog("CDX_DISP bad console depth=%u mode=%u rotate=%u\n",
+            (unsigned)v.v_depth,(unsigned)v.v_display,(unsigned)v.v_rotate);
+        failed(3);return;
+    }
+    IOLog("CDX_DISP console w=%u h=%u stride=%u mode=%u\n",
+        (unsigned)v.v_width,(unsigned)v.v_height,(unsigned)v.v_rowBytes,(unsigned)v.v_display);
+    IOService *display=native_legacy_display_allocate();
+    if(!display){failed(4);return;}
+    native_legacy_object=(uintptr_t)display;
+    native_legacy_parent_match=display->metaCast("IOMobileFramebufferLegacy") &&
+        display->metaCast("IOMobileFramebuffer") && display->metaCast("IOService");
+    if(!native_legacy_parent_match){display->release();native_legacy_object=0;failed(5);return;}
+    native_legacy_init_result=display->init();
+    if(!native_legacy_init_result){display->release();native_legacy_object=0;failed(6);return;}
+    // IOSurface waits on IOBSD, so leave the object pending until the existing
+    // core's post-IOKitBSDInit hook. No peripheral service is called here.
+    pendingLegacyDisplay=display;native_legacy_stage=3;
+    IOLog("CDX_DISP pending IOBSD\n");
+}
+
+void native_legacy_display_late_probe(void) {
+    IOService *display=pendingLegacyDisplay;
+    if(!display || activeLegacyDisplay)return;
+    pendingLegacyDisplay=nullptr;native_legacy_stage=4;
+    native_legacy_surface_status=OSKextLoadKextWithIdentifier("com.apple.iokit.IOSurface");
+    IOLog("CDX_DISP IOSurface load=%x\n",(unsigned)native_legacy_surface_status);
+    OSDictionary *matching=IOService::nameMatching("IOCoreSurfaceRoot");
+    IOService *surface=matching?IOService::waitForMatchingService(matching,5000000000ULL):nullptr;
+    native_legacy_surface_found=surface!=nullptr;
+    OSSafeReleaseNULL(surface);OSSafeReleaseNULL(matching);
+    PE_Video v={};
+    if(native_legacy_surface_status || !native_legacy_surface_found ||
+       PE_current_console(&v) || !validVideo(v)) {
+        display->release();native_legacy_object=0;failed(7);return;
+    }
+    IOPlatformDevice *nub=new IOPlatformDevice;
+    IODeviceMemory *memory=IODeviceMemory::withRange(v.v_baseAddr,v.v_rowBytes*v.v_height);
+    OSArray *ranges=OSArray::withCapacity(1);
+    IOService *parent=IOService::getResourceService();
+    IORegistryEntry *tree=IORegistryEntry::fromPath("/arm-io",gIODTPlane);
+    bool nubAttached=false,nubStarted=false,dtAttached=false,attached=false,started=false;
+    unsigned reason=8;
+    if(nub && memory && ranges && parent && tree && nub->init() && ranges->setObject(memory)) {
+        nub->setDeviceMemory(ranges);nub->setName("NativeGOPFramebuffer");
+        nubAttached=nub->attach(parent);
+        if(nubAttached)nubStarted=nub->start(parent);
+        reason=9;
+        if(nubStarted) {
+            // Real firmware scanout resource in its actual DT plane. No Apple
+            // compatible, panel timing, physical density or GPU claim is made.
+            const char type[]="display-subsystem";
+            OSData *data=OSData::withBytes(type,sizeof(type));
+            if(data && nub->setProperty("device_type",data)) {
+                nub->setName("gop-display",gIODTPlane);
+                dtAttached=nub->attachToParent(tree,gIODTPlane);
+            }
+            OSSafeReleaseNULL(data);native_legacy_dt_attached=dtAttached;
+            IOLog("CDX_DISP DT attached=%u\n",(unsigned)dtAttached);
+            SInt32 score=0;reason=10;
+            native_legacy_probe_match=dtAttached && display->probe(nub,&score)==display;
+            IOLog("CDX_DISP probe matched=%u\n",native_legacy_probe_match);
+            if(native_legacy_probe_match)attached=display->attach(nub);
+            if(attached) {
+                native_legacy_stage=5;started=display->start(nub);
+                native_legacy_start_result=started;reason=11;
+            }
+            IOLog("CDX_DISP start result=%u\n",(unsigned)started);
+            if(started) {
+                activeLegacyDisplay=display;activeGOPNub=nub;
+                native_legacy_nub=(uintptr_t)nub;native_legacy_stage=10;
+                OSSafeReleaseNULL(ranges);OSSafeReleaseNULL(memory);OSSafeReleaseNULL(tree);
+                native_legacy_display_checkpoint();return;
+            }
+        }
+    }
+    if(started)display->stop(nub);
+    if(attached)display->detach(nub);
+    if(dtAttached)nub->detachFromParent(tree,gIODTPlane);
+    if(nubStarted)nub->stop(parent);
+    if(nubAttached)nub->detach(parent);
+    OSSafeReleaseNULL(ranges);OSSafeReleaseNULL(memory);OSSafeReleaseNULL(tree);OSSafeReleaseNULL(nub);
+    display->release();native_legacy_object=0;failed(reason);
+}
+} // extern "C"

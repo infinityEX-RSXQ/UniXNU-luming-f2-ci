@@ -1,0 +1,16 @@
+{
+  "compile_command": [
+    "D:/civitoip20/.tools/llvm/clang+llvm-23.1.4-x86_64-pc-windows-msvc/bin/clang.exe",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "D:\\civitoip20\\lumingios-cdx\\stage10-display-source-20261101\\stage10-runtime\\Test\\request-state.c",
+    "-o",
+    "D:\\civitoip20\\lumingios-cdx\\stage10-display-source-20261101\\stage10-runtime\\portable-b377r2t5\\request-state.exe"
+  ],
+  "compile_exit_code": 0,
+  "compile_output": "",
+  "test_exit_code": 0,
+  "test_output": "",
+  "scope": "Host C assertions: layer masks, blank frame state, integer overflow, row padding, source alignment, destination alignment and bounded CPU copy. No macOS runtime, ABI or device claim."
+}

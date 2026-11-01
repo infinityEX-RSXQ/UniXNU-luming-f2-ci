@@ -1,0 +1,17 @@
+{
+  "slot354_raw": "0xfffffff0067970cc",
+  "refs": [
+    {
+      "pc": "0xfffffff00678b908",
+      "kind": "virtual-slot-354"
+    },
+    {
+      "pc": "0xfffffff00678b938",
+      "kind": "virtual-slot-354"
+    },
+    {
+      "pc": "0xfffffff006795b70",
+      "kind": "virtual-slot-354"
+    }
+  ]
+}

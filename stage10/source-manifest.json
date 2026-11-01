@@ -1,0 +1,205 @@
+{
+  "created_at": "2026-11-01T12:11:31.696989+08:00",
+  "purpose": "source-only CPU Legacy/GOP display build",
+  "checks": {
+    "source_contract_passed": true,
+    "portable_request_and_copy_assertions_passed": true,
+    "original_358_slot_abi_and_binding_byte_guards_passed": true,
+    "duplicate_symbol_reproduced_and_fixed_in_tiny_macho_fixture": true,
+    "compile_replay_output_isolation_fixture_passed": true,
+    "source_generator_regeneration_identical": true,
+    "family_only_kernel_rejected": true,
+    "full_cpp_archive_compiled": false,
+    "native_kernel_linked": false,
+    "device_display_service_verified": false,
+    "cadisplay_enumeration_verified": false,
+    "visible_ui_verified": false
+  },
+  "files": [
+    {
+      "path": "BUILD-REQUEST.md",
+      "bytes": 4111,
+      "sha256": "53dcd1f77cdf5f63613fe47e2df3202c11738a37b0bedc20b475cd949c6c1d63"
+    },
+    {
+      "path": "host-tools/build_stage10_display.py",
+      "bytes": 8069,
+      "sha256": "93a8799b5d51abfbd7499d896b3e656d9c82082ae44863c13e2cbdd60373d0a4"
+    },
+    {
+      "path": "host-tools/qualify_stage10_kernel.py",
+      "bytes": 3783,
+      "sha256": "ae300e5a2fe2a59aa831e45abb8524f8141b62b772100b43fd74d6353f562e09"
+    },
+    {
+      "path": "stage10-audit/audit_raw_legacy.py",
+      "bytes": 8549,
+      "sha256": "3372e139a1a617a509b83f3f5d6292e412ad11cb3e3e781781aa416e3fa6364b"
+    },
+    {
+      "path": "stage10-audit/mobile-graphics-legacy-abi.json",
+      "bytes": 93116,
+      "sha256": "3cf83e6825325fc00f3b686b6125112ee32846d7d0aa09d420cb216b61c4a3b9"
+    },
+    {
+      "path": "stage10-audit/power-setter-refs.json",
+      "bytes": 315,
+      "sha256": "c364193077c375e389da830586ebca84735d9803ba4dcccdfa2c2122ad39073c"
+    },
+    {
+      "path": "stage10-audit/raw-legacy-abi.json",
+      "bytes": 92632,
+      "sha256": "770f6128491aa80e53902f7753039375bb293ca59c97206df95fb002f4478c55"
+    },
+    {
+      "path": "stage10-build/build-luming-cpu-legacy-display.py",
+      "bytes": 19269,
+      "sha256": "fd4b1cc3549a24c0738d4a5f9714838916700ecc35896b3f4137d244b161d0c3"
+    },
+    {
+      "path": "stage10-build/ci-chain-snippet.yml",
+      "bytes": 595,
+      "sha256": "b0e5e213b3f2b3df77abbfded3ef4493132d0645acd071752d788ff0e222d22e"
+    },
+    {
+      "path": "stage10-build/host-integration-validation.json",
+      "bytes": 201,
+      "sha256": "b5dd727ebefa2decce8975b257bc2425461d90066446439d6d35e315e08c00c4"
+    },
+    {
+      "path": "stage10-build/install_stage10_build.py",
+      "bytes": 7748,
+      "sha256": "a939ac481148170684fb2013359a372c7930ee546c0667a9268924851194a386"
+    },
+    {
+      "path": "stage10-build/original-binding-guard-validation.json",
+      "bytes": 922,
+      "sha256": "f228ba4ed44de1597a23f2991500e70c1832b4834992bb0c94291f1844877ff9"
+    },
+    {
+      "path": "stage10-build/prepare_trimmed_builder.py",
+      "bytes": 8290,
+      "sha256": "def3f26a2991c5cef9d2931a31a07441888c1039997e94bc31137a2ee8f396e8"
+    },
+    {
+      "path": "stage10-build/README.md",
+      "bytes": 7835,
+      "sha256": "8aa8e6406394d7ee535fc87a807a5934f06d70f1bfed707aedcaa8da1f7d86dc"
+    },
+    {
+      "path": "stage10-build/upstream-generator.sha256",
+      "bytes": 109,
+      "sha256": "ca85b589bdeb8ae73a221cea7431623fc52ff7e87ab28f28679d639d603d1902"
+    },
+    {
+      "path": "stage10-review/check_duplicate_link.py",
+      "bytes": 1281,
+      "sha256": "a939eb0b18eefea88badd883d149c737e5d3105018b68ebe4bfd825553012e28"
+    },
+    {
+      "path": "stage10-review/compile-replay-validation.json",
+      "bytes": 714,
+      "sha256": "d5391d316da0983060ba020ba942e4e2359a9e6692d7a102a25bb78112099b87"
+    },
+    {
+      "path": "stage10-review/duplicate-link-proof.json",
+      "bytes": 3473,
+      "sha256": "3295d545f8f0999b36a8e4495c3b368a0f381a2812468ae3b99f470152e8f309"
+    },
+    {
+      "path": "stage10-review/packaged-original-abi.json",
+      "bytes": 93116,
+      "sha256": "3cf83e6825325fc00f3b686b6125112ee32846d7d0aa09d420cb216b61c4a3b9"
+    },
+    {
+      "path": "stage10-review/packaged-runtime-contract.json",
+      "bytes": 3691,
+      "sha256": "d9d52fd5f3385473a75d4c4a9be61c746b21fc952aa919cec4b4f6e3225b16e1"
+    },
+    {
+      "path": "stage10-review/README.md",
+      "bytes": 4042,
+      "sha256": "5f17d22847337cb3b397287a6694946edb42ce366868cec3ce3b2a7888fce542"
+    },
+    {
+      "path": "stage10-review/stage10-family-only-negative.json",
+      "bytes": 305,
+      "sha256": "f4c9ac252279aa9707b5f44ef712a00f301df88bbb3aeee0d59dfa7110d7131a"
+    },
+    {
+      "path": "stage10-review/stage10-raw-legacy-abi-recheck.json",
+      "bytes": 93116,
+      "sha256": "3cf83e6825325fc00f3b686b6125112ee32846d7d0aa09d420cb216b61c4a3b9"
+    },
+    {
+      "path": "stage10-review/VALIDATION-SUMMARY.json",
+      "bytes": 579,
+      "sha256": "6ed37f7178525ef718e745fd14867a134d60690d14364544a39d46e6d0dd99f2"
+    },
+    {
+      "path": "stage10-runtime/args-cpu-present.txt",
+      "bytes": 274,
+      "sha256": "46ef3f8bc797e44c25b15898dc21d3e2a68f8ccdd2b1dd5794f02c4769f22229"
+    },
+    {
+      "path": "stage10-runtime/args-registration.txt",
+      "bytes": 273,
+      "sha256": "d8157f0472683a2cac15b89fa0ac23c7cdad53ce316f183ef9f3602d079e4f98"
+    },
+    {
+      "path": "stage10-runtime/LegacyDisplayProbe.cpp",
+      "bytes": 13889,
+      "sha256": "9d239da36057d75c664e0fe4989b9558e4a6a3398df1ed9fec4d0e02571878e4"
+    },
+    {
+      "path": "stage10-runtime/LICENSE",
+      "bytes": 2682,
+      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
+    },
+    {
+      "path": "stage10-runtime/NativeLegacyDisplay.cpp",
+      "bytes": 35878,
+      "sha256": "0ab790c93a086aad4639529126ec65b7228a7bb2fb4b921ebf4b9e590fe990a1"
+    },
+    {
+      "path": "stage10-runtime/NativeLegacyRequest.h",
+      "bytes": 9893,
+      "sha256": "81e89e1f40f2f1d0919567f53bc0564c650488843082693d00b9ea256cafae21"
+    },
+    {
+      "path": "stage10-runtime/portable-tests.json",
+      "bytes": 713,
+      "sha256": "a09c27179cc6ad20046de01d4a7dd3df7514078a7cbd75095da4d37b9d8ba67f"
+    },
+    {
+      "path": "stage10-runtime/README.md",
+      "bytes": 9334,
+      "sha256": "d986cb705a2393e95da36567d5cddcb71d19b5ca6f02ea0d10a176e6bff4299d"
+    },
+    {
+      "path": "stage10-runtime/RUNTIME-ACCEPTANCE.md",
+      "bytes": 8877,
+      "sha256": "6e6876e75adb17b9ab3eb3af420a67fa08339c86ac11a9429886fc4b98da9562"
+    },
+    {
+      "path": "stage10-runtime/source-contract.json",
+      "bytes": 4302,
+      "sha256": "62f1f8a58332cedeb2efd55e71d64143aad236a9b0073253e93282b36f03a80d"
+    },
+    {
+      "path": "stage10-runtime/Test/request-state.c",
+      "bytes": 6035,
+      "sha256": "0689db818cb0c0806040c72338373116c88c2a2139d169db2d70e4692976cd4e"
+    },
+    {
+      "path": "stage10-runtime/verify_portable.py",
+      "bytes": 1404,
+      "sha256": "7f19f3ba64701be1d1945b630850b7dee56e3ed0b4c4a371b19987f1b4ba3b56"
+    },
+    {
+      "path": "stage10-runtime/verify_sources.py",
+      "bytes": 4036,
+      "sha256": "6a65cc033d5c285ffa6ce5bca24be271c702ec7733e06507d334579d94dacc1c"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "source_only_family_kernel": "c85586170329a8b27761ea345a8614ec1ca70602373b311497bb8e821da21124",
+  "expected_rejection": "missing defined runtime symbol _native_legacy_display_probe",
+  "tested": true,
+  "rejected": true,
+  "note": "Family prelink alone does not satisfy release qualification"
+}

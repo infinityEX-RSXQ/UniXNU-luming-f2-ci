@@ -1,0 +1,6 @@
+# Append to the existing "Run the device pre-build hook" run block AFTER its
+# stage9 generator/hook; do not replace that hook or discard its source patches.
+# The bundle is assumed to be present as stage10/ in the workflow workspace.
+# Configure the same verified original KC input used by the normal kernel job.
+          python3 stage10/stage10-build/install_stage10_build.py --tree unixnu --device device --kernelcache "$UNIXNU_KERNELCACHE" --runtime-dir stage10/stage10-runtime --audit-dir stage10/stage10-audit --apply
+          (cd unixnu && ./unixnu defconfig "$DEFCONFIG" -D ../device)

@@ -1,0 +1,16 @@
+{
+  "builder_sha256": "fd4b1cc3549a24c0738d4a5f9714838916700ecc35896b3f4137d244b161d0c3",
+  "target_language_abi_flags_preserved": true,
+  "split_dependency_and_json_outputs_removed": true,
+  "joined_dependency_and_json_outputs_removed": true,
+  "two_tiny_arm64_ios17_objects_compiled": true,
+  "kernel_record_unchanged": true,
+  "kernel_dependency_file_unchanged": true,
+  "owned_dependency_files_only": true,
+  "malformed_output_rejected": true,
+  "generator_regeneration_byte_identical": true,
+  "full_display_archive_compiled": false,
+  "native_kernel_linked": false,
+  "runtime_tested": false,
+  "scope": "Concrete compile-output isolation fixture; no full XNU or display ABI/runtime claim"
+}
