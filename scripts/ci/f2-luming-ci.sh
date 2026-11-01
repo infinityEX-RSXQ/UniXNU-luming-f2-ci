@@ -279,13 +279,15 @@ print('preflight: OK')
 PY
     ;;
   pre_build)
-    # CDX_INSTRUMENT: apply ASLR observation directly to the fetched XNU feed (pristine anchors)
-    for feed in "$GITHUB_WORKSPACE"/unixnu/out/feeds/xnu-*; do
-      if [ -d "$feed/osfmk/kern" ]; then
-        echo "=== CDX_INSTRUMENT feed $feed ==="
-        python3 device/scripts/ci/instrument_aslr_diagnostics.py "$feed" || true
-      fi
-    done
+    # CDX_INSTRUMENT: generate a context-correct ASLR diagnostic patch against the fetched XNU feed
+    feed="$(ls -d "$GITHUB_WORKSPACE"/unixnu/out/feeds/xnu-* 2>/dev/null | head -1 || true)"
+    if [ -n "${feed:-}" ] && [ -d "$feed/osfmk/kern" ]; then
+      echo "=== CDX_INSTRUMENT feed $feed ==="
+      python3 "$DEVICE_DIR/scripts/ci/gen_aslr_patch.py" "$GITHUB_WORKSPACE/unixnu" "$feed" "$DEVICE_DIR/patches/xnu/device/zzzzz-cdx-generated-aslr.patch" "$DEVICE_DIR/patches/xnu/device/series"
+    else
+      echo "::error::CDX_INSTRUMENT: XNU feed not found"
+      exit 1
+    fi
     # CDX_DEBUG: dump XNU anchor context for the ASLR diagnostic patch
     for src in "$GITHUB_WORKSPACE/unixnu/.cache/xnu-work/osfmk/kern/exception.c" "$GITHUB_WORKSPACE/unixnu/.cache/xnu-work/bsd/vm/vm_unix.c"; do
       if [ -f "$src" ]; then
