@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Build the minimal IOMobileFramebuffer display provider archive for UniXNU.
 
 Self-contained and repeatable:
@@ -28,6 +28,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -81,7 +82,7 @@ def rel(path, root):
     try:
         return Path(path).resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
-        return Path(path).as_posix()
+        return os.path.relpath(str(path), str(root)).replace(os.sep, "/")
 
 
 def run(command, what, cwd=None):
@@ -485,11 +486,11 @@ def main(argv):
         fail(f"repository root does not exist: {root}")
 
     driver = discover(root, args.driver_source,
-                      ["drivers/NativeMobileDisplay/NativeMobileDisplay.cpp"], "driver source")
+                      ["drivers/NativeMobileDisplay/NativeMobileDisplay.cpp", "../device/drivers/NativeMobileDisplay/NativeMobileDisplay.cpp"], "driver source")
     probe = discover(root, args.probe_source,
                      ["package/MobileDisplayProviderProbe.cpp",
                       f"kits/{root.name}/MobileDisplayProviderProbe.cpp",
-                      "drivers/NativeMobileDisplay/MobileDisplayProviderProbe.cpp"], "probe source")
+                      "drivers/NativeMobileDisplay/MobileDisplayProviderProbe.cpp", "../device/package/MobileDisplayProviderProbe.cpp"], "probe source")
     abi = driver.with_name("OriginalMobileFramebufferABI.h")
     if not abi.is_file():
         fail(f"vendored ABI header missing next to the driver: {abi}\n"
