@@ -149,10 +149,10 @@ def check_board(device: Path, unixnu: Path, board: dict) -> None:
 def check_prelink(board: dict) -> None:
     prelink = board.get('kernel', {}).get('prelink', {})
     roots = prelink.get('roots', [])
-    if len(roots) == 27:
-        add('PASS', 'prelink roots = 27 (dada proven shape)')
+    if len(roots) in (27, 28):
+        add('PASS', f'prelink roots = {len(roots)} (dada shape / display bring-up)')
     else:
-        add('ERROR', f'prelink roots = {len(roots)} (expected 27)')
+        add('ERROR', f'prelink roots = {len(roots)} (expected 27 or 28)')
     for name in ('com.apple.driver.AppleMobileFileIntegrity', 'com.apple.driver.ApplePMGR',
                  'com.apple.security.sandbox', 'com.apple.security.AppleImage4'):
         add('PASS' if name in roots else 'ERROR', f'prelink root {name}')
