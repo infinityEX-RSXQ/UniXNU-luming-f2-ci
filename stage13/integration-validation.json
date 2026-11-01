@@ -1,0 +1,37 @@
+{
+  "stage": 13,
+  "before": {
+    "scripts/ci/instrument_crash_snapshot.py": "756d8bf8637f3b75abff7ac7422d7ebf78b08c21fac46105fae45f674979b3f6",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "a716b01d3bdbd056edf644edb89f5676f945e2ea596802a17149285c146780c1",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "b46598a56b8fbeaa52269edf5ceb0ad6eb64b2b1389c0f8cb9945c5ff74acafb"
+  },
+  "after": {
+    "scripts/ci/instrument_crash_snapshot.py": "4d8bcdcfe0159f222b5d05fe801977edce0fcaae0d1354de5b2d2579ed1c59ec",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "ecde85db5133b93ff4b2bcde2400a41df34c92bbc34dcd51fefe455c162cf7ae",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "b46598a56b8fbeaa52269edf5ceb0ad6eb64b2b1389c0f8cb9945c5ff74acafb"
+  },
+  "applied": true,
+  "boot_arg": "luming-display-ui-scale=2",
+  "refresh_or_backend_changes": false,
+  "vtable_or_instance_layout_changes": false,
+  "original_instructions_modified": false,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "device_operations": false,
+  "generator": "CDX11 source instrumentation applied; full macOS build/runtime not yet verified.\nAdded ASLR observations; compile/runtime verification still required.\nwrote D:\\Codex\\workspaces\\2026-10-29\\zai\\work\\stage13-mode\\fixture-1793543559382351700\\device\\patches\\xnu\\device\\zzzzz-cdx-generated-aslr.patch (4340 bytes), replayed 1 core patches\nenabled zzzzz-cdx-generated-aslr.patch in D:\\Codex\\workspaces\\2026-10-29\\zai\\work\\stage13-mode\\fixture-1793543559382351700\\device\\patches\\xnu\\device\\series\n",
+  "passed": true,
+  "fixture": "D:\\Codex\\workspaces\\2026-10-29\\zai\\work\\stage13-mode\\fixture-1793543559382351700",
+  "source_instrumentation_idempotent": true,
+  "installer_rejects_reapply": true,
+  "policy_removal_roundtrip": true,
+  "compatible_later_device_patches": [
+    "zzzzzz-luming-more-amfi-null-guards.patch",
+    "zzzzzzz-luming-cache-path.patch",
+    "zzzzzzzz-luming-owner-cache-initproc-panic.patch",
+    "zzzzzzzzz-luming-owner-cache-probe.patch",
+    "zzzzzzzzzz-luming-owner-cache-root-list.patch",
+    "zzzzzzzzzzz-luming-owner-cache-root-hex.patch",
+    "zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch"
+  ],
+  "generated_patch_sha256": "07c5fae81fda733bdf0be47f7b22d0fb02d1b7144675c618d3e6285c64c483fc"
+}

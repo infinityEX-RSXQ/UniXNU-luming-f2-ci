@@ -1,0 +1,5 @@
+{
+  "rejected": true,
+  "reason": "Missing stage13 definition: _cdx13_publish_ui_scale",
+  "kernel_sha256": "e16f51778699f5c7d202def73871825aff7424906ecdbd06026ba6af7a36f7ba"
+}

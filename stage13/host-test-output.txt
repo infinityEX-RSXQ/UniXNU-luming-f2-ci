@@ -1,0 +1,8 @@
+
+CDX13 got=1 err=0 busy=0
+CDX13 w=1236 h=2750 pref=0
+CDX13 sb=0 rb=404e000000000000
+CDX13 vcGot=1 vc=0 issues=4
+CDX13 gamut=1 hdr=0 rot=0
+CDX13 ui=2 read=2 rc=0 writes=2
+Stage13 policy, rollback, captured fields, and bounds: PASS

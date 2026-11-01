@@ -1,0 +1,139 @@
+{
+  "stage": 13,
+  "base_ci_run": 41309364157,
+  "base_ci_commit": "7ee207b85f783d202c1da8f111383f31d2a32460",
+  "host_tests_passed": true,
+  "arm64_interface_fixture_compiled": true,
+  "arm64_fixture_general_registers_only": true,
+  "source_patch_chain_passed": true,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "device_operations": false,
+  "files": [
+    {
+      "path": "abi_stage13.cpp",
+      "bytes": 1053,
+      "sha256": "d2233143cff823c49e32a34010a4f8cd87c91660da01942d42d8362012b68d8f"
+    },
+    {
+      "path": "arm64-fixture.asm",
+      "bytes": 48441,
+      "sha256": "7549aee0e29410d974b2eb55840dd2b56665d02a3e477248aa6de5805d9b4679"
+    },
+    {
+      "path": "arm64-symbols.txt",
+      "bytes": 2124,
+      "sha256": "07c3e083fd387da8c90e7a12468c076fa8e488d9dc910daa34e467c87c038afe"
+    },
+    {
+      "path": "audit/ca-preferred-scale-full.asm",
+      "bytes": 1329,
+      "sha256": "6dcbfdbe91f3f82299e603437338ecb269d1ac311f71f8525b7b86ceb0bf725f"
+    },
+    {
+      "path": "audit/fbs-display-config-update.asm",
+      "bytes": 20268,
+      "sha256": "48383e138ad07eed5dcf628141fdd6c446a72210b85767f2319cbb77f783aa72"
+    },
+    {
+      "path": "audit/fbs-display-mode-init.asm",
+      "bytes": 6348,
+      "sha256": "720f802bd6e83d97b1837b3dace994655cd74e16b838142c98fc64d36bf35da6"
+    },
+    {
+      "path": "audit/fbs-immutable-config.asm",
+      "bytes": 11277,
+      "sha256": "ea302272cd99f333914ea27ddb40960eb4920db5e6892d2f68f5076bac1a7e50"
+    },
+    {
+      "path": "audit/fbs-scale-source.asm",
+      "bytes": 2765,
+      "sha256": "409b488a49d8afd019e42b338679ea7328a882b083c58271b5f4c301ab1ff10c"
+    },
+    {
+      "path": "audit/fbs-scale-zero-helper.asm",
+      "bytes": 1109,
+      "sha256": "3a9f3e7ff308bbb47660c53173c87b3da0f5205c73f4fcb587c0ebff68ec424b"
+    },
+    {
+      "path": "audit/mg-scale-cf-0.asm",
+      "bytes": 1747,
+      "sha256": "6304c8fe259f2e8242965499b68e6db6b13c9344a4ecedabbe4ae97b8a553524"
+    },
+    {
+      "path": "audit/mg-scale-data-reader.asm",
+      "bytes": 1171,
+      "sha256": "91db13b998c08d34deeb1208b907e070bd5ad8475cee9d07d03c749f6214663c"
+    },
+    {
+      "path": "BUILD-REQUEST.md",
+      "bytes": 4949,
+      "sha256": "38a9eb887d5ad72a29b021071df7e81ffd65a6704b1d2a98245bc8e2a20a023f"
+    },
+    {
+      "path": "example-generated-source.patch",
+      "bytes": 4340,
+      "sha256": "07c5fae81fda733bdf0be47f7b22d0fb02d1b7144675c618d3e6285c64c483fc"
+    },
+    {
+      "path": "host-test-output.txt",
+      "bytes": 238,
+      "sha256": "255a91817a83a0a044c8e2a9a968ae4f4334abe882b8adf7f4e89a73a3fd061a"
+    },
+    {
+      "path": "install_stage13.py",
+      "bytes": 3526,
+      "sha256": "9b29ea71620bf4824b7986f27017dba01cdb68eb58add67596ef77557af1c9d8"
+    },
+    {
+      "path": "integration-validation.json",
+      "bytes": 2358,
+      "sha256": "4f9067d34086514341b3eb8dd331c60b2a1ee5b715b91660d84b5fa1ecb25c04"
+    },
+    {
+      "path": "ModeSnapshot.h",
+      "bytes": 2273,
+      "sha256": "ab3836f6e617f3e04a1551179117ad109f964850ed7ccfc360584ae2e0bd8657"
+    },
+    {
+      "path": "ModeSummary13.h",
+      "bytes": 2601,
+      "sha256": "98c4b7ee6eae715ae5d590d3ea8cb859a519c42c1a190a9d157a385d9aca0dcb"
+    },
+    {
+      "path": "old-kernel-negative-test.json",
+      "bytes": 180,
+      "sha256": "d186d5481fd96f515ad05d433edef3c95e333584f319f8e35d12a79008317749"
+    },
+    {
+      "path": "qualify_stage13_kernel.py",
+      "bytes": 2417,
+      "sha256": "cdbf6560413ce7b0cf97285dd09c47bca422b179a7ac31fa5de09edb1e2456c3"
+    },
+    {
+      "path": "runtime/LegacyDisplayProbe.cpp",
+      "bytes": 26040,
+      "sha256": "ecde85db5133b93ff4b2bcde2400a41df34c92bbc34dcd51fefe455c162cf7ae"
+    },
+    {
+      "path": "runtime/NativeLegacyDisplay.cpp",
+      "bytes": 36129,
+      "sha256": "b46598a56b8fbeaa52269edf5ceb0ad6eb64b2b1389c0f8cb9945c5ff74acafb"
+    },
+    {
+      "path": "test_stage13.cpp",
+      "bytes": 5867,
+      "sha256": "e73d13c6adeb2ed1280eab85c4d4e6843e9f8ff3d3541216530175a2e8841378"
+    },
+    {
+      "path": "UiScalePolicy.h",
+      "bytes": 3026,
+      "sha256": "802a2480112e91490c2a0dcb6d172bbc6e2266adad5fdec8ed58441ade34c1bc"
+    },
+    {
+      "path": "validate_stage13.py",
+      "bytes": 4532,
+      "sha256": "046f620a7ff372ab0f13cb76fab3fbffd1a646da67aedc6f6ed6231742638633"
+    }
+  ]
+}

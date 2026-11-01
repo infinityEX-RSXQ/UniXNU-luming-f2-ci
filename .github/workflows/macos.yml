@@ -573,6 +573,15 @@ jobs:
           mkdir -p ci-artifacts/logs
           python3 device/stage12/install_stage12.py --device device --apply \
             | tee ci-artifacts/stage12-install-report.json
+          # stage13: publish the explicit 2x UI scale to /chosen before the display
+          # service reaches user space and replace the final CDX12 long summary
+          # with the CDX13 short lines (plus the x28 validityCheck). Must run after
+          # stage12 (it pins the stage12 output hashes) and before the unchanged
+          # stage9 pre_build generator, so the generated single
+          # zzzzz-cdx-generated-aslr.patch carries the CDX13 validity/summary hooks
+          # and the installed Probe is the source the stage10 installer copies.
+          python3 device/stage13/install_stage13.py --device device --apply \
+            | tee ci-artifacts/stage13-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -674,6 +683,133 @@ jobs:
           print('stage12 markers present in %s (%d bytes) sha256=%s'
                 % (path, result['bytes'], result['sha256']))
           print('CDX12 symbols: ' + ', '.join(required[2:]))
+          PY
+
+      - name: Check the stage13 UI-scale markers in the built kernel
+        if: ${{ inputs.dry_run != true && contains(inputs.steps, 'kernel') }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, re, struct
+          from pathlib import Path
+          kernels = sorted(Path('unixnu/out').glob('**/kernel/kernel.macho'))
+          if len(kernels) != 1:
+              raise SystemExit('expected exactly one built kernel.macho, found %r' % (kernels,))
+          path = kernels[0]
+          data = path.read_bytes()
+          if data[:4] != b'\xcf\xfa\xed\xfe':
+              raise SystemExit('expected an arm64 Mach-O kernel')
+          # Same nlist filter as the stage12 check / qualify_stage10_kernel.inspect().
+          off, symtab = 32, None
+          for _ in range(struct.unpack_from('<I', data, 16)[0]):
+              cmd, size = struct.unpack_from('<II', data, off)
+              if size < 8 or off + size > len(data):
+                  raise SystemExit('malformed load command')
+              if cmd == 2:
+                  symtab = struct.unpack_from('<IIII', data, off + 8)
+              off += size
+          if symtab is None:
+              raise SystemExit('need LC_SYMTAB')
+          so, ns, st, ss = symtab
+          defined = set()
+          for i in range(ns):
+              index, ntype, nsect, ndesc, nvalue = struct.unpack_from('<IBBHQ', data, so + 16 * i)
+              if not ntype & 0xe0 and ntype & 0xe and nsect and nvalue:
+                  end = data.find(b'\0', st + index, st + ss)
+                  if end >= 0:
+                      defined.add(data[st + index:end].decode('latin1'))
+          required = ['_cdx11_capture_exception', '_cdx11_crash_summary',
+                      '_cdx12_capture_mode', '_cdx12_append_mode_summary', '_cdx12_refresh_observed',
+                      '_cdx13_publish_ui_scale', '_cdx13_capture_validity', '_cdx13_append_mode_summary']
+          missing = [name for name in required if name not in defined]
+          if missing:
+              raise SystemExit('missing defined kernel symbols: ' + ', '.join(missing))
+          markers = {
+              'cdx13_format_strings': [b'CDX13 got=%u err=%d busy=%u',
+                                       b'CDX13 w=%llu h=%llu pref=%llu',
+                                       b'CDX13 sb=%llx rb=%llx',
+                                       b'CDX13 vcGot=%u vc=%llu issues=%x',
+                                       b'CDX13 gamut=%llu hdr=%llu rot=%llu',
+                                       b'CDX13 ui=%u read=%u rc=%u writes=%u'],
+              'boot_args': [b'luming-display-ui-scale'],
+          }
+          absent = [token.decode('latin1') for group in markers.values()
+                    for token in group if token not in data]
+          if absent:
+              raise SystemExit('missing kernel strings: ' + ', '.join(absent))
+          expected = json.loads(Path('device/stage13/integration-validation.json').read_text(encoding='utf-8-sig'))
+          install = json.loads(Path('ci-artifacts/stage13-install-report.json').read_text(encoding='utf-8-sig'))
+          if install.get('applied') is not True:
+              raise SystemExit('stage13 installer did not report applied=true')
+          if install.get('after') != expected.get('after'):
+              raise SystemExit('stage13 installed source hashes differ from integration-validation.json')
+          # The stage10 display report proves which sources the archive compiled.
+          report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
+                          *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
+          if not report_paths:
+              raise SystemExit('display build-report.json not found')
+          report = json.loads(report_paths[0].read_text(encoding='utf-8'))
+          if report['source_sha256'].get('kits/luming-cpu-display/LegacyDisplayProbe.cpp') != \
+                  expected['after']['stage10/stage10-runtime/LegacyDisplayProbe.cpp']:
+              raise SystemExit('materialized LegacyDisplayProbe.cpp is not the stage13 source')
+          if report['source_sha256'].get('drivers/GopFramebuffer/NativeLegacyDisplay.cpp') != \
+                  expected['after']['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
+              raise SystemExit('materialized NativeLegacyDisplay.cpp changed')
+          if report.get('generated_abi_sha256') != '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016':
+              raise SystemExit('generated legacy ABI changed')
+          if report.get('virtual_entries') != 358 or report.get('original_instructions_modified'):
+              raise SystemExit('vtable/original-instruction guard changed')
+          patch_text = Path('device/patches/xnu/device/zzzzz-cdx-generated-aslr.patch').read_bytes() \
+              .replace(b'\r\n', b'\n').decode('utf-8')
+          example = Path('device/stage13/example-generated-source.patch').read_bytes() \
+              .replace(b'\r\n', b'\n').decode('utf-8')
+          added = [l for l in patch_text.splitlines() if l.startswith('+') and not l.startswith('+++')]
+          example_added = [l for l in example.splitlines() if l.startswith('+') and not l.startswith('+++')]
+          patch_facts = {
+              'bytes': len(patch_text.encode('utf-8')),
+              'sha256': hashlib.sha256(patch_text.encode('utf-8')).hexdigest(),
+              'CDX11_CAPTURE': patch_text.count('CDX11_CAPTURE:'),
+              'CDX11_FINAL': patch_text.count('CDX11_FINAL:'),
+              'CDX12_MODE': patch_text.count('CDX12_MODE:'),
+              'cdx13_capture_validity': patch_text.count('cdx13_capture_validity'),
+              'x28_validity': patch_text.count('get_saved_state_reg(thread->machine.upcb, 28)'),
+              'cdx13_append_mode_summary': patch_text.count('cdx13_append_mode_summary'),
+              'CDX_ASLR_EXC': patch_text.count('CDX_ASLR_EXC'),
+              'CDX_ASLR_MAP': patch_text.count('CDX_ASLR_MAP'),
+              'files': sorted(set(re.findall(r'^\+\+\+ b/(\S+)$', patch_text, re.M))),
+              'added_lines_equal_to_example': added == example_added,
+              'example_sha256': hashlib.sha256(example.encode('utf-8')).hexdigest(),
+          }
+          if not patch_facts['cdx13_capture_validity'] or not patch_facts['x28_validity'] \
+                  or patch_facts['cdx13_append_mode_summary'] < 2:
+              raise SystemExit('generated patch lacks the CDX13 validity/summary hooks')
+          if patch_facts['bytes'] != 4340 or \
+                  patch_facts['sha256'] != '07c5fae81fda733bdf0be47f7b22d0fb02d1b7144675c618d3e6285c64c483fc':
+              print('::warning::generated patch differs byte-wise from the package example: %d bytes %s'
+                    % (patch_facts['bytes'], patch_facts['sha256']))
+          result = {
+              'kernel': str(path),
+              'bytes': len(data),
+              'sha256': hashlib.sha256(data).hexdigest(),
+              'defined_symbols': required,
+              'markers': {name: [token.decode('latin1') for token in group]
+                          for name, group in markers.items()},
+              'install_after_equals_expected': True,
+              'materialized_sources_expected': True,
+              'legacy_abi_sha256': report.get('generated_abi_sha256'),
+              'virtual_entries': report.get('virtual_entries'),
+              'generated_patch': patch_facts,
+              'qualified': True,
+              'runtime_verified': False,
+          }
+          Path('ci-artifacts/stage13-kernel-check.json').write_text(
+              json.dumps(result, indent=2) + '\n', encoding='utf-8')
+          print('stage13 markers present in %s (%d bytes) sha256=%s'
+                % (path, result['bytes'], result['sha256']))
+          print('CDX13 symbols: ' + ', '.join(required[5:]))
+          print('stage13 patch: %d bytes %s' % (patch_facts['bytes'], patch_facts['sha256']))
+          print('patch added lines equal to package example: %s'
+                % patch_facts['added_lines_equal_to_example'])
           PY
 
       - name: Build the UniXNU package
@@ -948,9 +1084,11 @@ jobs:
           generated_patch = root / 'device/patches/xnu/device/zzzzz-cdx-generated-aslr.patch'
           if generated_patch.is_file():
               files.append((generated_patch, 'zzzzz-cdx-generated-aslr.patch'))
-          # stage12: device-side install report (mode capture + 60Hz publish, default
-          # off) and the in-CI marker check of the built kernel.
-          for name in ('stage12-install-report.json', 'stage12-kernel-check.json'):
+          # stage12/stage13: device-side install reports (mode capture + 60Hz publish,
+          # default off; UI-scale publish + CDX13 summary) and the in-CI marker checks
+          # of the built kernel.
+          for name in ('stage12-install-report.json', 'stage12-kernel-check.json',
+                       'stage13-install-report.json', 'stage13-kernel-check.json'):
               path = root / 'ci-artifacts' / name
               if path.is_file():
                   files.append((path, name))
