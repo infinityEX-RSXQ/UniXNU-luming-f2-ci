@@ -90,6 +90,7 @@ archives = [
   "component:RamBlock",
   "build-luming-ram-block.py",
   "build-luming-boot-log.py",
+  "build-native-mobile-display.py",
 ]
 
 [kernel.prelink]
