@@ -1,13 +1,13 @@
 name: macOS build (format-2 luming)
 
-# Route ① (sheng/dada format-2, "6S Pro way") macOS CI for the Xiaomi Civi 5 Pro
+# Route 鈶?(sheng/dada format-2, "6S Pro way") macOS CI for the Xiaomi Civi 5 Pro
 # (luming, Qualcomm SM8735). Adapted by windows-ci (task-328) from:
 #   * UniXNU core format-2 workflow    (UniXNU/UniXNU:.github/workflows/macos.yml,
 #     pinned snapshot 33da81310819b86d3ea62cb704f156c56407764a; local copy in
 #     ci/unixnu-macos-reference.yml)
 #   * the device-repo skeleton workflow this file replaces
 #   * the self-contained device-repo pattern of picasso-yincql (checks out UniXNU core as a
-#     sibling checkout, then runs `./unixnu … -D ../device`)
+#     sibling checkout, then runs `./unixnu 鈥?-D ../device`)
 #
 # The workflow lives in the **device repository** (not in the UniXNU core fork), so the device
 # repository can be published/dispatched on its own. It performs:
@@ -157,7 +157,7 @@ defaults:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 360
     env:
       UNIXNU_DEVICE: ${{ github.workspace }}/device
@@ -2036,6 +2036,11 @@ jobs:
               print(f"ASSET_SHA {item['name']} {item['sha256']} {item['bytes']}")
           PY
 
+      - name: Dump display build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          find unixnu/out -name 'archive-16-*.log' -print -exec sh -c 'echo "===== $1"; cat "$1"' _ {} \; || true
       - name: Remove proprietary inputs
         if: always()
         run: |
