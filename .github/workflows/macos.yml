@@ -610,6 +610,8 @@ jobs:
           # Stage16 only observes pacing return branches and fixes relative timestamps.
           python3 device/stage16/install_stage16.py --device device --apply \
             | tee ci-artifacts/stage16-install-report.json
+          python3 device/stage17/install_stage17.py --device device --apply \
+            | tee ci-artifacts/stage17-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -815,6 +817,13 @@ jobs:
                   if stage16['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage15 -> stage16 source chain broken: ' + rel)
               materialized = stage16['after']
+          if Path('ci-artifacts/stage17-install-report.json').is_file():
+              stage17 = json.loads(Path('ci-artifacts/stage17-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage17['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
+              materialized = stage17['after']
           # The stage10 display report proves which sources the archive compiled.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -930,9 +939,12 @@ jobs:
           stage14p1_installed = Path('ci-artifacts/stage14p1-install-report.json').is_file()
           stage15_installed = Path('ci-artifacts/stage15-install-report.json').is_file()
           stage16_installed = Path('ci-artifacts/stage16-install-report.json').is_file()
+          stage17_installed = Path('ci-artifacts/stage17-install-report.json').is_file()
           # Every later installer replaces the same callback's panic marker, so
           # accept whichever marker the installed source chain produced.
-          if stage16_installed:
+          if stage17_installed:
+              cdx14_panic_marker = b'CDX17 snapshot (intentional) r=%u'
+          elif stage16_installed:
               cdx14_panic_marker = b'CDX16 snapshot (intentional) r=%u'
           elif stage15_installed:
               cdx14_panic_marker = b'CDX15 snapshot (intentional) r=%u'
@@ -1015,6 +1027,13 @@ jobs:
                   if stage16['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage15 -> stage16 source chain broken: ' + rel)
               materialized = stage16['after']
+          if Path('ci-artifacts/stage17-install-report.json').is_file():
+              stage17 = json.loads(Path('ci-artifacts/stage17-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage17['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
+              materialized = stage17['after']
           # The diagnostic tail must be cdx14 -> cdx14p1 -> cdx15, in that order;
           # the generated patch must stay enabled.
           entries = [l.strip() for l in Path('device/patches/xnu/device/series')
@@ -1156,9 +1175,11 @@ jobs:
               raise SystemExit('missing defined kernel symbols: ' + ', '.join(missing))
           stage15_installed = Path('ci-artifacts/stage15-install-report.json').is_file()
           stage16_installed = Path('ci-artifacts/stage16-install-report.json').is_file()
+          stage17_installed = Path('ci-artifacts/stage17-install-report.json').is_file()
           # Stage15 replaces the same callback's panic text; the p1 quiesce/reclaim
           # helpers stay in place but the marker becomes the Stage15 one.
-          p1_panic = ([b'CDX16 snapshot (intentional) r=%u'] if stage16_installed else
+          p1_panic = ([b'CDX17 snapshot (intentional) r=%u'] if stage17_installed else
+                      [b'CDX16 snapshot (intentional) r=%u'] if stage16_installed else
                       [b'CDX15 snapshot (intentional) r=%u'] if stage15_installed
                       else [b'CDX14.1 diagnostic snapshot (intentional)',
                             b'quiet=%u active=%u reclaim=%u before=%u/%u/%u'])
@@ -1235,7 +1256,8 @@ jobs:
           backend = Path('device/stage10/stage10-runtime/NativeLegacyDisplay.cpp').read_text(encoding='utf-8')
           if probe.count('thread_call_allocate(cdx14_snapshot_callback') != 1:
               raise SystemExit('the snapshot timer allocation changed')
-          panic_token = ('panic("CDX16 snapshot (intentional)' if stage16_installed else
+          panic_token = ('panic("CDX17 snapshot (intentional)' if stage17_installed else
+                         'panic("CDX16 snapshot (intentional)' if stage16_installed else
                          'panic("CDX15 snapshot (intentional)' if stage15_installed
                          else 'panic("CDX14.1 diagnostic snapshot (intentional)')
           order = [probe.find('bool quiet=cdx14p1_quiesce();'),
@@ -1261,6 +1283,13 @@ jobs:
                   if stage16['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage15 -> stage16 source chain broken: ' + rel)
               materialized = stage16['after']
+          if Path('ci-artifacts/stage17-install-report.json').is_file():
+              stage17 = json.loads(Path('ci-artifacts/stage17-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage17['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
+              materialized = stage17['after']
           # The compiled display archive proves the current sources and the ABI guard.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -1392,8 +1421,9 @@ jobs:
           if missing:
               raise SystemExit('missing defined kernel symbols: ' + ', '.join(missing))
           stage16_installed = Path('ci-artifacts/stage16-install-report.json').is_file()
+          stage17_installed = Path('ci-artifacts/stage17-install-report.json').is_file()
           markers = {
-              'cdx15_panic': [b'CDX16 snapshot (intentional) r=%u' if stage16_installed else b'CDX15 snapshot (intentional) r=%u'],
+              'cdx15_panic': [b'CDX17 snapshot (intentional) r=%u' if stage17_installed else b'CDX16 snapshot (intentional) r=%u' if stage16_installed else b'CDX15 snapshot (intentional) r=%u'],
               'cdx15_summary_lines': [b'CDX16 quiet=%u gate=%x age=%u' if stage16_installed else b'CDX15 quiet=%u gate=%x',
                                       b'sub=? ipc=%u val=%u q=%u cp=%u ret=%u rej=%u',
                                       b'F=?/%u/%u/%u/%u', b'L=?/%u/%u/%u/%u',
@@ -1462,7 +1492,7 @@ jobs:
           order = [probe.find('bool quiet=cdx14p1_quiesce();'),
                    probe.find('cdx15_snapshot(reason,sizeof(reason),quiet);'),
                    probe.find('unsigned reclaimed=quiet?cdx14p1_console_reclaim():0;'),
-                   probe.find('panic("CDX16 snapshot (intentional)' if stage16_installed else 'panic("CDX15 snapshot (intentional)')]
+                   probe.find('panic("CDX17 snapshot (intentional)' if stage17_installed else 'panic("CDX16 snapshot (intentional)' if stage16_installed else 'panic("CDX15 snapshot (intentional)')]
           if order != sorted(order) or order[0] < 0:
               raise SystemExit('callback order is not quiesce -> late sample -> reclaim -> panic')
           for token in ('cdx15_mapping_observed', 'cdx15_validation', 'cdx15_copy', 'cdx15_vsync',
@@ -1483,6 +1513,13 @@ jobs:
                   if stage16['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage15 -> stage16 source chain broken: ' + rel)
               materialized = stage16['after']
+          if Path('ci-artifacts/stage17-install-report.json').is_file():
+              stage17 = json.loads(Path('ci-artifacts/stage17-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage17['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
+              materialized = stage17['after']
           # The compiled display archive proves the Stage15 sources and the unchanged ABI.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -1593,7 +1630,8 @@ jobs:
         if: ${{ inputs.dry_run != true && contains(inputs.steps, 'kernel') }}
         run: |
           set -euo pipefail
-          python3 device/stage16/ci_check16.py
+          python3 device/stage17/ci_regression16.py
+          python3 device/stage17/ci_check17.py
 
       - name: Build the UniXNU package
         id: package
@@ -1893,7 +1931,8 @@ jobs:
                        'stage14-install-report.json', 'stage14-kernel-check.json',
                        'stage14p1-install-report.json', 'stage14p1-kernel-check.json',
                        'stage15-install-report.json', 'stage15-kernel-check.json',
-                       'stage16-install-report.json', 'stage16-kernel-check.json'):
+                       'stage16-install-report.json', 'stage16-kernel-check.json',
+                       'stage17-install-report.json', 'stage17-kernel-check.json'):
               path = root / 'ci-artifacts' / name
               if path.is_file():
                   files.append((path, name))

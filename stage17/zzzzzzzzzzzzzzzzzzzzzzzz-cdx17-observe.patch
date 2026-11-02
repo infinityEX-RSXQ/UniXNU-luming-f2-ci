@@ -1,0 +1,49 @@
+--- a/iokit/Kernel/IOUserClient.cpp
++++ b/iokit/Kernel/IOUserClient.cpp
+@@ -4610,6 +4610,10 @@
+ 	return theService ? kIOReturnSuccess : kIOReturnUnsupported;
+ }
+ 
++extern "C" uint64_t cdx17_port_begin(void *, uint32_t, unsigned, unsigned);
++extern "C" void cdx17_port_end(uint64_t, unsigned, uint32_t);
++extern "C" void cdx17_ipc_arguments(uint64_t, const IOExternalMethodArguments *);
++
+ /* Routine io_connect_set_notification_port */
+ kern_return_t
+ is_io_connect_set_notification_port(
+@@ -4623,11 +4627,13 @@
+ 
+ 	IOStatisticsClientCall();
+ 
++	uint64_t cdx17_token = cdx17_port_begin(client, notification_type, 0, port != MACH_PORT_NULL);
+ 	client->ipcEnter(kIPCLockWrite);
+ 	ret = client->registerNotificationPort( port, notification_type,
+ 	    (io_user_reference_t) reference );
+ 	client->ipcExit(kIPCLockWrite);
+ 
++	cdx17_port_end(cdx17_token, 0, (uint32_t)ret);
+ 	return ret;
+ }
+ 
+@@ -4644,11 +4650,13 @@
+ 
+ 	IOStatisticsClientCall();
+ 
++	uint64_t cdx17_token = cdx17_port_begin(client, notification_type, 1, port != MACH_PORT_NULL);
+ 	client->ipcEnter(kIPCLockWrite);
+ 	ret = client->registerNotificationPort( port, notification_type,
+ 	    reference );
+ 	client->ipcExit(kIPCLockWrite);
+ 
++	cdx17_port_end(cdx17_token, 1, (uint32_t)ret);
+ 	return ret;
+ }
+ 
+@@ -6430,6 +6438,7 @@
+ {
+ 	IOReturn ret;
+ 	uint64_t cdx15_token = cdx15_ipc_begin(this, selector);
++	cdx17_ipc_arguments(cdx15_token, args);
+ 
+ 	ipcEnter(defaultLocking ? (defaultLockingSingleThreadExternalMethod ? kIPCLockWrite : kIPCLockRead) : kIPCLockNone);
+ 	if (uc2022) {

@@ -1,0 +1,75 @@
+{
+  "stage": 17,
+  "source_only": true,
+  "base_run": 41387339589,
+  "files": {
+    "Adapter17.h": {
+      "bytes": 1765,
+      "sha256": "5641a4a032e7ba30cedf695fe1c887b24271d433da5a7497b1e98717c64897bd"
+    },
+    "LICENSE": {
+      "bytes": 2682,
+      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
+    },
+    "Snapshot17.h": {
+      "bytes": 2206,
+      "sha256": "00caa890eb1be2549267e85497bf040ec1008ef88f2bdfff0d76fe4ffbf3884b"
+    },
+    "Trace17.h": {
+      "bytes": 2101,
+      "sha256": "a5578aad92e68858886fee9ce95094730b2e0f8d852767144ce1217506ef2934"
+    },
+    "check17.py": {
+      "bytes": 7406,
+      "sha256": "dbb81fde079af24411837e56f5b4ddf1ec80b7208eb7f72897739d55522ac151"
+    },
+    "ci_check17.py": {
+      "bytes": 1969,
+      "sha256": "e1af97d033151f7793d4788a9ac8a0f492db29ce3a80eb002963086d8351d6b0"
+    },
+    "ci_regression16.py": {
+      "bytes": 2411,
+      "sha256": "e738ebb2211cdee80b6b11492d462f2d1f873603cb02306dec9fe7453b910bc9"
+    },
+    "install_stage17.py": {
+      "bytes": 2984,
+      "sha256": "4add3351ff07bbe5c51e36290605cae308e718f352710cd46737b576ab648990"
+    },
+    "make_patch17.py": {
+      "bytes": 1792,
+      "sha256": "b3abd9fb6f2f8bb995e482ef1f71103bec3baeb00aad544e18d4597a96874581"
+    },
+    "qualification_base.py": {
+      "bytes": 3783,
+      "sha256": "ae300e5a2fe2a59aa831e45abb8524f8141b62b772100b43fd74d6353f562e09"
+    },
+    "qualify_stage17_kernel.py": {
+      "bytes": 3736,
+      "sha256": "3c9d18443656fef7500a9da799aedd2806010d4de1afb6f8ee12baa01f0c5af5"
+    },
+    "runtime/LegacyDisplayProbe.cpp": {
+      "bytes": 58677,
+      "sha256": "f36ac3739ddd7ebc151cc48dbae9f19875810f65ae9d67860192fdae184455d7"
+    },
+    "runtime/NativeLegacyDisplay.cpp": {
+      "bytes": 38779,
+      "sha256": "6032eadd760591c93ea505fd94dbbd16ff081771a09b83a3fed5746a23dea374"
+    },
+    "test-output.txt": {
+      "bytes": 173,
+      "sha256": "afd51fc3196df37b0c9a1933da9d55321291249a03757c9131da3da3afa122e0"
+    },
+    "test_adapter17.cpp": {
+      "bytes": 13348,
+      "sha256": "33e73883313d092bff81e49f5a79c60cfc37ded055fd6a7057db69d2f47d5bee"
+    },
+    "validation.json": {
+      "bytes": 1288,
+      "sha256": "7212abf3aa682e2f7b4c79d1e25aa25f7e2e5bea775aa733872103811867c4de"
+    },
+    "zzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch": {
+      "bytes": 1545,
+      "sha256": "093c777cfd9961be1db843d4392aad41854a28b0fb4f5dd133c1adcea9b1c1e2"
+    }
+  }
+}
