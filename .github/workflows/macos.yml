@@ -1042,9 +1042,17 @@ jobs:
           cdx14_patch = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
           cdx14p1_patch = 'zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch'
           cdx15_patch = 'zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch'
+          cdx17_patch = 'zzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch'
           if entries.count(cdx14_patch) != 1:
               raise SystemExit('the CDX14 observation patch is missing or duplicated')
           tail = entries[entries.index(cdx14_patch) + 1:]
+          # Verify the exact new tail first, then retain every prior prefix check.
+          if stage17_installed:
+              if entries.count(cdx17_patch) != 1 or tail[-1:] != [cdx17_patch]:
+                  raise SystemExit('Stage17 patch must occur exactly once after Stage15')
+              tail = tail[:-1]
+          elif cdx17_patch in entries:
+              raise SystemExit('unreported Stage17 patch in series')
           if tail not in ([], [cdx14p1_patch], [cdx14p1_patch, cdx15_patch]):
               raise SystemExit('the device-series diagnostic tail is not cdx14 -> cdx14p1 -> cdx15')
           if stage14p1_supersedes and tail[:1] != [cdx14p1_patch]:
@@ -1227,9 +1235,17 @@ jobs:
           cdx14_patch = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
           cdx14p1_patch = 'zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch'
           cdx15_patch = 'zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch'
+          cdx17_patch = 'zzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch'
           if entries.count(cdx14p1_patch) != 1:
               raise SystemExit('the CDX14.1 console-reclaim patch is missing or duplicated')
           tail = entries[entries.index(cdx14_patch) + 1:]
+          # Verify the exact new tail first, then retain every prior prefix check.
+          if stage17_installed:
+              if entries.count(cdx17_patch) != 1 or tail[-1:] != [cdx17_patch]:
+                  raise SystemExit('Stage17 patch must occur exactly once after Stage15')
+              tail = tail[:-1]
+          elif cdx17_patch in entries:
+              raise SystemExit('unreported Stage17 patch in series')
           allowed_tail = ([cdx14p1_patch, cdx15_patch] if stage15_installed
                           else [cdx14p1_patch])
           if tail != allowed_tail:
@@ -1471,7 +1487,9 @@ jobs:
           cdx14_patch = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
           cdx14p1_patch = 'zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch'
           cdx15_patch = 'zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch'
-          if entries[-3:] != [cdx14_patch, cdx14p1_patch, cdx15_patch] or entries.count(cdx15_patch) != 1:
+          cdx17_patch = 'zzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch'
+          required_tail = [cdx14_patch, cdx14p1_patch, cdx15_patch] + ([cdx17_patch] if stage17_installed else [])
+          if entries[-len(required_tail):] != required_tail or entries.count(cdx15_patch) != 1 or entries.count(cdx17_patch) != int(stage17_installed):
               raise SystemExit('the cdx15 observe patch is not the last series entry after cdx14/cdx14p1')
           if 'zzzzz-cdx-generated-aslr.patch' not in entries:
               raise SystemExit('the generated ASLR patch is missing from the device series')
@@ -1920,6 +1938,9 @@ jobs:
           cdx15_patch = root / 'device/patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch'
           if cdx15_patch.is_file():
               files.append((cdx15_patch, 'zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch'))
+          cdx17_patch = root / 'device/patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch'
+          if cdx17_patch.is_file():
+              files.append((cdx17_patch, cdx17_patch.name))
           device_series = root / 'device/patches/xnu/device/series'
           if device_series.is_file():
               files.append((device_series, 'device-series.txt'))
