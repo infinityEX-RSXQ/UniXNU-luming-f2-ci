@@ -18,10 +18,10 @@ reports+=list(Path('unixnu/build/native-legacy-display').glob('build-report.json
 report=json.loads(reports[0].read_text())
 stage17=json.loads(Path('ci-artifacts/stage17-install-report.json').read_text())
 for rel in installed['after']:assert stage17['before'][rel]==installed['after'][rel]
-materialized=stage17['after']
+after17=stage17['after']
 for materialized,template in [('drivers/GopFramebuffer/NativeLegacyDisplay.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'),
     ('kits/luming-cpu-display/LegacyDisplayProbe.cpp','stage10/stage10-runtime/LegacyDisplayProbe.cpp')]:
-    assert report['source_sha256'][materialized]==materialized[template]
+    assert report['source_sha256'][materialized]==after17[template]
 assert report['generated_abi_sha256']=='8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016'
 assert report['virtual_entries']==358 and not report['original_instructions_modified']
 assert report['original_kernelcache_sha256']=='f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7'

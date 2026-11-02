@@ -28,8 +28,8 @@
       "sha256": "e1af97d033151f7793d4788a9ac8a0f492db29ce3a80eb002963086d8351d6b0"
     },
     "ci_regression16.py": {
-      "bytes": 2411,
-      "sha256": "e738ebb2211cdee80b6b11492d462f2d1f873603cb02306dec9fe7453b910bc9"
+      "bytes": 2401,
+      "sha256": "bca724602db94a84bbf3dfcbcf69aea39679e4e88d6bc1ee910997ce953fd1fb"
     },
     "install_stage17.py": {
       "bytes": 2984,
