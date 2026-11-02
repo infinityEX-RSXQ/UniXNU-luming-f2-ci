@@ -2036,11 +2036,17 @@ jobs:
               print(f"ASSET_SHA {item['name']} {item['sha256']} {item['bytes']}")
           PY
 
-      - name: Dump display build log on failure
+      - name: Repro display build with stderr on failure
         if: failure()
         shell: bash
         run: |
-          find unixnu/out -name 'archive-16-*.log' -print -exec sh -c 'echo "===== $1"; cat "$1"' _ {} \; || true
+          set +e
+          tree=$(find unixnu/out -path "*/luming/tree/scripts" -type d | head -1)
+          echo "TREE=$tree"
+          if [ -n "$tree" ]; then
+            cd "$(dirname "$tree")"
+            UNIXNU_KERNELCACHE="${UNIXNU_KERNELCACHE:-}" PYTHONUNBUFFERED=1 python3 scripts/build-luming-cpu-legacy-display.py 2>&1 | tail -80
+          fi
       - name: Remove proprietary inputs
         if: always()
         run: |
