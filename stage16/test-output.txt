@@ -1,0 +1,2 @@
+Stage15 model, attribution, generation reuse, late sampling, locks, registry and text bounds PASS
+Stage16 start/arm policy and single subscription read: PASS

@@ -1,0 +1,25 @@
+{
+  "stage": 16,
+  "before": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "53c63b9bd5583ba3692f853ef9dde085467e63b7812b4d9b1f0e62e0e0322d7c",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "830f091534c3c777da55c429675230506c91875c6bc87d78a784516523aae2b6",
+    "patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch": "5bd651af5b44260d769109b7cf8f14d06739b181b7b7e86cbc7203281f6bcda5"
+  },
+  "after": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "7ad53f1536861fe5ae529c89bf739d5ab11c72a93619668079e9ac30c535ea93",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "6032eadd760591c93ea505fd94dbbd16ff081771a09b83a3fed5746a23dea374"
+  },
+  "applied": true,
+  "core_patch_unchanged": true,
+  "scheduling_policy_changed": false,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "passed": true,
+  "host_adapter": true,
+  "relative_time_fixed": true,
+  "pacing_return_paths_tested": 9,
+  "subscriber_read_once": true,
+  "arm64_interface_fixtures": true,
+  "gpr_only_instructions_checked": 4162,
+  "fixture": "D:\\Codex\\tmp\\stage16-check-1793586784493734300"
+}

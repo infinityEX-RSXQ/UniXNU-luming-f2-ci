@@ -1,0 +1,82 @@
+{
+  "stage": 16,
+  "source_only": true,
+  "base_run": 41372922740,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "encoding_note": "SHA256 of canonical staged Git blobs; LF text in CI",
+  "files": {
+    "BUILD-REQUEST.md": {
+      "bytes": 4418,
+      "sha256": "a430ba4a41b367971aa418745c414ede26cc43c4cfa082cfcfede8a27df3a042"
+    },
+    "LICENSE": {
+      "bytes": 2682,
+      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
+    },
+    "STAGE15-RESULT-20261102-0943.md": {
+      "bytes": 4165,
+      "sha256": "7bb187c8e75e898eb84f6eecfaf4f76da8b25e515aa0d30be8b05df30750d602"
+    },
+    "Vsync16.h": {
+      "bytes": 826,
+      "sha256": "9b0af731cf19777240add5c6ad8a1533e6dce940efa9da63ffa057611c10bb52"
+    },
+    "check16.py": {
+      "bytes": 7829,
+      "sha256": "b4ac8c2b5f100720f2d90e06cb00cf0023c7feabce14b038159e82674800c55f"
+    },
+    "ci_check16.py": {
+      "bytes": 2160,
+      "sha256": "beb0ee70892de15da3ae3958addce68797181fb3ebcfe16319dae3379fc260da"
+    },
+    "install_stage16.py": {
+      "bytes": 6192,
+      "sha256": "2c5e9b389f37eedf4ac79790d0ca5c37a25817ffdc14623f7e03706a4a235df2"
+    },
+    "package16.py": {
+      "bytes": 4877,
+      "sha256": "3b8db7cb351b3b2f98fdd3ec9854d04b0758ae32441bffe39f25261a71942e9c"
+    },
+    "qualification-negative.json": {
+      "bytes": 131,
+      "sha256": "1b740b7dcf46c6a4336d1874702b3e405b022e79acf0d9045667862e9257772a"
+    },
+    "qualification_base.py": {
+      "bytes": 3783,
+      "sha256": "ae300e5a2fe2a59aa831e45abb8524f8141b62b772100b43fd74d6353f562e09"
+    },
+    "qualify_stage16_kernel.py": {
+      "bytes": 4662,
+      "sha256": "3fb8e792c2dfa1a83fac0b476c8110a503c5975b6cf908562d4e0b581588494e"
+    },
+    "runtime/LegacyDisplayProbe.cpp": {
+      "bytes": 52397,
+      "sha256": "7ad53f1536861fe5ae529c89bf739d5ab11c72a93619668079e9ac30c535ea93"
+    },
+    "runtime/NativeLegacyDisplay.cpp": {
+      "bytes": 38779,
+      "sha256": "6032eadd760591c93ea505fd94dbbd16ff081771a09b83a3fed5746a23dea374"
+    },
+    "stage15-to-stage16.diff": {
+      "bytes": 8942,
+      "sha256": "ca0ab40f0a6125d081d276ff2af645ff74a6e0c740813a9f6c3e1004a9915ad3"
+    },
+    "test-output.txt": {
+      "bytes": 158,
+      "sha256": "00ff55c9af12e7efc355399406e15604c3b772543266945db7ab281119644343"
+    },
+    "test_adapter16.cpp": {
+      "bytes": 10452,
+      "sha256": "8c15861ca2623da61c6ad55a1b0211d789dd43e19984a0425774be951d9d6a06"
+    },
+    "test_pacing16.cpp": {
+      "bytes": 4608,
+      "sha256": "8e3dcd34097a0249527592e8afbc74819e6244c910ec1f054996262ff869d9d6"
+    },
+    "validation.json": {
+      "bytes": 1115,
+      "sha256": "89e52a738b40a321f17ac9ca937f6b79faf5aee1142118b0dea4d89817ad7745"
+    }
+  }
+}

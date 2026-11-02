@@ -150,3 +150,324 @@ patches/unixnu/unixnu-components-lumingufs.patch and .github/workflows/porting-r
   order. No device operations performed.
 
 
+
+2026-11-02 Stage16 isolated CI checkout; explicit UniXNU reference.
+[PASS] UniXNU reference: D:\civitoip20\unixnu-format2\UniXNU
+[PASS] toml parse: board.toml
+[PASS] toml parse: docs\reference\dada-board.toml
+[PASS] toml parse: docs\reference\unixnu-example.toml
+[PASS] toml parse: feeds.toml
+[PASS] toml parse: package\LumingKit\Kit.toml
+[PASS] toml parse: package\unixnu.toml
+[PASS] toml parse: porting.toml
+[PASS] toml parse: proposals\profiles\os\ios-16.7.16-20H392\profile.toml
+[PASS] toml parse: soc\soc.toml
+[PASS] board.name = luming
+[PASS] board.soc = SM8735
+[PASS] board.soc_source = sm8735
+[PASS] board.os_profile = ipados-17.7.11-21H461
+[PASS] board.kit = luming
+[PASS] schema_version = 2
+[PASS] os_profile exists: ipados-17.7.11-21H461
+[WARN] component LumingUfs is a board module without a catalog entry  -> needs patches/unixnu/unixnu-components-lumingufs.patch applied to UniXNU
+[PASS] components: 8 selected incl dependencies: ArmCpu, ArmDTPlatform, DarwinBoot, LumingUfs, RamBlock, SoftwareAES, VerifiedRoot, XnuPrelink
+[PASS] defconfig exists: configs\luming_defconfig
+[PASS] config fragment arch:configs/common.config
+[PASS] config fragment soc:configs/sm8735.config
+[PASS] config fragment os:configs/ipados.config
+[PASS] patch series arch:patches/xnu/series
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/apple-only-cpu-tunables.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/architectural-timer-entry.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/armvirt-platform-personality.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/cxx-flag-dependencies.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/disabled-deferred-reclaim.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/external-archive-dependencies.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/kernel-sdk-root.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/local-availability.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-intermediate-lookup.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-memory-device-width.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-statfs.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-test-file.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-typed-allocation.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-4k-bootstrap-capacity.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-4k-signature-hash-cache.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-4k-user-abi.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-aes-personality.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-arm-pan.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-dt-panic-region.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-lookup-trace.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-priv-work-interval.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-quiet-managed-page-report.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-text-fixup.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-trust-cache-runtime.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-union-getattrlistbulk.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-union-lower-directory.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-work-interval-soft-fail.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-work-interval-trace.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/non-apple-cache-monitor.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/non-apple-iommu-bootstrap.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/non-apple-pmap-field.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/null-root-media.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-component-load-probes.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-legacy-start.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-native-gpu-broker.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-boot-manifest.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-cache-carrier.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-root-binding-audit.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-root-crypto-probe.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-systemos-mount.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-z-air-init.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-pgz-alignment-probe.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/pgz-aligned-validation.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/public-entitlements-header.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/published-freezer-condition.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/source-corecrypto14-bootstrap.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/source-machine-layer.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/source-pthread-bootstrap.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzw-native-adreno-sandbox-grant.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzwb-native-sandbox-grant-set-properties.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzx-pmap-sync-64bit-pa.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzy-native-gpu-addon-mount.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzy-staged-system-apps.patch
+[PASS] patch series soc:patches/xnu/series
+[PASS]   series entry soc:patches/xnu/series: native-smp-secondary.patch
+[PASS] patch series os:patches/xnu/series
+[PASS]   series entry os:patches/xnu/series: arch:../../../patches/xnu/zzz-boot-progress.patch
+[WARN]   component series entry (resolver-owned): component:XnuPrelink/patches/xnu-10063.141.1-security-init.patch
+[WARN]   component series entry (resolver-owned): component:XnuPrelink/patches/xnu-10063.141.1-sparse-index.patch
+[PASS] patch series device:patches/xnu/device/series
+[PASS]   series entry device:patches/xnu/device/series: zzzzz-fix-darwinboot-physical-framebuffer.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzz-luming-defer-console-init.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzz-luming-skip-root-auth-gate-without-owner-audit.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzz-luming-entitlements-without-amfi.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzz-luming-more-amfi-null-guards.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzz-luming-no-cs-bringup.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzz-luming-cache-path.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzz-luming-owner-cache-diagnostics.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzz-luming-owner-cache-initproc-panic.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzz-luming-owner-cache-probe.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzz-luming-owner-cache-root-list.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzz-luming-owner-cache-root-hex.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzz-luming-owner-cache-dirent32.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzz-luming-owner-cache-union-env.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzz-luming-ufs-log.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzzzzzz-luming-rwlock-diag.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzzzzzz-luming-force-trust-cache-runtime.patch
+[PASS] archive builder present: build-corecrypto-14.py
+[PASS] archive builder present: build-corecrypto-14.py
+[PASS] archive component: component:ArmDTPlatform
+[PASS] archive component: component:ArmCpu
+[PASS] archive component: component:SoftwareAES
+[PASS] archive builder present: build-software-aes-bindings.py
+[PASS] archive builder present: build-libpthread-kernel.py
+[PASS] archive builder present: build-storage-classes.py
+[WARN] archive component is a board module without a catalog entry: component:LumingUfs  -> needs patches/unixnu/unixnu-components-lumingufs.patch
+[PASS] archive builder present: build-luming-platform-power.py
+[PASS] archive builder present: build-storage-kext-bindings.py
+[PASS] archive component: component:RamBlock
+[PASS] archive builder present: build-luming-ram-block.py
+[PASS] archive builder present: build-luming-boot-log.py
+[PASS] prelink roots = 27 (dada proven shape 27)
+[PASS] prelink root com.apple.driver.AppleMobileFileIntegrity
+[PASS] prelink root com.apple.driver.ApplePMGR
+[PASS] prelink root com.apple.security.sandbox
+[PASS] prelink root com.apple.security.AppleImage4
+[PASS] early_security_init present (AMFI initializer)
+[PASS] board DTS exists: dts\luming.dts
+[PASS] DTS include dir: soc:dts  -> D:\civitoip20\lumingios-cdx\builds\stage16-ci-work\repo\soc\dts
+[PASS] sm8735.dtsi include present
+[PASS] ADT DRAM window: dts 0x23ffff000 vs payload 0x23ffff000
+[PASS] splash_region 0xfc800000 present
+[PASS] payload volume = LUMINGESP (9 chars)
+[PASS] bootimg header_version v4
+[PASS] bootimg pagesize 4096
+[PASS] bootimg splash dtb node
+[PASS] payload.adt.chip_id = '8011'
+[PASS] payload.adt.owned_memory_size = '0x10000000'
+[PASS] payload.adt.root_match_volume_uuid = '04769D26-2CA0-4825-B443-E2E5F88300F2'
+[PASS] payload.adt.unique_chip_id = 'required'
+[PASS] root UUID matches the 21H461 SystemOS volume
+[PASS] trust_cache pins = 1
+[PASS] userdata LBAs 3124736..128619514
+[PASS] typed [adt] tables present
+[PASS] firmware.dsc = 'Platforms/Xiaomi/lumingPkg/luming.dsc'
+[PASS] firmware.fd = 'Build/lumingPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd'
+[PASS] firmware.config = 'luming'
+[MISS] firmware preflight missing: scripts/check-luming.py
+[MISS] external uefi-luming checkout  -> owned by uefi-builder; firmware/README.md
+[MISS] FD base/size 0xA7100000/0x300000 unverified  -> measure luming reserved region
+[PASS] porting.toml: 13 areas
+[MISS] component source: drivers/LumingUfs  -> not a format-2 component yet
+[MISS] component source: drivers/LumingDisplayTouch  -> not a format-2 component yet
+[MISS] payload input: data.dbr  -> provided at build time, never committed
+[MISS] payload input: trustcache.bundle  -> provided at build time, never committed
+[ERR ] workflow .github/workflows/porting-record.yml
+[PASS] workflow .github/workflows/macos.yml
+
+summary: 142 pass, 7 missing, 4 warn, 1 error
+
+exit=1
+
+2026-11-02 Stage16 isolated CI checkout; explicit UniXNU reference.
+[PASS] UniXNU reference: D:\civitoip20\unixnu-format2\UniXNU
+[PASS] toml parse: board.toml
+[PASS] toml parse: docs\reference\dada-board.toml
+[PASS] toml parse: docs\reference\unixnu-example.toml
+[PASS] toml parse: feeds.toml
+[PASS] toml parse: package\LumingKit\Kit.toml
+[PASS] toml parse: package\unixnu.toml
+[PASS] toml parse: porting.toml
+[PASS] toml parse: proposals\profiles\os\ios-16.7.16-20H392\profile.toml
+[PASS] toml parse: soc\soc.toml
+[PASS] board.name = luming
+[PASS] board.soc = SM8735
+[PASS] board.soc_source = sm8735
+[PASS] board.os_profile = ipados-17.7.11-21H461
+[PASS] board.kit = luming
+[PASS] schema_version = 2
+[PASS] os_profile exists: ipados-17.7.11-21H461
+[WARN] component LumingUfs is a board module without a catalog entry  -> needs patches/unixnu/unixnu-components-lumingufs.patch applied to UniXNU
+[PASS] components: 8 selected incl dependencies: ArmCpu, ArmDTPlatform, DarwinBoot, LumingUfs, RamBlock, SoftwareAES, VerifiedRoot, XnuPrelink
+[PASS] defconfig exists: configs\luming_defconfig
+[PASS] config fragment arch:configs/common.config
+[PASS] config fragment soc:configs/sm8735.config
+[PASS] config fragment os:configs/ipados.config
+[PASS] patch series arch:patches/xnu/series
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/apple-only-cpu-tunables.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/architectural-timer-entry.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/armvirt-platform-personality.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/cxx-flag-dependencies.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/disabled-deferred-reclaim.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/external-archive-dependencies.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/kernel-sdk-root.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/local-availability.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-intermediate-lookup.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-memory-device-width.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-statfs.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-test-file.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/mockfs-typed-allocation.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-4k-bootstrap-capacity.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-4k-signature-hash-cache.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-4k-user-abi.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-aes-personality.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-arm-pan.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-dt-panic-region.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-lookup-trace.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-priv-work-interval.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-quiet-managed-page-report.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-text-fixup.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-trust-cache-runtime.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-union-getattrlistbulk.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-union-lower-directory.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-work-interval-soft-fail.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/native-work-interval-trace.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/non-apple-cache-monitor.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/non-apple-iommu-bootstrap.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/non-apple-pmap-field.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/null-root-media.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-component-load-probes.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-legacy-start.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-native-gpu-broker.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-boot-manifest.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-cache-carrier.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-root-binding-audit.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-root-crypto-probe.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-systemos-mount.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-owner-z-air-init.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/offline-pgz-alignment-probe.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/pgz-aligned-validation.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/public-entitlements-header.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/published-freezer-condition.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/source-corecrypto14-bootstrap.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/source-machine-layer.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/source-pthread-bootstrap.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzw-native-adreno-sandbox-grant.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzwb-native-sandbox-grant-set-properties.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzx-pmap-sync-64bit-pa.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzy-native-gpu-addon-mount.patch
+[PASS]   series entry arch:patches/xnu/series: ../../../../../patches/xnu/zzy-staged-system-apps.patch
+[PASS] patch series soc:patches/xnu/series
+[PASS]   series entry soc:patches/xnu/series: native-smp-secondary.patch
+[PASS] patch series os:patches/xnu/series
+[PASS]   series entry os:patches/xnu/series: arch:../../../patches/xnu/zzz-boot-progress.patch
+[WARN]   component series entry (resolver-owned): component:XnuPrelink/patches/xnu-10063.141.1-security-init.patch
+[WARN]   component series entry (resolver-owned): component:XnuPrelink/patches/xnu-10063.141.1-sparse-index.patch
+[PASS] patch series device:patches/xnu/device/series
+[PASS]   series entry device:patches/xnu/device/series: zzzzz-fix-darwinboot-physical-framebuffer.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzz-luming-defer-console-init.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzz-luming-skip-entitlement-acceleration-without-amfi.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzz-luming-skip-root-auth-gate-without-owner-audit.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzz-luming-entitlements-without-amfi.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzz-luming-more-amfi-null-guards.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzz-luming-no-cs-bringup.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzz-luming-cache-path.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzz-luming-owner-cache-diagnostics.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzz-luming-owner-cache-initproc-panic.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzz-luming-owner-cache-probe.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzz-luming-owner-cache-root-list.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzz-luming-owner-cache-root-hex.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzz-luming-owner-cache-dirent32.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzz-luming-owner-cache-union-env.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzz-luming-sheng-pmgr-call.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzz-luming-ufs-log.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzzzzzz-luming-rwlock-diag.patch
+[PASS]   series entry device:patches/xnu/device/series: zzzzzzzzzzzzzzzzzzzzz-luming-force-trust-cache-runtime.patch
+[PASS] archive builder present: build-corecrypto-14.py
+[PASS] archive builder present: build-corecrypto-14.py
+[PASS] archive component: component:ArmDTPlatform
+[PASS] archive component: component:ArmCpu
+[PASS] archive component: component:SoftwareAES
+[PASS] archive builder present: build-software-aes-bindings.py
+[PASS] archive builder present: build-libpthread-kernel.py
+[PASS] archive builder present: build-storage-classes.py
+[WARN] archive component is a board module without a catalog entry: component:LumingUfs  -> needs patches/unixnu/unixnu-components-lumingufs.patch
+[PASS] archive builder present: build-luming-platform-power.py
+[PASS] archive builder present: build-storage-kext-bindings.py
+[PASS] archive component: component:RamBlock
+[PASS] archive builder present: build-luming-ram-block.py
+[PASS] archive builder present: build-luming-boot-log.py
+[PASS] prelink roots = 27 (dada proven shape 27)
+[PASS] prelink root com.apple.driver.AppleMobileFileIntegrity
+[PASS] prelink root com.apple.driver.ApplePMGR
+[PASS] prelink root com.apple.security.sandbox
+[PASS] prelink root com.apple.security.AppleImage4
+[PASS] early_security_init present (AMFI initializer)
+[PASS] board DTS exists: dts\luming.dts
+[PASS] DTS include dir: soc:dts  -> D:\civitoip20\lumingios-cdx\builds\stage16-ci-work\repo\soc\dts
+[PASS] sm8735.dtsi include present
+[PASS] ADT DRAM window: dts 0x23ffff000 vs payload 0x23ffff000
+[PASS] splash_region 0xfc800000 present
+[PASS] payload volume = LUMINGESP (9 chars)
+[PASS] bootimg header_version v4
+[PASS] bootimg pagesize 4096
+[PASS] bootimg splash dtb node
+[PASS] payload.adt.chip_id = '8011'
+[PASS] payload.adt.owned_memory_size = '0x10000000'
+[PASS] payload.adt.root_match_volume_uuid = '04769D26-2CA0-4825-B443-E2E5F88300F2'
+[PASS] payload.adt.unique_chip_id = 'required'
+[PASS] root UUID matches the 21H461 SystemOS volume
+[PASS] trust_cache pins = 1
+[PASS] userdata LBAs 3124736..128619514
+[PASS] typed [adt] tables present
+[PASS] firmware.dsc = 'Platforms/Xiaomi/lumingPkg/luming.dsc'
+[PASS] firmware.fd = 'Build/lumingPkg/{target}_CLANGPDB/FV/SILICIUM_UEFI.fd'
+[PASS] firmware.config = 'luming'
+[MISS] firmware preflight missing: scripts/check-luming.py
+[MISS] external uefi-luming checkout  -> owned by uefi-builder; firmware/README.md
+[MISS] FD base/size 0xA7100000/0x300000 unverified  -> measure luming reserved region
+[PASS] porting.toml: 13 areas
+[MISS] component source: drivers/LumingUfs  -> not a format-2 component yet
+[MISS] component source: drivers/LumingDisplayTouch  -> not a format-2 component yet
+[MISS] payload input: data.dbr  -> provided at build time, never committed
+[MISS] payload input: trustcache.bundle  -> provided at build time, never committed
+[ERR ] workflow .github/workflows/porting-record.yml
+[PASS] workflow .github/workflows/macos.yml
+
+summary: 142 pass, 7 missing, 4 warn, 1 error
+
+exit=1
+Unchanged Stage15 baseline error confirmed: missing porting-record.yml; no new skeleton errors.

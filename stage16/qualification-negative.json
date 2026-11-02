@@ -1,0 +1,5 @@
+{
+  "passed": true,
+  "stage15_rejected": "missing Stage16 definition: cdx16_vsync_observed",
+  "stage16_kernel_available": false
+}
