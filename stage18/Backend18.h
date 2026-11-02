@@ -20,8 +20,8 @@
         if(loop->runAction(action,this,&view)!=kIOReturnSuccess)view={};return view;
     }
     IOReturn waitForSwap(IOUserClient *client,uint32_t id,uint32_t flags,uint32_t timeout) override {
-        if(!enabled18())return IOMobileFramebufferLegacy::waitForSwap(client,id,flags,timeout);
+        if(!enabled18())return cdx18_original_wait(this,client,id,flags,timeout);
         Cdx18View pre=boundaryView18();uint64_t token=cdx18_wait_begin(client,id,flags,timeout,&pre);
-        IOReturn status=IOMobileFramebufferLegacy::waitForSwap(client,id,flags,timeout);
+        IOReturn status=cdx18_original_wait(this,client,id,flags,timeout);
         Cdx18View post=boundaryView18();cdx18_wait_end(token,(uint32_t)status,&post);return status;
     }

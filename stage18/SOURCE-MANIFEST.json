@@ -1,5 +1,6 @@
 {
   "stage": 18,
+  "revision": 2,
   "source_only": true,
   "base_run": 41402982992,
   "files": {
@@ -8,32 +9,24 @@
       "sha256": "e1aec6abe110a7e05b242143fe51536db79ac85d711d3bebc303726dbfed6ff3"
     },
     "Backend18.h": {
-      "bytes": 1672,
-      "sha256": "b5ecf33d5db158c518fb6f281a6f73856889428b18332829656945b074ef4fc2"
+      "bytes": 1644,
+      "sha256": "a3759fd66d0e48ee96c994c320bd05b688cadb11cefe8c1e826a356c3d1ae41d"
     },
-    "LICENSE": {
-      "bytes": 2682,
-      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
-    },
-    "Model18.h": {
-      "bytes": 1759,
-      "sha256": "64a454c06a3ec7d108c5d12c9d35dc32ea3b3235163e14fd8d84c2b7c96fa146"
-    },
-    "Snapshot18.h": {
-      "bytes": 1670,
-      "sha256": "e7350afbf916ad7a62ddb9da80b9756f3efbf9ad32cefbe9a9a070a494575ed5"
+    "BUILD-REQUEST.md": {
+      "bytes": 5294,
+      "sha256": "624fa4a81e5ed8ae00f234a239ace92b8ccf84750501ded51a330887d35f66de"
     },
     "check18.py": {
-      "bytes": 8453,
-      "sha256": "cb9038e44469a09e751b524f7d8b7dccf5e5ae5c3fee5f8d0bd59fdc45262b77"
+      "bytes": 8879,
+      "sha256": "467fbfd068bd5fa6b35585aef2b3383683b242ff67c10bc03e56670ad85561fd"
     },
     "ci-workflow-stage18.yml": {
       "bytes": 125002,
       "sha256": "0b9035175ba2251bf543fb6d0ddbfba7624b5d7d87168f4ebaf62646e0417bb2"
     },
     "ci_check18.py": {
-      "bytes": 2004,
-      "sha256": "7d1dad486a9de48bfe647fd2461dc917965c6a9412c837a483a8dd163c0a2147"
+      "bytes": 2152,
+      "sha256": "55f1a5a66f692fad3bfae4e03d41714a00e26c9cdff53aa18126fddff719d689"
     },
     "expected-abi.json": {
       "bytes": 141,
@@ -44,28 +37,28 @@
       "sha256": "98a3d9c662837b91d76045c2e6a14770570fa767f44fd4e762508991c9cbabb9"
     },
     "install_stage18.py": {
-      "bytes": 4802,
-      "sha256": "52ab105f53aa8b743acbea1ba4bcd2943f2befbdeaa0dea16bb36e0e2391d252"
+      "bytes": 5439,
+      "sha256": "9ae2619ac93d9058511e65fc70cc08949d50e5c3be5d92fa7442f211cc278e86"
+    },
+    "LICENSE": {
+      "bytes": 2682,
+      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
+    },
+    "Model18.h": {
+      "bytes": 1759,
+      "sha256": "64a454c06a3ec7d108c5d12c9d35dc32ea3b3235163e14fd8d84c2b7c96fa146"
     },
     "original-wait-guards.json": {
       "bytes": 3699,
       "sha256": "b63bec64d5a49b4f8d698034ca42ff7ef60e0912a08402805012816c7e630c0d"
     },
     "qualify_stage18_kernel.py": {
-      "bytes": 4069,
-      "sha256": "d76de93e58f65f235d0027d4ee11603eb1aaa5a400a62c43ef28dd1f8b2e9e3e"
+      "bytes": 4225,
+      "sha256": "fdf120868b9fc44b2f73a1f76f64765486e1e69cd8ee2d435cc705298220d887"
     },
-    "runtime/LegacyDisplayProbe.cpp": {
-      "bytes": 63671,
-      "sha256": "77aad4d83579a0cf53f039ee0b72fe098385bbaced1ef2182b45b5fd6b1d2fef"
-    },
-    "runtime/NativeLegacyDisplay.cpp": {
-      "bytes": 41401,
-      "sha256": "e05cc771841ade049797a059e56d567e8facf78f368106bf18a91262eb35e77f"
-    },
-    "runtime/build-luming-cpu-legacy-display.py": {
-      "bytes": 22962,
-      "sha256": "d8b73026e716c64920e4035ea4b1e7306d06f75e697ab6658b90a25bdbf8bb56"
+    "Snapshot18.h": {
+      "bytes": 1670,
+      "sha256": "e7350afbf916ad7a62ddb9da80b9756f3efbf9ad32cefbe9a9a070a494575ed5"
     },
     "test-output.txt": {
       "bytes": 170,
@@ -76,12 +69,24 @@
       "sha256": "9070b786683011d751c8464059c65288c4c4a62a457e2c97d732b2236d8d0fb8"
     },
     "test_backend18.cpp": {
-      "bytes": 2558,
-      "sha256": "97139dfb19bdb3e01ca0f1bfc18ad96079f8993dbbf7588505071d134ce0fd62"
+      "bytes": 3037,
+      "sha256": "602ae7214e2cff5579e5d05b5ac3a04e3a1ab5ad9cc31fae3347116c8ea38928"
     },
     "validation.json": {
-      "bytes": 1525,
-      "sha256": "2feb0b0f14ffff1d13bd6b257fa2de647ec71c520363c2e9a10b673212818364"
+      "bytes": 1561,
+      "sha256": "c02316936012bfa348e9cbb5f9048918688d3fe5ddb9b1c249f5775eaceba86e"
+    },
+    "runtime/build-luming-cpu-legacy-display.py": {
+      "bytes": 23050,
+      "sha256": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
+    },
+    "runtime/LegacyDisplayProbe.cpp": {
+      "bytes": 63671,
+      "sha256": "77aad4d83579a0cf53f039ee0b72fe098385bbaced1ef2182b45b5fd6b1d2fef"
+    },
+    "runtime/NativeLegacyDisplay.cpp": {
+      "bytes": 41689,
+      "sha256": "3f75b236341f9a75f44590c09eda645ac7a5f25272629f12636360a1f9afc509"
     }
   }
 }

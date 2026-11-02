@@ -1,7 +1,12 @@
 #include <stdint.h>
 #include <stddef.h>
+#ifndef CDX18_KEXT_ONLY
 #include <string.h>
 #include <assert.h>
+#else
+extern "C" void *memcpy(void *,const void *,size_t);
+#define assert(x) do {if(!(x))__builtin_trap();}while(0)
+#endif
 typedef int IOReturn;
 static constexpr int kIOReturnSuccess=0;
 static bool diagnostic;static unsigned locks,reads,beginCount,endCount,baseCount;
@@ -29,6 +34,11 @@ struct IOMobileFramebufferLegacy: OSObject {
         uint32_t completed=2;memcpy(reinterpret_cast<char *>(this)+0x16bc,&completed,4);return response;
     }
 };
+#ifndef CDX18_KEXT_ONLY
+extern "C" int cdx18_original_wait(IOMobileFramebufferLegacy *p,IOUserClient *c,uint32_t i,uint32_t f,uint32_t t){return p->IOMobileFramebufferLegacy::waitForSwap(c,i,f,t);}
+#else
+extern "C" int cdx18_original_wait(IOMobileFramebufferLegacy *,IOUserClient *,uint32_t,uint32_t,uint32_t);
+#endif
 struct NativeLegacyDisplay: IOMobileFramebufferLegacy {
     bool hasLoop=true;
     IOWorkLoop *getWorkLoop(){return hasLoop?&loop:nullptr;}
@@ -44,4 +54,5 @@ int main(){
     assert(preSeen.valid && preSeen.completed==1 && postSeen.valid && postSeen.completed==2);
     n.hasLoop=false;response=0;assert(n.waitForSwap(&client,inputId,inputFlags,inputTimeout)==response);
     assert(baseCount==3 && beginCount==2 && endCount==2 && !preSeen.valid && !postSeen.valid);
+    return 0;
 }

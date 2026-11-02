@@ -83,6 +83,9 @@ extern "C" uint64_t cdx18_wait_begin(IOUserClient *,uint32_t,uint32_t,uint32_t,c
 extern "C" void cdx18_wait_end(uint64_t,uint32_t,const Cdx18View *);
 extern "C" uint64_t cdx18_done_begin(uint32_t,uint32_t,const Cdx18View *);
 extern "C" void cdx18_done_end(uint64_t,const Cdx18View *);
+// Ordinary C aliases force a checked direct call even under -fapple-kext.
+extern "C" IOReturn cdx18_original_wait(IOMobileFramebufferLegacy *,IOUserClient *,uint32_t,uint32_t,uint32_t);
+extern "C" void cdx18_original_complete(IOMobileFramebufferLegacy *);
 class NativeLegacyDisplay : public IOMobileFramebufferLegacy {
     OSDeclareDefaultStructors(NativeLegacyDisplay)
     IOMemoryMap *bootMapping=nullptr;
@@ -201,9 +204,9 @@ public:
         if(loop->runAction(action,this,&view)!=kIOReturnSuccess)view={};return view;
     }
     IOReturn waitForSwap(IOUserClient *client,uint32_t id,uint32_t flags,uint32_t timeout) override {
-        if(!enabled18())return IOMobileFramebufferLegacy::waitForSwap(client,id,flags,timeout);
+        if(!enabled18())return cdx18_original_wait(this,client,id,flags,timeout);
         Cdx18View pre=boundaryView18();uint64_t token=cdx18_wait_begin(client,id,flags,timeout,&pre);
-        IOReturn status=IOMobileFramebufferLegacy::waitForSwap(client,id,flags,timeout);
+        IOReturn status=cdx18_original_wait(this,client,id,flags,timeout);
         Cdx18View post=boundaryView18();cdx18_wait_end(token,(uint32_t)status,&post);return status;
     }
     void free() override {stopVsync();if(logicalPM){PMstop();logicalPM=false;}primary=false;OSSafeReleaseNULL(bootMapping);IOMobileFramebufferLegacy::free();}
@@ -482,7 +485,8 @@ public:
             }
             cdx18_token=cdx18_done_begin(id,raw32c,&pre);
         }
-        IOMobileFramebufferLegacy::completeCurrentSwap();
+        if(cdx18_token)cdx18_original_complete(this);
+        else IOMobileFramebufferLegacy::completeCurrentSwap();
         // The original call may release request. Never dereference it here.
         if(cdx18_token){Cdx18View post=gatedView18();cdx18_done_end(cdx18_token,&post);}
         cdx15_retire_end(request,cdx15_generation);

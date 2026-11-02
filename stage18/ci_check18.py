@@ -17,6 +17,8 @@ reports+=list(Path('unixnu/build/native-legacy-display').glob('build-report.json
 report=json.loads(reports[0].read_text())
 assert report['generated_abi_sha256']==expected['generated_abi_sha256']
 assert report['virtual_entries']==358 and 176 in report['owned_entries']
+assert report['bindings']['_cdx18_original_wait']=='0xfffffff00578d998'
+assert report['bindings']['_cdx18_original_complete']=='0xfffffff005795b88'
 for materialized,template in [('drivers/GopFramebuffer/NativeLegacyDisplay.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'),('kits/luming-cpu-display/LegacyDisplayProbe.cpp','stage10/stage10-runtime/LegacyDisplayProbe.cpp')]:
     assert report['source_sha256'][materialized]==installed['after'][template]
 for rel in installed['after']:assert hashlib.sha256((Path('device')/rel).read_bytes()).hexdigest()==installed['after'][rel]

@@ -7,8 +7,8 @@
   },
   "after": {
     "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "77aad4d83579a0cf53f039ee0b72fe098385bbaced1ef2182b45b5fd6b1d2fef",
-    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "e05cc771841ade049797a059e56d567e8facf78f368106bf18a91262eb35e77f",
-    "stage10/stage10-build/build-luming-cpu-legacy-display.py": "d8b73026e716c64920e4035ea4b1e7306d06f75e697ab6658b90a25bdbf8bb56"
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "3f75b236341f9a75f44590c09eda645ac7a5f25272629f12636360a1f9afc509",
+    "stage10/stage10-build/build-luming-cpu-legacy-display.py": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
   },
   "generated_abi_sha256": "8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a",
   "applied": true,
@@ -25,7 +25,8 @@
   "generated_header_exact": true,
   "completion_no_post_release_read": true,
   "backend_gate_and_passthrough": true,
+  "apple_kext_direct_alias": true,
   "arm64_interface_fixture": true,
   "gpr_only_instructions_checked": 5729,
-  "fixture": "D:\\Codex\\tmp\\stage18-check-1793615038309179400"
+  "fixture": "D:\\Codex\\tmp\\stage18-check-1793661255261495500"
 }

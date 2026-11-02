@@ -98,6 +98,9 @@ run([LLVM/'clang++.exe',*flags,TMP/'adapter.cpp','-o',TMP/'adapter.exe']);output
 run([LLVM/'clang++.exe',*flags,'-I',HERE,HERE/'test_backend18.cpp','-o',TMP/'backend.exe']);run([TMP/'backend.exe'])
 arm=['-target','arm64-apple-ios17.0','-ffreestanding','-fno-builtin','-fno-exceptions','-fno-rtti','-mgeneral-regs-only','-DCDX15_ABI_ONLY']
 run([LLVM/'clang++.exe',*flags,*arm,'-c',TMP/'adapter.cpp','-o',TMP/'adapter-arm64.o'])
+run([LLVM/'clang++.exe',*flags,'-I',HERE,'-target','arm64-apple-ios17.0','-fapple-kext','-mkernel','-mgeneral-regs-only','-fno-exceptions','-fno-rtti','-DCDX18_KEXT_ONLY','-c',HERE/'test_backend18.cpp','-o',TMP/'backend-kext.o'])
+imports=run([LLVM/'llvm-nm.exe','-u',TMP/'backend-kext.o'])
+assert '_cdx18_original_wait' in imports and '__ZN25IOMobileFramebufferLegacy11waitForSwap' not in imports
 assembly=run([LLVM/'llvm-objdump.exe','--macho','--disassemble',TMP/'adapter-arm64.o'])
 ins=[m.group(1) for m in re.finditer(r'^\s*[0-9a-f]+:\t(?:[0-9a-f]{2} ){3}[0-9a-f]{2}\t(.+)$',assembly,re.M)]
 assert len(ins)>100
@@ -105,7 +108,7 @@ for x in ins:
     assert not x.split()[0].startswith('f') and x.split()[0] not in ('scvtf','ucvtf'),x
     assert not re.search(r'\b[bdhqsv](?:[0-9]|[12][0-9]|3[01])(?:\.[0-9a-z]+)?\b',x),x
 result.update(passed=True,host_adapter=True,prior_stage15_16_17_tests=True,paired_concurrency=True,
-    bounded_output=True,generated_header_exact=True,completion_no_post_release_read=True,backend_gate_and_passthrough=True,
+    bounded_output=True,generated_header_exact=True,completion_no_post_release_read=True,backend_gate_and_passthrough=True,apple_kext_direct_alias=True,
     arm64_interface_fixture=True,gpr_only_instructions_checked=len(ins),fixture=str(TMP))
 (HERE/'validation.json').write_text(json.dumps(result,indent=2));(HERE/'test-output.txt').write_text(output+'Stage18 paired wait/completion, owner, overflow, bounded output: PASS\n')
 print(json.dumps(result,indent=2))

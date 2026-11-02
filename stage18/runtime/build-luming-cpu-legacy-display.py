@@ -230,7 +230,6 @@ bindings={'__ZN25IOMobileFramebufferLegacyC2EPK11OSMetaClass':0xfffffff0057865cc
           '__ZN25IOMobileFramebufferLegacyD2Ev':0xfffffff005786618,
           '__ZN25IOMobileFramebufferLegacy10gMetaClassE':0xfffffff006b35940,
           '__ZTV25IOMobileFramebufferLegacy':int(audit['legacy_vptr'],16)-16}
-bindings['__ZN25IOMobileFramebufferLegacy11waitForSwapEP12IOUserClientjjj']=0xfffffff00578d998
 owned=[];native=[]
 for i,name in enumerate(compiled):
     expected=int(methods[i]['address'],16)
@@ -242,7 +241,9 @@ for i,name in enumerate(compiled):
         require(i<168 and names.get(name)==expected,'Actual inherited native base symbol '+str(i));native.append(i)
 require(owned==sorted([0,1,7,14,84,86,87,141,155,176,184,188,288,290,296,301]+pure),'Exact owned method set')
 undefined={n for n,_,k in symbols if k==1 and 'IOMobileFramebufferLegacy' in n}
-require(undefined==set(bindings),'All and only actual original-class imports qualified')
+require(undefined==set(bindings),'Original class import mismatch: missing='+repr(sorted(undefined-set(bindings)))+' unused='+repr(sorted(set(bindings)-undefined)))
+bindings['_cdx18_original_wait']=0xfffffff00578d998
+bindings['_cdx18_original_complete']=0xfffffff005795b88
 # Exact original IOSurface getters, independently observed through the real
 # original swap request. These aliases call original code; no object layout
 # is substituted and no original method/vtable is patched.

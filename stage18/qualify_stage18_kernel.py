@@ -64,6 +64,8 @@ def check(kernel,baseline,sha,report,expected):
         assert report['source_sha256'][a]==wanted['after']['stage10/stage10-runtime/'+b]
     assert report['generated_abi_sha256']==wanted['generated_abi_sha256']
     assert report['virtual_entries']==358 and 176 in report['owned_entries'] and not report['original_instructions_modified']
+    assert report['bindings']['_cdx18_original_wait']=='0xfffffff00578d998'
+    assert report['bindings']['_cdx18_original_complete']=='0xfffffff005795b88'
     assert report['original_kernelcache_sha256']=='f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7'
     out.update(stage=18,source_hashes_verified=True,core_calls=calls(kernel),wait_calls=linked_calls(kernel),runtime_verified=False)
     return out

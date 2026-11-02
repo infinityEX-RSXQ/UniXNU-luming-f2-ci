@@ -25,6 +25,9 @@ extern "C" uint64_t cdx18_wait_begin(IOUserClient *,uint32_t,uint32_t,uint32_t,c
 extern "C" void cdx18_wait_end(uint64_t,uint32_t,const Cdx18View *);
 extern "C" uint64_t cdx18_done_begin(uint32_t,uint32_t,const Cdx18View *);
 extern "C" void cdx18_done_end(uint64_t,const Cdx18View *);
+// Ordinary C aliases force a checked direct call even under -fapple-kext.
+extern "C" IOReturn cdx18_original_wait(IOMobileFramebufferLegacy *,IOUserClient *,uint32_t,uint32_t,uint32_t);
+extern "C" void cdx18_original_complete(IOMobileFramebufferLegacy *);
 '''
     anchor='class NativeLegacyDisplay : public IOMobileFramebufferLegacy {'
     backend=once(backend,anchor,declarations+anchor)
@@ -40,7 +43,8 @@ extern "C" void cdx18_done_end(uint64_t,const Cdx18View *);
             }
             cdx18_token=cdx18_done_begin(id,raw32c,&pre);
         }
-'''+anchor+'''
+'''+'''        if(cdx18_token)cdx18_original_complete(this);
+        else IOMobileFramebufferLegacy::completeCurrentSwap();
         // The original call may release request. Never dereference it here.
         if(cdx18_token){Cdx18View post=gatedView18();cdx18_done_end(cdx18_token,&post);}''')
     gen=before[G].decode()
@@ -57,7 +61,10 @@ extern "C" void cdx18_done_end(uint64_t,const Cdx18View *);
         check+=f'require(read({int(g["raw_va"],16):#x}+SLIDE,{len(bytes.fromhex(g["bytes"]))})==bytes.fromhex({g["bytes"]!r}),"Stage18 original guard: {name}")\n'
     check+='require(read(0xfffffff006f35550+SLIDE,24)==struct.pack("<Q4I",0xfffffff006779518,3,0,0,0),"Stage18 selector6 exact dispatch")\n'
     gen=once(gen,"bindings={'__ZN25IOMobileFramebufferLegacyC2EPK11OSMetaClass'",check+"\nbindings={'__ZN25IOMobileFramebufferLegacyC2EPK11OSMetaClass'")
-    gen=once(gen,'owned=[];native=[]',"bindings['__ZN25IOMobileFramebufferLegacy11waitForSwapEP12IOUserClientjjj']=0xfffffff00578d998\nowned=[];native=[]")
+    anchor="require(undefined==set(bindings),'All and only actual original-class imports qualified')"
+    gen=once(gen,anchor,"require(undefined==set(bindings),'Original class import mismatch: missing='+repr(sorted(undefined-set(bindings)))+' unused='+repr(sorted(set(bindings)-undefined)))\n"+
+        "bindings['_cdx18_original_wait']=0xfffffff00578d998\n"+
+        "bindings['_cdx18_original_complete']=0xfffffff005795b88")
     changes={P:probe.encode(),B:backend.encode(),G:gen.encode()}
     report=dict(stage=18,before={p:sha(b) for p,b in before.items()},after={p:sha(b) for p,b in changes.items()},
         generated_abi_sha256=json.loads((HERE/'expected-abi.json').read_text())['sha256'],applied=apply,
