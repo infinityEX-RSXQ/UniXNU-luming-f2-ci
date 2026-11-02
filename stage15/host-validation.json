@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "provider_model_and_adapter_tests": true,
+  "late_sample_detected_post_copy_change": true,
+  "lock_boundary_fixture": true,
+  "summary_boundaries": true,
+  "core_dispatch_and_return_preserved": true,
+  "arm64_interface_fixtures": true,
+  "gpr_only_instructions_checked": 3695,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "scratch": "D:\\Codex\\tmp\\stage15-host",
+  "fixture_sha256": "f49ee6cb84164b2eeeb8e1a3c0e5bf8873fef588b1098e90821e2b534ee593f2"
+}

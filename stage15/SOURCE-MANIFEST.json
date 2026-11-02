@@ -1,0 +1,107 @@
+{
+  "stage": 15,
+  "source_only": true,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "device_operations": false,
+  "base_ci_run": 41363972872,
+  "base_commit": "e65dff213b2f28d0cc92ca168dcd60b4f3e732ec",
+  "files": {
+    "BUILD-REQUEST.md": {
+      "bytes": 9274,
+      "sha256": "43f3b66b1c822ec5987ea472893e719fb8f80da93d87fed000f6cba7848d7b78"
+    },
+    "core-source-reference.json": {
+      "bytes": 107,
+      "sha256": "f8907e95c7aa9c713d1b4b512b54f83cbae091fc6739f587801e3002404a6ac4"
+    },
+    "DSH-STAGE15-IMPLEMENTATION-NOTES.md": {
+      "bytes": 5271,
+      "sha256": "b9bde43dcba938d958381e18cc562f15db230ba825acd5d2d559469b4358d2c9"
+    },
+    "host-check-output.txt": {
+      "bytes": 155,
+      "sha256": "14b9d8efe0d02ea1117d9b163e90d6a36180fce98d4918d18e4083a9e006dbef"
+    },
+    "host-validation.json": {
+      "bytes": 507,
+      "sha256": "6b86fb074ab9b63d6eb8b1724ef08f66e201e25cf88cfa1d44b862b1fbb77b38"
+    },
+    "install_stage15.py": {
+      "bytes": 6837,
+      "sha256": "820b9723275ae04ca9bc87fc25f9f85a2742d74f6df58f1f59f6ce6bbd744777"
+    },
+    "integration-validation.json": {
+      "bytes": 2292,
+      "sha256": "383d45f4d4f9e512591edb64b755ffeabacfe482157004dca90c6ca3956d80fe"
+    },
+    "LICENSE": {
+      "bytes": 2682,
+      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
+    },
+    "make_core_patch15.py": {
+      "bytes": 2762,
+      "sha256": "7eadd3024534b2cd88dc153459801f600282a530707003fd64921c31ff190661"
+    },
+    "package15.py": {
+      "bytes": 4987,
+      "sha256": "1f8aa0d8920aee5b203141e04879c36711e9b58747e293180513db986c5008bb"
+    },
+    "ProviderTrace15.h": {
+      "bytes": 10117,
+      "sha256": "654b1e40e94e463c2550253b04f82188793be9d99c606bd1884bbff08af5e312"
+    },
+    "qualification-tests.json": {
+      "bytes": 324,
+      "sha256": "dd094c29b6e184d9c8b4975615aa8be93284b04cbdeb75c49e8db6b8ffa080aa"
+    },
+    "qualification_base.py": {
+      "bytes": 3783,
+      "sha256": "ae300e5a2fe2a59aa831e45abb8524f8141b62b772100b43fd74d6353f562e09"
+    },
+    "qualify_stage15_kernel.py": {
+      "bytes": 4632,
+      "sha256": "6c955735ee4ce566aa0233bbb3eab1bf54d4460089129b4429f2ab2163734d1a"
+    },
+    "run_checks15.py": {
+      "bytes": 4862,
+      "sha256": "f3de9003c5876263d1770084bfc9f6d6ec3356ee977b31653fcb21730e2b5e29"
+    },
+    "runtime/LegacyDisplayProbe.cpp": {
+      "bytes": 50924,
+      "sha256": "53c63b9bd5583ba3692f853ef9dde085467e63b7812b4d9b1f0e62e0e0322d7c"
+    },
+    "runtime/NativeLegacyDisplay.cpp": {
+      "bytes": 38107,
+      "sha256": "830f091534c3c777da55c429675230506c91875c6bc87d78a784516523aae2b6"
+    },
+    "stage14p1-to-stage15-source.diff": {
+      "bytes": 26582,
+      "sha256": "44a220c518a3e019a992f8a0983965f9e6cd6361540cb7849407539dc71801fc"
+    },
+    "test_provider15.cpp": {
+      "bytes": 9801,
+      "sha256": "f49ee6cb84164b2eeeb8e1a3c0e5bf8873fef588b1098e90821e2b534ee593f2"
+    },
+    "test_qualification15.py": {
+      "bytes": 2023,
+      "sha256": "ef5300a4fab790cdcad65ce922a785d72b74dae864fe5aea564aef749c1249dd"
+    },
+    "Text15.h": {
+      "bytes": 1265,
+      "sha256": "e7c632bd738c8b6eda1c0c75fa48ef62bb2a17ac117f59b136197fa12155530f"
+    },
+    "TraceModel15.h": {
+      "bytes": 4586,
+      "sha256": "d216da0c2d6afe8f1c56389768be40a3f6bde5d70077c7201abe85cca0809aec"
+    },
+    "validate_stage15.py": {
+      "bytes": 4667,
+      "sha256": "9b0c1887ae60a366ba6b47cb5c23726e8884820efa64c93a41c301cbc2d13c3f"
+    },
+    "zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch": {
+      "bytes": 2042,
+      "sha256": "5bd651af5b44260d769109b7cf8f14d06739b181b7b7e86cbc7203281f6bcda5"
+    }
+  }
+}

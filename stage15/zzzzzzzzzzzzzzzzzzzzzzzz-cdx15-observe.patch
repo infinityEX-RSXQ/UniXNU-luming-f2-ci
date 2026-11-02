@@ -1,0 +1,54 @@
+--- a/iokit/Kernel/IOUserClient.cpp
++++ b/iokit/Kernel/IOUserClient.cpp
+@@ -6422,10 +6422,14 @@
+ }
+ } /* extern "C" */
+ 
++extern "C" uint64_t cdx15_ipc_begin(void *, uint32_t);
++extern "C" void cdx15_ipc_end(uint64_t, uint32_t);
++
+ IOReturn
+ IOUserClient::callExternalMethod(uint32_t selector, IOExternalMethodArguments * args)
+ {
+ 	IOReturn ret;
++	uint64_t cdx15_token = cdx15_ipc_begin(this, selector);
+ 
+ 	ipcEnter(defaultLocking ? (defaultLockingSingleThreadExternalMethod ? kIPCLockWrite : kIPCLockRead) : kIPCLockNone);
+ 	if (uc2022) {
+@@ -6435,6 +6439,7 @@
+ 	}
+ 	ipcExit(defaultLocking ? (defaultLockingSingleThreadExternalMethod ? kIPCLockWrite : kIPCLockRead) : kIPCLockNone);
+ 
++	cdx15_ipc_end(cdx15_token, (uint32_t)ret);
+ 	return ret;
+ }
+ 
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -3596,3 +3596,26 @@
+ 	return exit_with_reason(p, W_EXITCODE(0, SIGKILL), (int *)NULL, FALSE, FALSE,
+ 	           0, reason);
+ }
++
++
++/* CDX15 compact read-only view of the existing Stage14 observations. */
++size_t cdx15_daemon_summary(char *out, size_t size);
++size_t
++cdx15_daemon_summary(char *out, size_t size)
++{
++    static const char *const names[4] = {"SB", "BB", "WD", "LA"};
++    if (!out || !size) return 0;
++    size_t used = 0; out[0] = 0;
++    for (unsigned i = 0; i < 4 && used < size - 1; ++i) {
++        unsigned n = __atomic_load_n(&cdx14_daemons[i].count, __ATOMIC_RELAXED);
++        unsigned e = __atomic_load_n(&cdx14_exceptions[i].type, __ATOMIC_RELAXED);
++        uint64_t pc = __atomic_load_n(&cdx14_exceptions[i].c1, __ATOMIC_RELAXED);
++        unsigned ns = __atomic_load_n(&cdx14_daemons[i].ns, __ATOMIC_RELAXED);
++        uint64_t code = __atomic_load_n(&cdx14_daemons[i].code, __ATOMIC_RELAXED);
++        int got = snprintf(out + used, size - used, "%s n=%u ns=%u c=%llx e=%u pc=%llx\n",
++            names[i], n, ns, (unsigned long long)code, e, (unsigned long long)pc);
++        if (got < 0) break;
++        used += (size_t)got < size - used ? (size_t)got : size - used - 1;
++    }
++    return used;
++}

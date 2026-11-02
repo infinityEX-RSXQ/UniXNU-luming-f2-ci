@@ -1,0 +1,35 @@
+{
+  "stage": 15,
+  "applied": true,
+  "before": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "f3f236517c920eaa6905404ac4601970db0cf2ed74233b94f36105fab255b775",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "8624070dc2a0c0b177b3799ea65b59d3f469dd4be8ab5ffbab59f02be9caa09b",
+    "patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzz-cdx14p1-console-reclaim.patch": "6f495723a41214d857b64e0776c0e56efcbe57cb203fcf3fc8c30119507931e2"
+  },
+  "after": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "53c63b9bd5583ba3692f853ef9dde085467e63b7812b4d9b1f0e62e0e0322d7c",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "830f091534c3c777da55c429675230506c91875c6bc87d78a784516523aae2b6",
+    "patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch": "5bd651af5b44260d769109b7cf8f14d06739b181b7b7e86cbc7203281f6bcda5",
+    "patches/xnu/device/series": "c1ae3d27d63e37bbcbe3948692450d024cc0836c72f74a7fac6f7d5d02c97dd0"
+  },
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "device_operations": false,
+  "generator_output": "CDX11 source instrumentation applied; full macOS build/runtime not yet verified.\nAdded ASLR observations; compile/runtime verification still required.\nwrote D:\\Codex\\tmp\\stage15-check-1793581540989005000\\device\\patches\\xnu\\device\\zzzzz-cdx-generated-aslr.patch (4587 bytes), replayed 1 core patches\nenabled zzzzz-cdx-generated-aslr.patch in D:\\Codex\\tmp\\stage15-check-1793581540989005000\\device\\patches\\xnu\\device\\series\n",
+  "generated_aslr_sha256": "16541d2ae10b2c26fc9f5db477c577d5fd32591825b5db1230a407f73730e90b",
+  "passed": true,
+  "fixture": "D:\\Codex\\tmp\\stage15-check-1793581540989005000",
+  "compatible_device_patches": [
+    "zzzzzz-luming-more-amfi-null-guards.patch",
+    "zzzzzzz-luming-cache-path.patch",
+    "zzzzzzzz-luming-owner-cache-initproc-panic.patch",
+    "zzzzzzzzz-luming-owner-cache-probe.patch",
+    "zzzzzzzzzz-luming-owner-cache-root-list.patch",
+    "zzzzzzzzzzz-luming-owner-cache-root-hex.patch",
+    "zzzzzzzzzzzzz-luming-owner-cache-lib-list.patch",
+    "zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch",
+    "zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch"
+  ],
+  "aslr_patch_unchanged": true,
+  "source_abi_signatures_preserved": true
+}

@@ -1,0 +1,446 @@
+--- stage14p1/LegacyDisplayProbe.cpp
++++ stage15/LegacyDisplayProbe.cpp
+@@ -12,6 +12,8 @@
+ #include <libkern/c++/OSData.h>
+ #include <libkern/c++/OSMetaClass.h>
+ #include <kern/task.h>
++#include <kern/thread.h>
++#include <IOKit/IOLocks.h>
+ #include <kern/thread_call.h>
+ #include <kern/clock.h>
+ #include <sys/proc.h>
+@@ -30,6 +32,13 @@
+ static IOService *activeLegacyDisplay;
+ static IOPlatformDevice *activeGOPNub;
+ static unsigned consoleOwnership;
++extern "C" void cdx15_mapping_observed(IOMemoryMap *,uint32_t,uint32_t,uint64_t);
++extern "C" void cdx15_client_open(task_t,uint32_t,IOUserClient *,IOReturn);
++extern "C" void cdx15_validation(const void *,bool,uint32_t);
++extern "C" void cdx15_copy(const void *,uint32_t);
++extern "C" void cdx15_vsync(unsigned,unsigned);
++extern "C" void cdx15_snapshot(char *,size_t,bool);
++
+ extern "C" void cdx14_after_release(void);
+ extern "C" void cdx14p1_schedule_snapshot(void);
+ 
+@@ -117,7 +126,9 @@
+     native_legacy_gop_bytes=mapping->getLength();
+     native_legacy_gop_width=width;native_legacy_gop_height=height;
+     IOLog("CDX_DISP mapped w=%u h=%u\n",width,height);
+-    return cdx13_publish_ui_scale(width,height);
++    bool ok=cdx13_publish_ui_scale(width,height);
++    if(ok)cdx15_mapping_observed(mapping,width,height,v.v_rowBytes);
++    return ok;
+ }
+ void native_legacy_registration_observed(IOService *display) {
+     native_legacy_registration_calls=native_legacy_registration_calls+1;
+@@ -138,7 +149,8 @@
+         IOLog("CDX_DISP pm stage=%u state=%u status=%x\n",stage,(unsigned)ordinal,(unsigned)status);
+ }
+ void native_legacy_swap_stage(unsigned) {}
+-void native_legacy_swap_validation_observed(bool accepted,unsigned reason,const void *,const void *) {
++void native_legacy_swap_validation_observed(bool accepted,unsigned reason,const void *request,const void *) {
++    cdx15_validation(request,accepted,reason);
+     native_legacy_swap_validation_calls=native_legacy_swap_validation_calls+1;
+     native_legacy_swap_validation_result=accepted;native_legacy_swap_validation_reason=reason;
+     if(native_legacy_swap_validation_calls<=8)
+@@ -150,13 +162,15 @@
+ void native_legacy_copy_timing_observed(uint64_t ticks,uint64_t bytes) {
+     native_legacy_copy_ticks=ticks;native_legacy_copy_bytes=bytes;
+ }
+-void native_legacy_transfer_observed(IOReturn status,const void *,uint64_t bytes) {
++void native_legacy_transfer_observed(IOReturn status,const void *request,uint64_t bytes) {
++    cdx15_copy(request,(uint32_t)status);
+     native_legacy_transfer_calls=native_legacy_transfer_calls+1;native_legacy_transfer_status=status;native_legacy_transfer_bytes=bytes;
+     if(native_legacy_transfer_calls<=8)
+         IOLog("CDX_DISP copy status=%x bytes=%llu\n",(unsigned)status,(unsigned long long)bytes);
+ }
+ void native_legacy_retirement_observed(IOService *) {native_legacy_retirement_calls=native_legacy_retirement_calls+1;}
+-void native_legacy_vsync_observed(unsigned event,unsigned) {
++void native_legacy_vsync_observed(unsigned event,unsigned hz) {
++    cdx15_vsync(event,hz);
+     if(event==1)native_legacy_vsync_count=native_legacy_vsync_count+1;
+ }
+ // CPU-only transport: never offer memory to any SM8550/Adreno service. The
+@@ -676,27 +690,11 @@
+ static thread_call_t cdx14_snapshot_call;
+ static void cdx14_snapshot_callback(thread_call_param_t,thread_call_param_t) {
+     bool quiet=cdx14p1_quiesce();
+-    unsigned vtBefore[5]={};cdx14_console_snapshot(vtBefore);
++    char reason[660]={};
++    // Last-destination sampling MUST precede console clear/reacquisition.
++    cdx15_snapshot(reason,sizeof(reason),quiet);
+     unsigned reclaimed=quiet?cdx14p1_console_reclaim():0;
+-    char daemon[512]={},exceptions[512]={};cdx14_daemon_summary(daemon,sizeof(daemon));
+-    cdx14_exception_summary(exceptions,sizeof(exceptions));
+-    cdx14_console_snapshot(cdx14_frame.console);
+-    panic("CDX14.1 diagnostic snapshot (intentional)\n"
+-        "quiet=%u active=%u reclaim=%u before=%u/%u/%u\n"
+-        "f=%llu sampled=%u blank=%u valid=%u src=%llx dst=%llx\n"
+-        "mismatch=%u mutate=%u between=%u pixels=%x/%x grid36=%x/%x\n"
+-        "VT own=%u enabled=%u disabled=%u blocked=%u drawn=%u\n"
+-        "validate=%u result=%u copy=%u rc=%x bytes=%llu retire=%u vsync=%u\n%s%s",
+-        (unsigned)quiet,__atomic_load_n(&cdx14p1_writers,__ATOMIC_SEQ_CST),reclaimed,
+-        vtBefore[0],vtBefore[1],vtBefore[2],
+-        (unsigned long long)cdx14_frame.sequence,cdx14_frame.sampled,cdx14_frame.blankCount,cdx14_frame.valid,
+-        (unsigned long long)cdx14_frame.srcHash,(unsigned long long)cdx14_frame.dstAfter,
+-        cdx14_frame.copyMismatch,cdx14_frame.sourceChanged,cdx14_frame.betweenMismatch,
+-        cdx14_frame.srcFirst,cdx14_frame.dstFirst,cdx14_frame.srcGrid36,cdx14_frame.dstGrid36,
+-        cdx14_frame.console[0],cdx14_frame.console[1],cdx14_frame.console[2],cdx14_frame.console[3],cdx14_frame.console[4],
+-        native_legacy_swap_validation_calls,native_legacy_swap_validation_result,native_legacy_transfer_calls,
+-        (unsigned)native_legacy_transfer_status,(unsigned long long)native_legacy_transfer_bytes,
+-        native_legacy_retirement_calls,native_legacy_vsync_count,daemon,exceptions);
++    panic("CDX15 snapshot (intentional) r=%u\n%s",reclaimed,reason);
+ }
+ extern "C" void cdx14p1_schedule_snapshot(void) {
+     // Opt-in, independent delayed snapshot survives a stalled display work loop.
+@@ -713,3 +711,256 @@
+     if(option("luming-display-vt-latch")==1)cdx14_console_commit();
+     cdx14p1_schedule_snapshot();
+ }
++
++// SPDX-License-Identifier: BSD-2-Clause-Patent
++// Caller holds the diagnostic spin lock. No kernel pointers are dereferenced.
++namespace cdx15 {
++struct Client {uint64_t id,serial,opened;uint32_t pid,type,status,ipc,validated;char name[17];};
++struct Call {uint64_t token,thread,client;uint32_t selector;};
++struct Request {uint64_t key,generation,client;uint32_t pid;bool head,retiring;};
++struct Event {uint64_t time,request,client;uint32_t phase,value;};
++struct State {
++    Client clients[16];Call calls[16];Request requests[16];Event events[64];
++    uint64_t serial,token,generation,eventCount,first[5],last[5],lastVsync;
++    uint32_t ipc,ipcEnd,ipcError,val,head,copy,ret,reject,unknown,linked,drop;
++    uint32_t gate,gateCount,vsync,arm,late,idle,hz;
++    bool armed,wanted,saturated;
++};
++inline void inc(State &s,uint32_t &v){if(v!=UINT32_MAX)++v;else s.saturated=true;}
++inline void name(char (&dst)[17],const char *src){unsigned i=0;if(src)for(;i<16 && src[i];++i)dst[i]=src[i];for(;i<17;++i)dst[i]=0;}
++inline Client *client(State &s,uint64_t id){for(auto &x:s.clients)if(id && x.id==id)return &x;return nullptr;}
++inline Request *request(State &s,uint64_t key){for(auto &x:s.requests)if(key && x.key==key)return &x;return nullptr;}
++inline void event(State &s,uint32_t phase,uint64_t now,uint64_t req,uint64_t cli,uint32_t value){
++    s.events[s.eventCount%64]={now,req,cli,phase,value};++s.eventCount;
++}
++inline void stamp(State &s,unsigned stage,uint64_t now){if(!s.first[stage])s.first[stage]=now;s.last[stage]=now;}
++inline void open(State &s,uint64_t id,uint32_t pid,const char *comm,uint32_t type,uint32_t status,uint64_t now){
++    Client *at=client(s,id);
++    if(!at){at=&s.clients[0];for(auto &x:s.clients){if(!x.serial){at=&x;break;}if(x.serial<at->serial)at=&x;}}
++    if(at->serial && (!id || at->id!=id))inc(s,s.drop);
++    *at={};at->id=id;at->serial=++s.serial;at->opened=now;at->pid=pid;at->type=type;at->status=status;name(at->name,comm);
++    event(s,0,now,0,id,status);
++}
++inline uint64_t begin(State &s,uint64_t id,uint64_t thread,uint32_t selector,uint64_t now){
++    if(!id || !thread)return 0;
++    for(auto &x:s.calls)if(!x.token){
++        x={++s.token,thread,id,selector};inc(s,s.ipc);if(auto *c=client(s,id))inc(s,c->ipc);
++        event(s,1,now,0,id,selector);return x.token;
++    }
++    inc(s,s.drop);return 0;
++}
++inline void end(State &s,uint64_t token,uint32_t status,uint64_t now){
++    if(!token)return;
++    for(auto &x:s.calls)if(x.token==token){inc(s,s.ipcEnd);if(status)inc(s,s.ipcError);
++        event(s,2,now,0,x.client,status);x={};return;}
++    inc(s,s.drop);
++}
++inline void validate(State &s,uint64_t key,uint64_t thread,bool accepted,uint32_t why,uint64_t now){
++    inc(s,s.val);stamp(s,1,now);
++    uint64_t id=0,latest=0;
++    for(auto &c:s.calls)if(c.token && c.thread==thread && c.token>latest){latest=c.token;id=c.client;}
++    auto *owner=client(s,id);if(owner){inc(s,s.linked);inc(s,owner->validated);}else inc(s,s.unknown);
++    event(s,3,now,key,id,why);
++    if(!accepted){inc(s,s.reject);if(auto *r=request(s,key))*r={};return;}
++    if(!key){inc(s,s.drop);return;}
++    if(auto *r=request(s,key)){
++        if(r->retiring)*r={key,++s.generation,id,owner?owner->pid:0,false,false};
++        return;
++    }
++    for(auto &r:s.requests)if(!r.key){r={key,++s.generation,id,owner?owner->pid:0,false,false};return;}
++    inc(s,s.drop);
++}
++inline void head(State &s,uint64_t key,uint64_t now){
++    auto *r=request(s,key);if(!r){inc(s,s.drop);return;}
++    if(!r->head){r->head=true;inc(s,s.head);stamp(s,2,now);event(s,4,now,key,r->client,0);}
++}
++inline void copied(State &s,uint64_t key,uint32_t status,uint64_t now){
++    if(!status){inc(s,s.copy);stamp(s,3,now);}
++    auto *r=request(s,key);event(s,5,now,key,r?r->client:0,status);
++}
++inline uint64_t retireBegin(State &s,uint64_t key){auto *r=request(s,key);if(r)r->retiring=true;return r?r->generation:0;}
++inline void retireEnd(State &s,uint64_t key,uint64_t generation,uint64_t now){
++    inc(s,s.ret);stamp(s,4,now);auto *r=request(s,key);
++    event(s,6,now,key,(r && r->generation==generation)?r->client:0,0);
++    if(r && generation && r->generation==generation)*r={};
++}
++inline void gate(State &s,uint32_t bits){s.gate=bits;inc(s,s.gateCount);}
++inline void vsync(State &s,unsigned ev,unsigned hz,uint64_t now){
++    s.hz=hz;
++    if(ev==0){inc(s,s.arm);s.armed=true;s.wanted=true;}
++    if(ev==1){inc(s,s.vsync);s.lastVsync=now;s.wanted=true;}
++    if(ev==2){inc(s,s.idle);s.armed=false;s.wanted=false;}
++    if(ev==3)inc(s,s.late);
++    if(ev==6)s.armed=false;
++    if(ev==7)s.armed=true;
++    if(ev==8)s.armed=false;
++}
++}
++
++// SPDX-License-Identifier: BSD-2-Clause-Patent
++// Whole lines only, <=88 columns. Leaves room for an explicit omission footer.
++#include <stdarg.h>
++struct Cdx15Text {
++    char *out;size_t capacity,used;unsigned dropped;
++    Cdx15Text(char *p,size_t n):out(p),capacity(n),used(0),dropped(0){if(n)out[0]=0;}
++    bool line(const char *format,...) __attribute__((format(printf,2,3))) {
++        char row[90]={};va_list args;va_start(args,format);int n=vsnprintf(row,sizeof(row),format,args);va_end(args);
++        if(n<0 || n>88 || !n || row[n-1]!='\n' || (size_t)n+used+40>=capacity){++dropped;return false;}
++        memcpy(out+used,row,(size_t)n);used+=(size_t)n;out[used]=0;return true;
++    }
++    bool lines(const char *text){bool ok=true;while(*text){const char *end=text;while(*end && *end!='\n')++end;
++        size_t n=(size_t)(end-text);char row[90]={};
++        if(n>87){++dropped;ok=false;}else{memcpy(row,text,n);row[n]='\n';ok=line("%s",row)&&ok;}
++        text=*end?end+1:end;}return ok;
++    }
++    void footer(unsigned omit,bool clipped){
++        if(used>=capacity)return;
++        int n=snprintf(out+used,capacity-used,"omit=%u drop=%u clip=%u\n",omit,dropped,(unsigned)clipped);
++        if(n>0)used+=(size_t)n<capacity-used?(size_t)n:capacity-used-1;
++    }
++};
++
++// SPDX-License-Identifier: BSD-2-Clause-Patent
++// Appended after Stage14.1 definitions. No fake services or user-client vptr edits.
++static IOSimpleLock *cdx15_lock;
++static cdx15::State cdx15_state={};
++// A serialized snapshot avoids putting the bounded event ring on the kernel stack.
++static cdx15::State cdx15_snapshot_state={};static unsigned cdx15_snapshot_busy;
++static unsigned cdx15_enabled;
++static IOMemoryMap *cdx15_mapping; // one deliberate retained reference until reboot
++static uint32_t cdx15_width,cdx15_height;static uint64_t cdx15_stride;
++static unsigned cdx15_map_changed;static bool cdx15_target_valid;
++static Cdx14Samples cdx15_target={};static uint64_t cdx15_target_sequence;
++extern "C" size_t cdx15_daemon_summary(char *,size_t);
++static uint64_t cdx15_now(){return mach_absolute_time();}
++static bool cdx15_on(){return __atomic_load_n(&cdx15_enabled,__ATOMIC_ACQUIRE)!=0;}
++extern "C" void cdx15_mapping_observed(IOMemoryMap *mapping,uint32_t w,uint32_t h,uint64_t stride) {
++    unsigned enabled=(option("luming-display-frame-probe")==1 || option("luming-display-snapshot")==1)?1U:0U;
++    PE_parse_boot_argn("luming-display-trace",&enabled,sizeof(enabled));if(enabled!=1)return;
++    if(cdx15_mapping){if(cdx15_mapping!=mapping)__atomic_store_n(&cdx15_map_changed,1,__ATOMIC_RELEASE);return;}
++    IOSimpleLock *lock=IOSimpleLockAlloc();if(!lock)return;
++    mapping->retain();cdx15_mapping=mapping;cdx15_width=w;cdx15_height=h;cdx15_stride=stride;cdx15_lock=lock;
++    __atomic_store_n(&cdx15_enabled,1,__ATOMIC_RELEASE);
++}
++extern "C" void cdx15_client_open(task_t task,uint32_t type,IOUserClient *client,IOReturn status) {
++    if(!cdx15_on())return;
++    proc_t proc=task?(proc_t)get_bsdtask_info(task):nullptr;uint32_t pid=proc?(uint32_t)proc_pid(proc):0;
++    char comm[17]={};if(pid)proc_name((int)pid,comm,sizeof(comm));
++    uint64_t id=client?client->getRegistryEntryID():0,now=cdx15_now();
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::open(cdx15_state,id,pid,comm,type,(uint32_t)status,now);
++    IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" uint64_t cdx15_ipc_begin(void *object,uint32_t selector) {
++    if(!cdx15_on() || !object)return 0;
++    IOUserClient *client=static_cast<IOUserClient *>(object);
++    uint64_t id=client->getRegistryEntryID(),now=cdx15_now(),thread=(uintptr_t)current_thread(),token=0;
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    if(cdx15::client(cdx15_state,id))token=cdx15::begin(cdx15_state,id,thread,selector,now);
++    IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);return token;
++}
++extern "C" void cdx15_ipc_end(uint64_t token,uint32_t status) {
++    if(!cdx15_on() || !token)return;uint64_t now=cdx15_now();
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::end(cdx15_state,token,status,now);IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" void cdx15_validation(const void *request,bool accepted,uint32_t reason) {
++    if(!cdx15_on())return;uint64_t now=cdx15_now(),thread=(uintptr_t)current_thread();
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::validate(cdx15_state,(uintptr_t)request,thread,accepted,reason,now);
++    IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" void cdx15_head(const void *request) {
++    if(!cdx15_on())return;uint64_t now=cdx15_now();
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::head(cdx15_state,(uintptr_t)request,now);IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" void cdx15_copy(const void *request,uint32_t status) {
++    if(!cdx15_on())return;uint64_t now=cdx15_now();
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::copied(cdx15_state,(uintptr_t)request,status,now);IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" uint64_t cdx15_retire_begin(const void *request) {
++    if(!cdx15_on())return 0;IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    uint64_t generation=cdx15::retireBegin(cdx15_state,(uintptr_t)request);
++    IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);return generation;
++}
++extern "C" void cdx15_retire_end(const void *request,uint64_t generation) {
++    if(!cdx15_on())return;uint64_t now=cdx15_now();IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::retireEnd(cdx15_state,(uintptr_t)request,generation,now);IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" void cdx15_gate(uint32_t bits) {
++    if(!cdx15_on())return;IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::gate(cdx15_state,bits);IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" void cdx15_vsync(unsigned event,unsigned hz) {
++    if(!cdx15_on())return;uint64_t now=cdx15_now();IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15::vsync(cdx15_state,event,hz,now);IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++extern "C" void cdx15_target_observed(void) {
++    if(!cdx15_on() || __atomic_load_n(&cdx15_map_changed,__ATOMIC_ACQUIRE))return;
++    Cdx14Samples sample={};
++    bool valid=cdx14_samples(reinterpret_cast<const volatile void *>(cdx15_mapping->getVirtualAddress()),
++        cdx15_mapping->getLength(),cdx15_stride,cdx15_width,cdx15_height,&sample);
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    cdx15_target_valid=valid;if(valid){cdx15_target=sample;++cdx15_target_sequence;}
++    IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++}
++static unsigned cdx15_cap(uint64_t value,unsigned limit,bool &clipped){if(value>limit){clipped=true;return limit;}return (unsigned)value;}
++static unsigned cdx15_ms(uint64_t ticks,bool &clipped){uint64_t ns=0;absolutetime_to_nanoseconds(ticks,&ns);return cdx15_cap(ns/1000000,999999,clipped);}
++static int cdx15_service(const char *name,char (&cls)[17]) {
++    cls[0]=0;OSDictionary *matching=IOService::serviceMatching(name);if(!matching)return -1;
++    IOService *service=IOService::copyMatchingService(matching);matching->release();
++    if(!service)return 0;
++    cdx15::name(cls,service->getMetaClass()->getClassName());service->release();return 1;
++}
++extern "C" void cdx15_snapshot(char *out,size_t capacity,bool quiet) {
++    Cdx15Text text(out,capacity);bool clipped=false;
++    if(!cdx15_on()){text.line("CDX15 trace=unavailable\n");text.footer(0,false);return;}
++    unsigned expected=0;
++    if(!__atomic_compare_exchange_n(&cdx15_snapshot_busy,&expected,1,false,__ATOMIC_ACQUIRE,__ATOMIC_RELAXED)){
++        text.line("CDX15 snapshot=busy\n");text.footer(0,false);return;
++    }
++    struct Lease {~Lease(){__atomic_store_n(&cdx15_snapshot_busy,0,__ATOMIC_RELEASE);}} lease;
++    cdx15::State &state=cdx15_snapshot_state;Cdx14Samples last;bool targetValid;uint64_t seq;
++    IOInterruptState irq=IOSimpleLockLockDisableInterrupt(cdx15_lock);
++    state=cdx15_state;last=cdx15_target;targetValid=cdx15_target_valid;seq=cdx15_target_sequence;
++    IOSimpleLockUnlockEnableInterrupt(cdx15_lock,irq);
++    bool mapValid=!__atomic_load_n(&cdx15_map_changed,__ATOMIC_ACQUIRE);
++    Cdx14Samples late={};bool lateValid=quiet && targetValid && mapValid && cdx15_mapping &&
++        cdx14_samples(reinterpret_cast<const volatile void *>(cdx15_mapping->getVirtualAddress()),cdx15_mapping->getLength(),
++            cdx15_stride,cdx15_width,cdx15_height,&late);
++    char wd[17]={},aks[17]={},alt[17]={};int watchdog=cdx15_service("IOWatchdog",wd);
++    int keyStore=cdx15_service("AppleKeyStore",aks),alternate=cdx15_service("AppleARMWatchdogTimer",alt);
++    char daemon[352]={};cdx15_daemon_summary(daemon,sizeof(daemon));
++    // All full counters, timestamps, clients and bounded events remain available as data.
++    if(activeLegacyDisplay){OSData *data=OSData::withBytes(&state,sizeof(state));
++        if(data){activeLegacyDisplay->setProperty("CDX15TraceState",data);data->release();}}
++    text.line("CDX15 quiet=%u gate=%x\n",(unsigned)quiet,state.gate);
++    text.line("sub=? ipc=%u val=%u q=%u cp=%u ret=%u rej=%u\n",cdx15_cap(state.ipc,65535,clipped),
++        cdx15_cap(state.val,65535,clipped),cdx15_cap(state.head,65535,clipped),cdx15_cap(state.copy,65535,clipped),
++        cdx15_cap(state.ret,65535,clipped),cdx15_cap(state.reject,65535,clipped));
++    text.line("F=?/%u/%u/%u/%u\n",cdx15_ms(state.first[1],clipped),cdx15_ms(state.first[2],clipped),
++        cdx15_ms(state.first[3],clipped),cdx15_ms(state.first[4],clipped));
++    text.line("L=?/%u/%u/%u/%u\n",cdx15_ms(state.last[1],clipped),cdx15_ms(state.last[2],clipped),
++        cdx15_ms(state.last[3],clipped),cdx15_ms(state.last[4],clipped));
++    text.line("vs=%u last=%u sub=? arm=%u late=%u\n",cdx15_cap(state.vsync,65535,clipped),
++        cdx15_ms(state.lastVsync,clipped),(unsigned)state.armed,cdx15_cap(state.late,65535,clipped));
++    char tail[640]={};Cdx15Text rest(tail,sizeof(tail));
++    if(lateValid){rest.line("late=%llx last=%llx eq=%u\n",(unsigned long long)late.hash,
++        (unsigned long long)last.hash,(unsigned)!cdx14_sample_diff(late,last));
++        rest.line("latepx=%08x lastpx=%08x f=%u\n",late.pixels[0],last.pixels[0],cdx15_cap(seq,65535,clipped));}
++    else rest.line("late=skip quiet=%u valid=%u map=%u\n",(unsigned)quiet,(unsigned)targetValid,(unsigned)mapValid);
++    rest.line("wd=%d:%.16s aks=%d:%.16s\n",watchdog,wd,keyStore,aks);
++    rest.line("wdAlt=%d:%.16s\n",alternate,alt);rest.lines(daemon);
++    unsigned shown=0,total=0;
++    for(const auto &c:state.clients)if(c.serial)++total;
++    for(const auto &c:state.clients)if(c.serial && shown<4){
++        char row[88]={};int n=snprintf(row,sizeof(row),"cli p=%u t=%x rc=%x n=%u %.16s\n",c.pid,c.type,c.status,
++            cdx15_cap(c.validated,65535,clipped),c.name);
++        if(n>0 && n<88 && text.used+(size_t)n+rest.used+90<capacity){text.line("%s",row);++shown;}
++    }
++    text.line("unk=%u linked=%u lost=%u\n",cdx15_cap(state.unknown,65535,clipped),cdx15_cap(state.linked,65535,clipped),
++        cdx15_cap(state.drop,65535,clipped));text.lines(tail);
++    text.dropped+=rest.dropped;text.footer(total-shown,clipped||state.saturated);
++}
+--- stage14p1/NativeLegacyDisplay.cpp
++++ stage15/NativeLegacyDisplay.cpp
+@@ -69,6 +69,13 @@
+     Cdx14p1ScanoutLease &operator=(const Cdx14p1ScanoutLease &)=delete;
+ };
+ 
++extern "C" void cdx15_head(const void *);
++extern "C" void cdx15_gate(uint32_t);
++extern "C" void cdx15_target_observed(void);
++extern "C" uint64_t cdx15_retire_begin(const void *);
++extern "C" void cdx15_retire_end(const void *,uint64_t);
++extern "C" void cdx15_vsync(unsigned,unsigned);
++extern "C" void cdx15_client_open(task_t,uint32_t,IOUserClient *,IOReturn);
+ class NativeLegacyDisplay : public IOMobileFramebufferLegacy {
+     OSDeclareDefaultStructors(NativeLegacyDisplay)
+     IOMemoryMap *bootMapping=nullptr;
+@@ -115,7 +122,7 @@
+     }
+     static void vsyncFired(OSObject *owner,IOTimerEventSource *) {static_cast<NativeLegacyDisplay *>(owner)->vsyncTick();}
+     void vsyncTick() {
+-        vsyncArmed=false;
++        vsyncArmed=false;cdx15_vsync(8,vsyncHz);
+         if(!vsyncTimer)return;
+         if(!vsyncWanted()){native_legacy_vsync_observed(2,vsyncHz);return;}
+         const uint64_t now=mach_absolute_time();
+@@ -123,7 +130,7 @@
+         native_legacy_vsync_observed(1,vsyncHz);
+         vsyncNext+=vsyncInterval;
+         if(vsyncNext<=now){vsyncNext=now+vsyncInterval;native_legacy_vsync_observed(3,vsyncHz);}
+-        vsyncArmed=true;vsyncTimer->wakeAtTime(vsyncNext);
++        vsyncArmed=true;vsyncTimer->wakeAtTime(vsyncNext);cdx15_vsync(7,vsyncHz);
+     }
+     void startVsync() {
+         unsigned hz=0;PE_parse_boot_argn("sheng-vsync",&hz,sizeof(hz));
+@@ -144,7 +151,7 @@
+         if(!vsyncTimer)return;
+         vsyncTimer->cancelTimeout();
+         if(IOWorkLoop *loop=getWorkLoop())loop->removeEventSource(vsyncTimer);
+-        OSSafeReleaseNULL(vsyncTimer);vsyncArmed=false;
++        OSSafeReleaseNULL(vsyncTimer);vsyncArmed=false;cdx15_vsync(6,vsyncHz);
+     }
+ public:
+     // Called by the GPU client's completion (any thread): the swap is finished on the framebuffer's work loop.
+@@ -257,9 +264,14 @@
+     void kickOnce() {
+         Cdx14p1ScanoutLease lease;if(!lease.held)return;
+         unsigned enabled=0;PE_parse_boot_argn("offline-legacy-transfer",&enabled,sizeof(enabled));
++        uint32_t gates=(enabled==1?1U:0U)|(transferred?2U:0U)|(logicalPM?4U:0U)|(bootMapping?8U:0U)|(primary?16U:0U);
++        cdx15_gate(gates);
+         if(enabled!=1 || transferred || !logicalPM || !bootMapping || !primary)return;
+         const OriginalLegacySwapRequest *request=pendingSwapRequest();
+-        if(!request || !isValidated(request))return;
++        bool validated=request && isValidated(request);
++        cdx15_gate(gates|(request?32U:0U)|(validated?64U:0U));
++        if(!validated)return;
++        cdx15_head(request);
+         // This bounded first-frame transfer preserves the original queue's
+         // resource ownership. Separately gated retirement follows the copy;
+         // neither path signals a hardware fence, announces a vblank or
+@@ -288,6 +300,7 @@
+             __asm__ volatile("dsb sy" ::: "memory");
+             shadowValid=false;
+             transferred=true;
++            cdx15_target_observed();
+             native_legacy_frame_observed(1,0,0,0,0,0);
+             {const uint32_t colors[4]={0xff000000U,0,0,0};const uint64_t counts[4]={(uint64_t)bw*bh,0,0,0};native_legacy_frame_colors_observed(colors,counts,0);}
+             native_legacy_transfer_observed(kIOReturnSuccess,request,blankLength);
+@@ -382,6 +395,7 @@
+         }
+         __asm__ volatile("dsb sy" ::: "memory");
+         {uint64_t copyEnd;__asm__ volatile("isb\n\tmrs %0, cntpct_el0":"=r"(copyEnd));native_legacy_copy_timing_observed(copyEnd-copyStart,stored);}
++        cdx15_target_observed();
+         cdx14_frame_end(true);
+         OSSafeReleaseNULL(source);transferred=true;
+         native_legacy_transfer_observed(kIOReturnSuccess,request,length);
+@@ -415,7 +429,9 @@
+         if(!(retire==1 || cpuPresent==1 || force))return false;
+         if(!activateOnlyPendingSwap(request))return false;
+         removeValidated(request);
++        uint64_t cdx15_generation=cdx15_retire_begin(request);
+         IOMobileFramebufferLegacy::completeCurrentSwap();
++        cdx15_retire_end(request,cdx15_generation);
+         native_legacy_retirement_observed(this);
+         return true;
+     }
+@@ -509,6 +525,7 @@
+     IOReturn newUserClient(task_t task,void *security,UInt32 type,IOUserClient **client) override {
+         native_legacy_client_enter(task,type);
+         IOReturn status=IOMobileFramebufferLegacy::newUserClient(task,security,type,client);
++        cdx15_client_open(task,type,status==kIOReturnSuccess && client?*client:nullptr,status);
+         native_legacy_client_observed(status,status==kIOReturnSuccess && client?*client:nullptr);return status;
+     }
+     bool startHardware() override {

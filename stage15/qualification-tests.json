@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "linked_wrapper_positive_fixture": true,
+  "missing_call_negative_fixture": "wrapper lacks direct calls to both Stage15 hooks; inspect veneers/inlining before accepting",
+  "stage14p1_negative_test": "missing Stage15 definition: cdx15_mapping_observed",
+  "stage15_real_kernel_available": false
+}
