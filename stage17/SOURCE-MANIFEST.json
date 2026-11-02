@@ -7,37 +7,37 @@
       "bytes": 1765,
       "sha256": "5641a4a032e7ba30cedf695fe1c887b24271d433da5a7497b1e98717c64897bd"
     },
-    "LICENSE": {
-      "bytes": 2682,
-      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
-    },
-    "Snapshot17.h": {
-      "bytes": 2206,
-      "sha256": "00caa890eb1be2549267e85497bf040ec1008ef88f2bdfff0d76fe4ffbf3884b"
-    },
-    "Trace17.h": {
-      "bytes": 2101,
-      "sha256": "a5578aad92e68858886fee9ce95094730b2e0f8d852767144ce1217506ef2934"
+    "BUILD-REQUEST.md": {
+      "bytes": 4684,
+      "sha256": "0e91a08501c439ff3346e5b7ec9d06c9890ee90e160524e514fc2d3f4282d612"
     },
     "check17.py": {
-      "bytes": 7406,
-      "sha256": "dbb81fde079af24411837e56f5b4ddf1ec80b7208eb7f72897739d55522ac151"
+      "bytes": 7741,
+      "sha256": "efe45066cb2fe01ac5212f5e7cb972db3cab62cc8cd56df23369411dcab595bc"
     },
     "ci_check17.py": {
-      "bytes": 1969,
-      "sha256": "e1af97d033151f7793d4788a9ac8a0f492db29ce3a80eb002963086d8351d6b0"
+      "bytes": 2122,
+      "sha256": "668961b5516c6961e38b4627111f198aac6023298476f77b9c2c57b898caa68c"
     },
     "ci_regression16.py": {
       "bytes": 2401,
       "sha256": "bca724602db94a84bbf3dfcbcf69aea39679e4e88d6bc1ee910997ce953fd1fb"
     },
     "install_stage17.py": {
-      "bytes": 2984,
-      "sha256": "4add3351ff07bbe5c51e36290605cae308e718f352710cd46737b576ab648990"
+      "bytes": 3265,
+      "sha256": "53e2b62c298312bb98329831c4e1bfd6000d99b838b8c8085fd241244e3b7af3"
+    },
+    "LICENSE": {
+      "bytes": 2682,
+      "sha256": "03a8ab50f4b3b4c65f070d07302a3522e7badbf54dde090cca59bb3e746bba3f"
     },
     "make_patch17.py": {
       "bytes": 1792,
       "sha256": "b3abd9fb6f2f8bb995e482ef1f71103bec3baeb00aad544e18d4597a96874581"
+    },
+    "qualification-negative.json": {
+      "bytes": 29,
+      "sha256": "f34ba61821f8889a0c820b6b5bb1fe572327f1265204fc354ed280053b118285"
     },
     "qualification_base.py": {
       "bytes": 3783,
@@ -55,6 +55,14 @@
       "bytes": 38779,
       "sha256": "6032eadd760591c93ea505fd94dbbd16ff081771a09b83a3fed5746a23dea374"
     },
+    "series-stage16.txt": {
+      "bytes": 1796,
+      "sha256": "c1ae3d27d63e37bbcbe3948692450d024cc0836c72f74a7fac6f7d5d02c97dd0"
+    },
+    "Snapshot17.h": {
+      "bytes": 2206,
+      "sha256": "00caa890eb1be2549267e85497bf040ec1008ef88f2bdfff0d76fe4ffbf3884b"
+    },
     "test-output.txt": {
       "bytes": 173,
       "sha256": "afd51fc3196df37b0c9a1933da9d55321291249a03757c9131da3da3afa122e0"
@@ -63,9 +71,13 @@
       "bytes": 13348,
       "sha256": "33e73883313d092bff81e49f5a79c60cfc37ded055fd6a7057db69d2f47d5bee"
     },
+    "Trace17.h": {
+      "bytes": 2101,
+      "sha256": "a5578aad92e68858886fee9ce95094730b2e0f8d852767144ce1217506ef2934"
+    },
     "validation.json": {
-      "bytes": 1288,
-      "sha256": "7212abf3aa682e2f7b4c79d1e25aa25f7e2e5bea775aa733872103811867c4de"
+      "bytes": 1535,
+      "sha256": "bdf7c1659bb7afb7b8e5bc3ab10700d20c36bc5b39b36d45e8eeb1625ca81f4b"
     },
     "zzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch": {
       "bytes": 1545,

@@ -5,7 +5,8 @@ HERE=Path(__file__).resolve().parent
 PINS={
 'stage10/stage10-runtime/LegacyDisplayProbe.cpp':'7ad53f1536861fe5ae529c89bf739d5ab11c72a93619668079e9ac30c535ea93',
 'stage10/stage10-runtime/NativeLegacyDisplay.cpp':'6032eadd760591c93ea505fd94dbbd16ff081771a09b83a3fed5746a23dea374',
-'patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch':'5bd651af5b44260d769109b7cf8f14d06739b181b7b7e86cbc7203281f6bcda5'}
+'patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzzz-cdx15-observe.patch':'5bd651af5b44260d769109b7cf8f14d06739b181b7b7e86cbc7203281f6bcda5',
+'patches/xnu/device/series':'c1ae3d27d63e37bbcbe3948692450d024cc0836c72f74a7fac6f7d5d02c97dd0'}
 PATCH='patches/xnu/device/zzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch'
 def sha(b):return hashlib.sha256(b).hexdigest()
 def once(t,a,b):assert t.count(a)==1,repr(a);return t.replace(a,b)
@@ -24,7 +25,9 @@ def install(device,apply=False):
         '    cdx17::end(cdx17_state,token,0,status,now);\n    cdx15::end(cdx15_state,token,status,now);')
     anchor='    text.line("CDX16 quiet=%u gate=%x age=%u\\n",(unsigned)quiet,state.gate,cdx15_ms(mach_absolute_time(),clipped));'
     probe=once(probe,anchor,'    if(option("luming-display-ipc-page")!=2){\n'+(HERE/'Snapshot17.h').read_text()+'\n    }\n'+anchor)
-    changes={rel:probe.encode(),PATCH:(HERE/Path(PATCH).name).read_bytes()}
+    series=before['patches/xnu/device/series'].decode();assert Path(PATCH).name not in series
+    changes={rel:probe.encode(),PATCH:(HERE/Path(PATCH).name).read_bytes(),
+        'patches/xnu/device/series':(series.rstrip()+'\n'+Path(PATCH).name+'\n').encode()}
     report=dict(stage=17,before={p:sha(b) for p,b in before.items()},after={
         'stage10/stage10-runtime/NativeLegacyDisplay.cpp':PINS['stage10/stage10-runtime/NativeLegacyDisplay.cpp'],
         **{p:sha(b) for p,b in changes.items()}},applied=apply,scheduling_policy_changed=False,

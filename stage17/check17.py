@@ -7,9 +7,13 @@ sys.path.insert(0,str(ROOT/'stage15-trace-source-20261102'));from make_core_patc
 TMP=Path('D:/Codex/tmp')/('stage17-check-'+str(time.time_ns()));device=TMP/'device'
 oldcore,newcore=make()
 for rel in PINS:
-    source=ROOT/'stage16-vsync-source-20261102/runtime'/Path(rel).name if rel.endswith('.cpp') else ROOT/'stage15-trace-source-20261102'/Path(rel).name
+    source=ROOT/'stage16-vsync-source-20261102/runtime'/Path(rel).name if rel.endswith('.cpp') else (
+        HERE/'series-stage16.txt' if rel.endswith('/series') else ROOT/'stage15-trace-source-20261102'/Path(rel).name)
     p=device/rel;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(source.read_bytes())
 assert not install(device)['applied'];result=install(device,True)
+series=(device/'patches/xnu/device/series').read_text()
+assert series.count(Path(PATCH).name)==1 and series.splitlines()[-1]==Path(PATCH).name
+assert series.index('cdx15-observe.patch')<series.index('cdx17-observe.patch')
 try:install(device,True)
 except AssertionError:pass
 else:raise AssertionError('reapplication accepted')
@@ -95,7 +99,8 @@ for x in ins:
     assert not re.search(r'\b[bdhqsv](?:[0-9]|[12][0-9]|3[01])(?:\.[0-9a-z]+)?\b',x),x
 (HERE/'test_adapter17.cpp').write_text(test)
 result.update(passed=True,host_adapter=True,prior_stage15_16_tests=True,patch_applies_after_stage15=True,
-    original_dispatch_locks_returns_preserved=True,arm64_interface_fixture=True,gpr_only_instructions_checked=len(ins),fixture=str(TMP))
+    original_dispatch_locks_returns_preserved=True,patch_series_registration_checked=True,
+    arm64_interface_fixture=True,gpr_only_instructions_checked=len(ins),fixture=str(TMP))
 (HERE/'validation.json').write_text(json.dumps(result,indent=2))
 (HERE/'test-output.txt').write_text(output+'Stage17 known clients, port RPC, bounded inputs, pending, saturation: PASS\n')
 print(json.dumps(result,indent=2))

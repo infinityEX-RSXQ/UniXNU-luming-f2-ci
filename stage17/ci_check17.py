@@ -10,6 +10,8 @@ expected=json.loads((HERE/'validation.json').read_text())
 installed=json.loads(Path('ci-artifacts/stage17-install-report.json').read_text())
 previous=json.loads(Path('ci-artifacts/stage16-install-report.json').read_text())
 assert installed['applied'] and installed['before']==expected['before'] and installed['after']==expected['after']
+import hashlib
+assert hashlib.sha256(Path('device/patches/xnu/device/series').read_bytes()).hexdigest()==installed['after']['patches/xnu/device/series']
 for rel in previous['after']:assert installed['before'][rel]==previous['after'][rel]
 reports=list(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json'))
 reports+=list(Path('unixnu/build/native-legacy-display').glob('build-report.json'));assert reports
