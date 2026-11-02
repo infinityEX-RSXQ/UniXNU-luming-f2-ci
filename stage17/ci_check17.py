@@ -11,7 +11,15 @@ installed=json.loads(Path('ci-artifacts/stage17-install-report.json').read_text(
 previous=json.loads(Path('ci-artifacts/stage16-install-report.json').read_text())
 assert installed['applied'] and installed['before']==expected['before'] and installed['after']==expected['after']
 import hashlib
-assert hashlib.sha256(Path('device/patches/xnu/device/series').read_bytes()).hexdigest()==installed['after']['patches/xnu/device/series']
+series=(HERE/'series-stage16.txt').read_text().rstrip()+'\nzzzzzzzzzzzzzzzzzzzzzzzz-cdx17-observe.patch\n'
+assert hashlib.sha256(series.encode()).hexdigest()==installed['after']['patches/xnu/device/series']
+# The existing gen_aslr_patch.py subsequently replaces the disabled diagnostic
+# comment with the generated patch at the first active entry. Verify its exact
+# deterministic transformation, rather than comparing pre-build and final files.
+lines=[s for s in series.splitlines() if 'cdx-generated-aslr' not in s and 'cdx-exception-aslr-diagnostic' not in s]
+insert=next(i for i,s in enumerate(lines) if s.strip() and not s.lstrip().startswith('#'))
+lines.insert(insert,'zzzzz-cdx-generated-aslr.patch')
+assert Path('device/patches/xnu/device/series').read_bytes()==('\n'.join(lines)+'\n').encode()
 for rel in previous['after']:assert installed['before'][rel]==previous['after'][rel]
 reports=list(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json'))
 reports+=list(Path('unixnu/build/native-legacy-display').glob('build-report.json'));assert reports
