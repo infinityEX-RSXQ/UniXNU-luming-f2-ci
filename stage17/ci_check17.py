@@ -24,9 +24,11 @@ for rel in previous['after']:assert installed['before'][rel]==previous['after'][
 reports=list(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json'))
 reports+=list(Path('unixnu/build/native-legacy-display').glob('build-report.json'));assert reports
 report=json.loads(reports[0].read_text())
+final18=json.loads(Path('ci-artifacts/stage18-install-report.json').read_text())
+for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'):assert final18['before'][rel]==installed['after'][rel]
 for a,b in [('kits/luming-cpu-display/LegacyDisplayProbe.cpp','LegacyDisplayProbe.cpp'),('drivers/GopFramebuffer/NativeLegacyDisplay.cpp','NativeLegacyDisplay.cpp')]:
-    assert report['source_sha256'][a]==installed['after']['stage10/stage10-runtime/'+b]
-assert report['generated_abi_sha256']=='8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016'
+    assert report['source_sha256'][a]==final18['after']['stage10/stage10-runtime/'+b]
+assert report['generated_abi_sha256']=='8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a'
 assert report['virtual_entries']==358 and not report['original_instructions_modified']
 assert report['original_kernelcache_sha256']=='f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7'
 out=dict(stage=17,sha256=info['sha256'],bytes=info['bytes'],source_chain_verified=True,abi_unchanged=True,core_calls=calls(kernel),qualified=True,runtime_verified=False)

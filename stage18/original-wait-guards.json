@@ -1,0 +1,123 @@
+{
+  "input_sha256": "f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7",
+  "family_sha256": "2e044ee68c1650397e1435234ca6459206262e4c7ed709cb7131c6f664f9bd9b",
+  "address_space": "original raw kernelcache, NOT post-prelink addresses",
+  "dispatch": {
+    "4": {
+      "entry": "0xfffffff006f35520",
+      "action": "0xfffffff006779418",
+      "scalar_in": 0,
+      "structure_in": 0,
+      "scalar_out": 1,
+      "structure_out": 0
+    },
+    "6": {
+      "entry": "0xfffffff006f35550",
+      "action": "0xfffffff006779518",
+      "scalar_in": 3,
+      "structure_in": 0,
+      "scalar_out": 0,
+      "structure_out": 0
+    },
+    "15": {
+      "entry": "0xfffffff006f35628",
+      "action": "0xfffffff00677a014",
+      "scalar_in": 2,
+      "structure_in": 0,
+      "scalar_out": 1,
+      "structure_out": 0
+    },
+    "68": {
+      "entry": "0xfffffff006f35b20",
+      "action": "0xfffffff006779d3c",
+      "scalar_in": 1,
+      "structure_in": 256,
+      "scalar_out": 0,
+      "structure_out": 0
+    },
+    "72": {
+      "entry": "0xfffffff006f35b80",
+      "action": "0xfffffff00677a658",
+      "scalar_in": 4,
+      "structure_in": 0,
+      "scalar_out": 0,
+      "structure_out": 0
+    }
+  },
+  "guards": {
+    "dispatch_table_base": {
+      "raw_va": "0xfffffff006778f1c",
+      "bytes": "e93d00b02901139123010a8b"
+    },
+    "selector6_wrapper_to_wait": {
+      "raw_va": "0xfffffff006779564",
+      "bytes": "8bf7ff97",
+      "target": "0xfffffff006777390"
+    },
+    "userclient_to_provider_slot176": {
+      "raw_va": "0xfffffff0067773c8",
+      "bytes": "206c40f9a2c35eb8e31b40b9e41740b9080040f908c142f900013fd6"
+    },
+    "provider_wait_high_bit": {
+      "raw_va": "0xfffffff00678d9ec",
+      "bytes": "a8035eb80900b0520801096ae8179f1a28080037"
+    },
+    "provider_wait_lower_mode": {
+      "raw_va": "0xfffffff00678da0c",
+      "bytes": "a8035eb808790012a8431db8"
+    },
+    "callback_preserve_high_bit": {
+      "raw_va": "0xfffffff00678b9e4",
+      "bytes": "a9035db829010112a9431bb8"
+    },
+    "callback_lower_mode": {
+      "raw_va": "0xfffffff00678ba10",
+      "bytes": "a8035db808790012a8031db8"
+    },
+    "completed_id_comparison": {
+      "raw_va": "0xfffffff00678bc5c",
+      "bytes": "a8435db829bd56b90801096be8079f1aa8000037"
+    },
+    "mode0_success_condition": {
+      "raw_va": "0xfffffff00678be48",
+      "bytes": "a8035db808010071e8079f1a68030037"
+    },
+    "nonblocking_failure_branch": {
+      "raw_va": "0xfffffff00678bf9c",
+      "bytes": "a8435bb808010071e8179f1a28030037"
+    },
+    "nonblocking_returns_busy": {
+      "raw_va": "0xfffffff00678bffc",
+      "bytes": "a85a80520800bc72281500b9"
+    },
+    "original_complete_to_body": {
+      "raw_va": "0xfffffff006795ba4",
+      "bytes": "72d3ff97",
+      "target": "0xfffffff00678a96c"
+    },
+    "original_complete_updates_id": {
+      "raw_va": "0xfffffff00678ae70",
+      "bytes": "e81340f909b14af9291543b909bd16b9"
+    },
+    "complete_update_gate": {
+      "raw_va": "0xfffffff00678ae38",
+      "bytes": "092d43b9080080520801096be8179f1a48010037"
+    }
+  },
+  "observed_arguments": {
+    "swap_id": 1,
+    "mode_flags": "0x80000000",
+    "timeout": 0
+  },
+  "decoded_flags": {
+    "nonblocking_mask": "0x80000000",
+    "mode_mask": "0x7fffffff",
+    "observed_mode": 0
+  },
+  "limitations": [
+    "No runtime completed ID was collected.",
+    "Last captured arguments and last return may belong to different calls.",
+    "Different photo boots must not be merged into one call timeline.",
+    "No display behavior or firmware image modified by this audit."
+  ]
+}

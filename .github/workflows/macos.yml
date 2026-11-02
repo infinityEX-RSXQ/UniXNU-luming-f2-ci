@@ -612,6 +612,8 @@ jobs:
             | tee ci-artifacts/stage16-install-report.json
           python3 device/stage17/install_stage17.py --device device --apply \
             | tee ci-artifacts/stage17-install-report.json
+          python3 device/stage18/install_stage18.py --device device --apply \
+            | tee ci-artifacts/stage18-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -824,6 +826,13 @@ jobs:
                   if stage17['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
               materialized = stage17['after']
+          if Path('ci-artifacts/stage18-install-report.json').is_file():
+              stage18 = json.loads(Path('ci-artifacts/stage18-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage18['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
+              materialized = stage18['after']
           # The stage10 display report proves which sources the archive compiled.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -836,7 +845,7 @@ jobs:
           if report['source_sha256'].get('drivers/GopFramebuffer/NativeLegacyDisplay.cpp') != \
                   materialized['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
               raise SystemExit('materialized NativeLegacyDisplay.cpp changed')
-          if report.get('generated_abi_sha256') != '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016':
+          if report.get('generated_abi_sha256') != ('8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a' if Path('ci-artifacts/stage18-install-report.json').is_file() else '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016'):
               raise SystemExit('generated legacy ABI changed')
           if report.get('virtual_entries') != 358 or report.get('original_instructions_modified'):
               raise SystemExit('vtable/original-instruction guard changed')
@@ -1034,6 +1043,13 @@ jobs:
                   if stage17['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
               materialized = stage17['after']
+          if Path('ci-artifacts/stage18-install-report.json').is_file():
+              stage18 = json.loads(Path('ci-artifacts/stage18-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage18['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
+              materialized = stage18['after']
           # The diagnostic tail must be cdx14 -> cdx14p1 -> cdx15, in that order;
           # the generated patch must stay enabled.
           entries = [l.strip() for l in Path('device/patches/xnu/device/series')
@@ -1077,7 +1093,7 @@ jobs:
           if report['source_sha256'].get('drivers/GopFramebuffer/NativeLegacyDisplay.cpp') != \
                   materialized['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
               raise SystemExit('materialized NativeLegacyDisplay.cpp is not the stage14 (or stage14p1) source')
-          if report.get('generated_abi_sha256') != '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016':
+          if report.get('generated_abi_sha256') != ('8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a' if Path('ci-artifacts/stage18-install-report.json').is_file() else '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016'):
               raise SystemExit('generated legacy ABI changed')
           if report.get('virtual_entries') != 358 or report.get('original_instructions_modified'):
               raise SystemExit('vtable/original-instruction guard changed')
@@ -1306,6 +1322,13 @@ jobs:
                   if stage17['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
               materialized = stage17['after']
+          if Path('ci-artifacts/stage18-install-report.json').is_file():
+              stage18 = json.loads(Path('ci-artifacts/stage18-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage18['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
+              materialized = stage18['after']
           # The compiled display archive proves the current sources and the ABI guard.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -1318,7 +1341,7 @@ jobs:
           if report['source_sha256'].get('drivers/GopFramebuffer/NativeLegacyDisplay.cpp') != \
                   materialized['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
               raise SystemExit('materialized NativeLegacyDisplay.cpp is not the stage14p1 (or stage15) source')
-          if report.get('generated_abi_sha256') != '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016':
+          if report.get('generated_abi_sha256') != ('8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a' if Path('ci-artifacts/stage18-install-report.json').is_file() else '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016'):
               raise SystemExit('generated legacy ABI changed')
           if report.get('virtual_entries') != 358 or report.get('original_instructions_modified'):
               raise SystemExit('vtable/original-instruction guard changed')
@@ -1538,6 +1561,13 @@ jobs:
                   if stage17['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage16 -> stage17 source chain broken: ' + rel)
               materialized = stage17['after']
+          if Path('ci-artifacts/stage18-install-report.json').is_file():
+              stage18 = json.loads(Path('ci-artifacts/stage18-install-report.json').read_text())
+              for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp',
+                          'stage10/stage10-runtime/NativeLegacyDisplay.cpp'):
+                  if stage18['before'].get(rel) != materialized[rel]:
+                      raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
+              materialized = stage18['after']
           # The compiled display archive proves the Stage15 sources and the unchanged ABI.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -1550,7 +1580,7 @@ jobs:
           if report['source_sha256'].get('drivers/GopFramebuffer/NativeLegacyDisplay.cpp') != \
                   materialized['stage10/stage10-runtime/NativeLegacyDisplay.cpp']:
               raise SystemExit('materialized NativeLegacyDisplay.cpp is not the stage15 source')
-          if report.get('generated_abi_sha256') != '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016':
+          if report.get('generated_abi_sha256') != ('8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a' if Path('ci-artifacts/stage18-install-report.json').is_file() else '8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016'):
               raise SystemExit('generated legacy ABI changed')
           if report.get('virtual_entries') != 358 or report.get('original_instructions_modified'):
               raise SystemExit('vtable/original-instruction guard changed')
@@ -1650,6 +1680,7 @@ jobs:
           set -euo pipefail
           python3 device/stage17/ci_regression16.py
           python3 device/stage17/ci_check17.py
+          python3 device/stage18/ci_check18.py
 
       - name: Build the UniXNU package
         id: package
@@ -1953,7 +1984,8 @@ jobs:
                        'stage14p1-install-report.json', 'stage14p1-kernel-check.json',
                        'stage15-install-report.json', 'stage15-kernel-check.json',
                        'stage16-install-report.json', 'stage16-kernel-check.json',
-                       'stage17-install-report.json', 'stage17-kernel-check.json'):
+                       'stage17-install-report.json', 'stage17-kernel-check.json',
+                       'stage18-install-report.json', 'stage18-kernel-check.json'):
               path = root / 'ci-artifacts' / name
               if path.is_file():
                   files.append((path, name))

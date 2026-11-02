@@ -19,10 +19,13 @@ report=json.loads(reports[0].read_text())
 stage17=json.loads(Path('ci-artifacts/stage17-install-report.json').read_text())
 for rel in installed['after']:assert stage17['before'][rel]==installed['after'][rel]
 after17=stage17['after']
+final18=json.loads(Path('ci-artifacts/stage18-install-report.json').read_text())
+for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'):assert final18['before'][rel]==after17[rel]
+after18=final18['after']
 for materialized,template in [('drivers/GopFramebuffer/NativeLegacyDisplay.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'),
     ('kits/luming-cpu-display/LegacyDisplayProbe.cpp','stage10/stage10-runtime/LegacyDisplayProbe.cpp')]:
-    assert report['source_sha256'][materialized]==after17[template]
-assert report['generated_abi_sha256']=='8465dbcff188e88e66fdbe9a5e24b102c093b06d17f879f7a55fa3d1c58f8016'
+    assert report['source_sha256'][materialized]==after18[template]
+assert report['generated_abi_sha256']=='8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a'
 assert report['virtual_entries']==358 and not report['original_instructions_modified']
 assert report['original_kernelcache_sha256']=='f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7'
 result=dict(stage=16,kernel=str(kernel),sha256=info['sha256'],bytes=info['bytes'],
