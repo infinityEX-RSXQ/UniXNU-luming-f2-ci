@@ -2045,7 +2045,7 @@ jobs:
           echo "TREE=$tree"
           if [ -n "$tree" ]; then
             cd "$(dirname "$tree")"
-            UNIXNU_KERNELCACHE="${UNIXNU_KERNELCACHE:-}" PYTHONUNBUFFERED=1 python3 scripts/build-luming-cpu-legacy-display.py 2>&1 | tail -80
+            XNU_NATIVE_LEGACY_DISPLAY=1 UNIXNU_KERNELCACHE="${UNIXNU_KERNELCACHE:-}" PYTHONUNBUFFERED=1 python3 scripts/build-luming-cpu-legacy-display.py 2>&1 | tail -80
           fi
       - name: Remove proprietary inputs
         if: always()
