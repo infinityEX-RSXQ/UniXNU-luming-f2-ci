@@ -793,3 +793,5 @@ summary: 142 pass, 7 missing, 4 warn, 1 error
 
 exit=1
 Missing porting-record.yml is the unchanged baseline error.
+
+2026-11-03 Stage20: prior skeleton: 142 pass, 7 missing, 4 warn, 1 existing error (porting-record.yml absent). Host Stage19/old adapter tests and ARM64 GPR-only compilation pass; full Mac link and hardware capture pending. 11 workflow Python blocks syntax checked.
