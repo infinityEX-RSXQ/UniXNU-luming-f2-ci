@@ -1,0 +1,42 @@
+{
+  "stage": 19,
+  "before": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "77aad4d83579a0cf53f039ee0b72fe098385bbaced1ef2182b45b5fd6b1d2fef",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "3f75b236341f9a75f44590c09eda645ac7a5f25272629f12636360a1f9afc509",
+    "stage10/stage10-build/build-luming-cpu-legacy-display.py": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
+  },
+  "after": {
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "1668e7d690145fe03ebb5ee150506bb7b91a5f4a4d85f0f9845f716b020449cb",
+    "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "3f75b236341f9a75f44590c09eda645ac7a5f25272629f12636360a1f9afc509",
+    "stage10/stage10-build/build-luming-cpu-legacy-display.py": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
+  },
+  "backend_unchanged": true,
+  "generator_unchanged": true,
+  "display_abi_unchanged": true,
+  "original_methods_unchanged": true,
+  "source_kernel_api": "stack_snapshot_from_kernel",
+  "default_off": true,
+  "full_kernel_compiled": false,
+  "runtime_verified": false,
+  "applied": true,
+  "host_checks_passed": true,
+  "stage21_owner_join_tests": true,
+  "stage21_batch_boundaries_tested": true,
+  "prior_stage15_16_17_18_tests": true,
+  "generated_abi_sha256": "8c996ed2c36eb973fc4f4a4ed644498710dacec6120ae1e4f524ab5653120e8a",
+  "kcdata_malformed_and_truncation_tests": true,
+  "default_off_two_sample_and_failure_tests": true,
+  "source_api_present_in_stage18": true,
+  "source_kernel_pins": {
+    "bsd/kern/sys_ulock.c": "0882575230601b76769186e9871c003f2d5b8af08b9a64358149e919d2632427",
+    "osfmk/ipc/ipc_port.c": "3249cf9a3e15ead1d03b4a839b148b83bd5b6e8a58b2137f498d2ef5119543d3",
+    "osfmk/kern/block_hint.h": "432fa16a0149dcb3136c7bcf48d5c0e180b94abae34c19d94257d93dd63e7d31",
+    "osfmk/kern/kcdata.h": "784a0d82bb861eec54f825d60af4b81ec8dd9142993ad9745f4d6273afa2e2cf",
+    "osfmk/kern/debug.h": "024c763b6905a3803fd7e2fc1b74156402bd062167518db3a4da43491dcc41e0",
+    "osfmk/kern/kern_stackshot.c": "b02054f3f301df4e6ee18d3626d07268416d79deff96cbbb08f80e33b86024a6",
+    "osfmk/kdp/ml/arm/kdp_machdep.c": "a74b5c17786572ad607c45235f9bf9b96a809db0264f1da28caf93b2c66878e1"
+  },
+  "gpr_only_instructions_checked": 10211,
+  "max_local_stack_frame": 2832,
+  "fixture": "D:\\Codex\\tmp\\stage19-check-1793747877449930800"
+}

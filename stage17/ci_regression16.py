@@ -22,6 +22,9 @@ after17=stage17['after']
 final18=json.loads(Path('ci-artifacts/stage18-install-report.json').read_text())
 for rel in ('stage10/stage10-runtime/LegacyDisplayProbe.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'):assert final18['before'][rel]==after17[rel]
 after18=final18['after']
+final19=json.loads(Path('ci-artifacts/stage19-install-report.json').read_text())
+for rel in final19['before']:assert final19['before'][rel]==after18[rel]
+after18=final19['after']
 for materialized,template in [('drivers/GopFramebuffer/NativeLegacyDisplay.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'),
     ('kits/luming-cpu-display/LegacyDisplayProbe.cpp','stage10/stage10-runtime/LegacyDisplayProbe.cpp')]:
     assert report['source_sha256'][materialized]==after18[template]
