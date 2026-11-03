@@ -1,0 +1,22 @@
+PASS: kcdata bounds, padding, process names, priority, owners, stack arrays, cache identity, truncation
+
+CDX19 rev=3 pg=0 th=0 quiet=1 cp=2 ret=2
+k=unslid w=unslid-or-perm sc=unavailable nofault
+S0 ms=15000 rc=0 b=3152 ok=1 err=0 raw=1
+P0 p=583 n=10 r=0 w=10 ui=1
+T0 id=6d st=1 fl=2000 wt=1/7
+K0 c=fffffff007123009 n=2
+U0 n=2 f=0 19f3d0009/19f3e0009/0/0
+W0 t=7 f=0 l=0 owner=c8 cx=5678
+S1 ms=30000 rc=0 b=3152 ok=1 err=0 raw=1
+P1 p=583 n=10 r=0 w=10 ui=1
+T1 id=6d st=1 fl=2000 wt=1/7
+K1 c=fffffff007123009 n=2
+U1 n=2 f=0 19f3d0009/19f3e0009/0/0
+W1 t=7 f=0 l=0 owner=c8 cx=5678
+cache=1 sl=1000 uuid=ab000000000000000000000000000000
+omit=18 drop=0 clip=0
+
+PASS: default off, two calls only, real API return, raw ownership, bounded output, unavailable
+
+Stage15 model, attribution, generation reuse, late sampling, locks, registry and text bounds PASS
