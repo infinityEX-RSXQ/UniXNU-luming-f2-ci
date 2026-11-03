@@ -1,0 +1,24 @@
+{
+  "stage": 19,
+  "before": {
+    ".github/workflows/macos.yml": "0b9035175ba2251bf543fb6d0ddbfba7624b5d7d87168f4ebaf62646e0417bb2",
+    "stage17/ci_regression16.py": "350f60cda09871e13a6a2cc75afdb3f53fde56a56d04762fc7493675b4d7cefc",
+    "stage17/ci_check17.py": "c6b8b28ae6cba58df1fc3862fe2aca4a12851ac4d2be7334055154a59e567fc1",
+    "stage18/ci_check18.py": "55f1a5a66f692fad3bfae4e03d41714a00e26c9cdff53aa18126fddff719d689"
+  },
+  "after": {
+    ".github/workflows/macos.yml": "56f20a32276f980b3c2b390237d14757f726ed53100542ed74a54baaaca40f95",
+    "stage17/ci_regression16.py": "962b3381caae1abd601e1e7838874c706aefb0655fceb7acd6b40c99c40317b4",
+    "stage17/ci_check17.py": "4b7398422ccf0fad4467453ccc0298ef48ddae505cba6b1cbdb933acddfd62ff",
+    "stage18/ci_check18.py": "95c618baa1829b0546408eb8770dbc71a2ddbc6db90f3314778070eb8b9cedda"
+  },
+  "inline_chain_gates_extended": 4,
+  "prior_gates_retained": true,
+  "applied": true,
+  "passed": true,
+  "fixture": "D:\\Codex\\tmp\\stage19-ci-1793675740325089200",
+  "embedded_python_checked": 11,
+  "callback_capture_before_quiesce": true,
+  "full_kernel_compiled": false,
+  "runtime_verified": false
+}
