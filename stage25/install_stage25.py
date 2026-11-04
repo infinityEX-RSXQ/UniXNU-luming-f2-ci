@@ -50,7 +50,15 @@ def install(tree, device):
     entries = series.read_text().splitlines()
     if PATCH not in entries:
         (directory / PATCH).write_bytes(patch)
-        series.write_bytes(('\n'.join([*entries, PATCH]) + '\n').encode())
+        # Keep the cdx14 -> cdx14p1 -> cdx15 -> cdx17 diagnostic tail intact:
+        # the CI series checks require cdx17 to stay last.  The Stage25 patch
+        # only touches osfmk/ipc/mach_msg.c and can safely precede cdx14.
+        anchor = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
+        if anchor in entries:
+            entries.insert(entries.index(anchor), PATCH)
+        else:
+            entries.append(PATCH)
+        series.write_bytes(('\n'.join(entries) + '\n').encode())
     elif (directory / PATCH).read_bytes() != patch:
         raise ValueError('Stage25 patch changed after installation')
     return {'patch': PATCH, 'sha256': hashlib.sha256(patch).hexdigest()}
