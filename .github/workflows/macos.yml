@@ -618,6 +618,8 @@ jobs:
             | tee ci-artifacts/stage19-source-check.json
           python3 device/stage19/install_stage19.py --device device --apply \
             | tee ci-artifacts/stage19-install-report.json
+          python3 device/stage25/install_stage25.py --core unixnu --device device \
+            | tee ci-artifacts/stage25-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else

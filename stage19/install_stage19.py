@@ -40,6 +40,8 @@ def install(device,apply=False):
         cdx19_format(text,quiet,state.copy,state.ret);return;
     }
 '''+anchor)
+    probe=once(probe,'static unsigned option(const char *name) {','extern "C" void cdx25_arm(void);\nstatic unsigned option(const char *name) {')
+    probe=once(probe,'                activeLegacyDisplay=display;activeGOPNub=nub;','                activeLegacyDisplay=display;activeGOPNub=nub;\n                if(option("luming-display-stackshot")==1 && option("luming-display-stack-page")==9)cdx25_arm();')
     changes={P:probe.encode()}
     result=dict(stage=19,before={p:sha(b) for p,b in before.items()},after={P:sha(changes[P]),B:sha(before[B]),G:sha(before[G])},
         backend_unchanged=True,generator_unchanged=True,display_abi_unchanged=True,

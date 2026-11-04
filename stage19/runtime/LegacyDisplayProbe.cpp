@@ -52,6 +52,7 @@ static bool validVideo(const PE_Video &v) {
         v.v_baseAddr<=UINT64_MAX-v.v_rowBytes*v.v_height;
 }
 extern "C" bool cdx13_publish_ui_scale(uint32_t,uint32_t);
+extern "C" void cdx25_arm(void);
 static unsigned option(const char *name) {
     unsigned value=0;PE_parse_boot_argn(name,&value,sizeof(value));return value;
 }
@@ -260,6 +261,7 @@ void native_legacy_display_late_probe(void) {
             IOLog("CDX_DISP start result=%u\n",(unsigned)started);
             if(started) {
                 activeLegacyDisplay=display;activeGOPNub=nub;
+                if(option("luming-display-stackshot")==1 && option("luming-display-stack-page")==9)cdx25_arm();
                 native_legacy_nub=(uintptr_t)nub;native_legacy_stage=10;
                 OSSafeReleaseNULL(ranges);OSSafeReleaseNULL(memory);OSSafeReleaseNULL(tree);
                 native_legacy_display_checkpoint();return;
@@ -1289,6 +1291,25 @@ extern "C" kern_return_t stack_snapshot_from_kernel(int,void *,uint32_t,uint64_t
 static cdx19::Sample cdx19_samples[2]={};
 static cdx21::Relations cdx21_samples[2]={};
 static uint32_t cdx21_saved[2]={};
+extern "C" void cdx25_snapshot(uint32_t,uint64_t,uint64_t,uint32_t,char *,size_t);
+static char cdx25_samples[2][216];
+static void cdx25_capture(unsigned index, const cdx19::Sample &sample) {
+    auto &out = cdx25_samples[index];
+    const auto &process = sample.processes[1];
+    unsigned selected = option("luming-display-stack-thread");
+    if (selected > 7) selected = 0;
+    if (!sample.parsed || !process.seen || process.matches != 1 || selected >= process.n) {
+        strlcpy(out, "rpc=unavailable process/thread\n", sizeof(out));
+        return;
+    }
+    const auto &thread = process.threads[selected];
+    if (!thread.waitinfo || thread.kind != 2 || thread.owner > 0xffffffffULL) {
+        strlcpy(out, "rpc=unavailable receive-wait\n", sizeof(out));
+        return;
+    }
+    cdx25_snapshot(process.pid, thread.tid, thread.context, uint32_t(thread.owner),
+        out, sizeof(out));
+}
 static unsigned cdx19_busy,cdx19_taken;
 static constexpr uint32_t cdx19_capacity=4U*1024U*1024U;
 // KCData + UUID load info + trylock + no I/O stats + wait owners + no latency
@@ -1311,6 +1332,7 @@ extern "C" bool cdx19_capture_next(void){
         s.bytes=used;
         if(!s.rc && used && used<=cdx19_capacity){
             (void)cdx19::parse(buffer,used,s);
+            if(option("luming-display-stack-page")==9)cdx25_capture(index,s);
             (void)cdx21::collect(buffer,used,s,cdx21_samples[index]);
             if(activeLegacyDisplay){OSData *rel=OSData::withBytes(&cdx21_samples[index],sizeof(cdx21::Relations));
                 if(rel){cdx21_saved[index]=activeLegacyDisplay->setProperty(index?"CDX21State1":"CDX21State0",rel)?1U:0U;rel->release();}}
@@ -1537,8 +1559,22 @@ static void cdx24_format(Cdx15Text &text, bool quiet, uint32_t copies, uint32_t 
     text.footer(0, false);
 }
 
+static void cdx25_format(Cdx15Text &text, bool quiet, uint32_t copies, uint32_t retired) {
+    text.line("CDX25 q=%u cp=%u ret=%u\n", unsigned(quiet), copies, retired);
+    for (unsigned i = 0; i < 2; ++i) {
+        text.line("S%u ok=%u\n", i, cdx19_samples[i].parsed);
+        const char *line = cdx25_samples[i];
+        if (!*line) text.line("rpc=unavailable sample\n");
+        while (const char *end = strchr(line, '\n')) {
+            text.line("%.*s\n", int(end - line), line);
+            line = end + 1;
+        }
+    }
+    text.footer(0, false);
+}
+
 static void cdx19_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t retired){
-    unsigned page=option("luming-display-stack-page");if(page==8){cdx24_format(text,quiet,copies,retired);return;}if(page==7){cdx23_format(text,quiet,copies,retired);return;}if(page==6){cdx22_format(text,quiet,copies,retired);return;}if(page==5){cdx21_format(text,quiet,copies,retired);return;}if(page>4)page=0;
+    unsigned page=option("luming-display-stack-page");if(page==9){cdx25_format(text,quiet,copies,retired);return;}if(page==8){cdx24_format(text,quiet,copies,retired);return;}if(page==7){cdx23_format(text,quiet,copies,retired);return;}if(page==6){cdx22_format(text,quiet,copies,retired);return;}if(page==5){cdx21_format(text,quiet,copies,retired);return;}if(page>4)page=0;
     unsigned selected=option("luming-display-stack-thread");if(selected>7)selected=0;
     unsigned first=option("luming-display-stack-frame");if(first>28)first=28;
     unsigned step=option("luming-display-stack-step");if(step>28)step=28;
