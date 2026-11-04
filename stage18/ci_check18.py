@@ -19,8 +19,10 @@ assert report['generated_abi_sha256']==expected['generated_abi_sha256']
 assert report['virtual_entries']==358 and 176 in report['owned_entries']
 assert report['bindings']['_cdx18_original_wait']=='0xfffffff00578d998'
 assert report['bindings']['_cdx18_original_complete']=='0xfffffff005795b88'
+final19=json.loads(Path('ci-artifacts/stage19-install-report.json').read_text())
+for rel in final19['before']:assert final19['before'][rel]==installed['after'][rel]
 for materialized,template in [('drivers/GopFramebuffer/NativeLegacyDisplay.cpp','stage10/stage10-runtime/NativeLegacyDisplay.cpp'),('kits/luming-cpu-display/LegacyDisplayProbe.cpp','stage10/stage10-runtime/LegacyDisplayProbe.cpp')]:
-    assert report['source_sha256'][materialized]==installed['after'][template]
-for rel in installed['after']:assert hashlib.sha256((Path('device')/rel).read_bytes()).hexdigest()==installed['after'][rel]
+    assert report['source_sha256'][materialized]==final19['after'][template]
+for rel in final19['after']:assert hashlib.sha256((Path('device')/rel).read_bytes()).hexdigest()==final19['after'][rel]
 result=dict(stage=18,sha256=info['sha256'],bytes=info['bytes'],wait_calls=linked_calls(kernel),qualified=True,runtime_verified=False)
 Path('ci-artifacts/stage18-kernel-check.json').write_text(json.dumps(result,indent=2));print(json.dumps(result))

@@ -614,6 +614,10 @@ jobs:
             | tee ci-artifacts/stage17-install-report.json
           python3 device/stage18/install_stage18.py --device device --apply \
             | tee ci-artifacts/stage18-install-report.json
+          python3 device/stage19/verify_source19.py --core unixnu \
+            | tee ci-artifacts/stage19-source-check.json
+          python3 device/stage19/install_stage19.py --device device --apply \
+            | tee ci-artifacts/stage19-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -833,6 +837,12 @@ jobs:
                   if stage18['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
               materialized = stage18['after']
+          if Path('ci-artifacts/stage19-install-report.json').is_file():
+              stage19 = json.loads(Path('ci-artifacts/stage19-install-report.json').read_text())
+              for rel in stage19['before']:
+                  if stage19['before'][rel] != materialized[rel]:
+                      raise SystemExit('stage18 -> stage19 source chain broken: ' + rel)
+              materialized = stage19['after']
           # The stage10 display report proves which sources the archive compiled.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -1050,6 +1060,12 @@ jobs:
                   if stage18['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
               materialized = stage18['after']
+          if Path('ci-artifacts/stage19-install-report.json').is_file():
+              stage19 = json.loads(Path('ci-artifacts/stage19-install-report.json').read_text())
+              for rel in stage19['before']:
+                  if stage19['before'][rel] != materialized[rel]:
+                      raise SystemExit('stage18 -> stage19 source chain broken: ' + rel)
+              materialized = stage19['after']
           # The diagnostic tail must be cdx14 -> cdx14p1 -> cdx15, in that order;
           # the generated patch must stay enabled.
           entries = [l.strip() for l in Path('device/patches/xnu/device/series')
@@ -1329,6 +1345,12 @@ jobs:
                   if stage18['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
               materialized = stage18['after']
+          if Path('ci-artifacts/stage19-install-report.json').is_file():
+              stage19 = json.loads(Path('ci-artifacts/stage19-install-report.json').read_text())
+              for rel in stage19['before']:
+                  if stage19['before'][rel] != materialized[rel]:
+                      raise SystemExit('stage18 -> stage19 source chain broken: ' + rel)
+              materialized = stage19['after']
           # The compiled display archive proves the current sources and the ABI guard.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -1568,6 +1590,12 @@ jobs:
                   if stage18['before'].get(rel) != materialized[rel]:
                       raise SystemExit('stage17 -> stage18 source chain broken: ' + rel)
               materialized = stage18['after']
+          if Path('ci-artifacts/stage19-install-report.json').is_file():
+              stage19 = json.loads(Path('ci-artifacts/stage19-install-report.json').read_text())
+              for rel in stage19['before']:
+                  if stage19['before'][rel] != materialized[rel]:
+                      raise SystemExit('stage18 -> stage19 source chain broken: ' + rel)
+              materialized = stage19['after']
           # The compiled display archive proves the Stage15 sources and the unchanged ABI.
           report_paths = [*sorted(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json')),
                           *sorted(Path('unixnu/build/native-legacy-display').glob('build-report.json'))]
@@ -1681,6 +1709,7 @@ jobs:
           python3 device/stage17/ci_regression16.py
           python3 device/stage17/ci_check17.py
           python3 device/stage18/ci_check18.py
+          python3 device/stage19/ci_check19.py
 
       - name: Build the UniXNU package
         id: package
@@ -1985,7 +2014,8 @@ jobs:
                        'stage15-install-report.json', 'stage15-kernel-check.json',
                        'stage16-install-report.json', 'stage16-kernel-check.json',
                        'stage17-install-report.json', 'stage17-kernel-check.json',
-                       'stage18-install-report.json', 'stage18-kernel-check.json'):
+                       'stage18-install-report.json', 'stage18-kernel-check.json',
+                       'stage19-install-report.json', 'stage19-source-check.json', 'stage19-kernel-check.json'):
               path = root / 'ci-artifacts' / name
               if path.is_file():
                   files.append((path, name))
