@@ -160,7 +160,9 @@ static void cdx19_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t ret
         if(selected>=p.n){text.line("T%u thread=unavailable\n",i);continue;}
         // One selected thread on screen per sample; all eight retained in State.
         // Preserve the distinction between wait-info absent and type zero.
-        const auto &t=p.threads[selected];missing+=p.total-1;
+        unsigned pick=selected;for(unsigned j=0;j<8 && j<p.n;++j){if(p.threads[j].waitinfo){pick=j;break;}}
+        for(unsigned j=0;j<3 && j<p.n;++j)text.line("L%u %llx/%x/%u\n",i,(unsigned long long)p.threads[j].tid,p.threads[j].state,p.threads[j].waitinfo);
+        const auto &t=p.threads[pick];missing+=p.total-1;
         text.line("T%u id=%llx st=%x fl=%llx wt=%u/%u\n",i,(unsigned long long)t.tid,t.state,
             (unsigned long long)t.flags,t.waitinfo,t.kind);
         // Kernel frames remain in State; give screen space to four user LRs.
