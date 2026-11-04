@@ -138,22 +138,24 @@ static void cdx22_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t ret
 }
 
 extern "C" void ipc_mqueue_receive_continue(void);
+extern "C" uint64_t vm_kernel_addrperm;
 static void cdx23_port(Cdx15Text &text,unsigned i,const cdx19::Sample &s,const cdx19::Thread &t){
     if(t.kind!=2)return;
     text.line("R%u w=%llx c=%llx n=%u\n",i,(unsigned long long)t.wait,(unsigned long long)t.continuation,s.ntasks);
-    if(!t.wait || (t.wait&0xF))return;
-    if((t.wait>>48)!=0xffffULL)return;
-    if(t.continuation!=(uint64_t)(uintptr_t)&ipc_mqueue_receive_continue)return;
-    const uint64_t port=t.wait-16;
     constexpr uint64_t mask=0x0000FFFFFFFFFFFFULL;
-    for(unsigned off=0x58;off<=0x68;off+=8){
-        uint64_t v=*(const volatile uint64_t *)(uintptr_t)(port+off);
+    uint64_t perm=vm_kernel_addrperm;
+    uint64_t cand=t.context&mask;
+    if(perm)cand=(t.context-perm)&mask;
+    text.line("R%u cx=%llx perm=%llx cand=%llx\n",i,(unsigned long long)t.context,(unsigned long long)perm,(unsigned long long)cand);
+    if(!cand || (cand&0xF) || (cand>>48)!=0xffffULL){text.line("R%u bad-cand\n",i);return;}
+    for(unsigned off=0x50;off<=0x70;off+=8){
+        uint64_t v=*(const volatile uint64_t *)(uintptr_t)(cand+off);
         if((v>>48)!=0xffffULL || (v&0xF))continue;
         for(unsigned k=0;k<s.ntasks;++k){
             if(s.tasks[k].task==v || (s.tasks[k].task&mask)==(v&mask)){
                 char comm[9]={};
                 for(unsigned j=0;j<8 && s.tasks[k].comm[j];++j)comm[j]=s.tasks[k].comm[j];
-                text.line("R%u rx=%u %s\n",i,s.tasks[k].pid,comm);
+                text.line("R%u rx=%u %s off=%x\n",i,s.tasks[k].pid,comm,off);
                 return;
             }
         }
