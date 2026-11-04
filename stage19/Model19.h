@@ -128,7 +128,7 @@ inline bool parse(const void *buffer,size_t length,Sample &s){
                 auto &p=s.processes[proc];
                 for(unsigned j=0;j<count;++j){const auto *r=data+(size_t)j*step;uint64_t tid=u64(r+8);
                     for(unsigned n=0;n<p.n;++n)if(p.threads[n].tid==tid){auto &t=p.threads[n];
-                        t.waitinfo=1;t.owner=u64(r);t.context=u64(r+16);t.kind=r[24];t.waitbytes=(uint32_t)step;
+                        t.waitinfo=1;t.owner=u64(r);t.wait=u64(r+8);t.context=u64(r+16);t.kind=r[24];t.waitbytes=(uint32_t)step;
                         if(step==31){int16_t label;memcpy(&label,r+25,2);t.portlabel=label;t.waitflags=u32(r+27);}}}
             }
         }
