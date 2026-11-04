@@ -19,6 +19,12 @@ assert hashlib.sha256(series.encode()).hexdigest()==installed['after']['patches/
 lines=[s for s in series.splitlines() if 'cdx-generated-aslr' not in s and 'cdx-exception-aslr-diagnostic' not in s]
 insert=next(i for i,s in enumerate(lines) if s.strip() and not s.lstrip().startswith('#'))
 lines.insert(insert,'zzzzz-cdx-generated-aslr.patch')
+# Stage25 inserts its RPC patch before cdx14 so cdx17 stays the last
+# diagnostic entry; mirror that for the final series comparison.
+cdx25='zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-cdx25-rpc.patch'
+cdx14='zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
+if cdx25 not in lines:
+    lines.insert(lines.index(cdx14) if cdx14 in lines else len(lines), cdx25)
 assert Path('device/patches/xnu/device/series').read_bytes()==('\n'.join(lines)+'\n').encode()
 for rel in previous['after']:assert installed['before'][rel]==previous['after'][rel]
 reports=list(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json'))
