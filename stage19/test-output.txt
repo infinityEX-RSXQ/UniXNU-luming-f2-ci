@@ -1,0 +1,53 @@
+PASS: kcdata bounds, padding, process names, priority, owners, stack arrays, cache identity, truncation
+
+CDX19 rev=22 pg=0 th=0 quiet=1 cp=2 ret=2
+k=unslid w=unslid-or-perm sc=unavailable nofault
+S0 ms=15000 rc=0 b=3152 ok=1 err=0 raw=1
+P0 p=583 n=10 r=0 w=10 ui=1
+T0 id=6d st=1 fl=2000 wt=1/7
+K0 c=fffffff007123009 n=2
+U0 n=2 f=0 19f3d0009/19f3e0009/0/0
+W0 t=7 f=0 l=0 owner=c8 cx=5678
+S1 ms=30000 rc=0 b=3152 ok=1 err=0 raw=1
+P1 p=583 n=10 r=0 w=10 ui=1
+T1 id=6d st=1 fl=2000 wt=1/7
+K1 c=fffffff007123009 n=2
+U1 n=2 f=0 19f3d0009/19f3e0009/0/0
+W1 t=7 f=0 l=0 owner=c8 cx=5678
+cache=1 sl=1000 uuid=ab000000000000000000000000000000
+omit=18 drop=0 clip=0
+
+CDX21 q=1 cp=4294967295 ret=4294967295 export=0 jobs=?
+BB p=4294967295/4294967295 w=255/255 o=ffffffffffffffff/ffffffffffffffff
+SB p=4294967295/4294967295 w=255/255 o=ffffffffffffffff/ffffffffffffffff
+LD p=4294967295/4294967295 w=255/255 o=ffffffffffffffff/ffffffffffffffff
+L1 p=4294967295/4294967295 w=255/255 o=ffffffffffffffff/ffffffffffffffff
+L2 p=4294967295/4294967295 w=255/255 o=ffffffffffffffff/ffffffffffffffff
+S0 ms=18446744073709 ok=1 rel=1 save=1 ov=262144 dep=1
+O0 p=4294967295 t=ffffffffffffffff w=255 src=3
+U0 n=4294967295 f=0 ffffffffffffffff/ffffffffffffffff
+S1 ms=18446744073709 ok=1 rel=1 save=1 ov=262144 dep=1
+O1 p=4294967295 t=ffffffffffffffff w=255 src=3
+U1 n=4294967295 f=0 ffffffffffffffff/ffffffffffffffff
+omit=524600 drop=0 clip=0
+
+CDX22 q=1 cp=4294967295 ret=4294967295 ls=1 r=0 h=0
+S0 ms=18446744073709 v=1/1 x=262144 d=1
+R0 p=96 t=600 w=18 o=2fc
+O0 p=26 t=2fc w=1 o=888
+N0 SpringBo u=ffffffffffffffff s=1
+K0 keep=2 c=ffffffffffffffff ffffffffffffffff/ffffffffffffffff
+U0 n=37 f=0 ffffffffffffffff/ffffffffffffffff
+S1 ms=18446744073709 v=1/1 x=262144 d=1
+R1 p=96 t=600 w=18 o=2fc
+O1 p=26 t=2fc w=1 o=888
+N1 SpringBo u=ffffffffffffffff s=1
+K1 keep=2 c=ffffffffffffffff ffffffffffffffff/ffffffffffffffff
+U1 n=37 f=0 ffffffffffffffff/ffffffffffffffff
+omit=18 drop=0 clip=0
+
+PASS: default off, two calls only, real API return, raw ownership, bounded output, unavailable
+
+PASS Stage21 owner joins, sentinels, task order, ambiguity, missing, overflow, chain limits, turnstile, labels
+
+Stage15 model, attribution, generation reuse, late sampling, locks, registry and text bounds PASS
