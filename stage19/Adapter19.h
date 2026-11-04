@@ -137,6 +137,25 @@ static void cdx22_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t ret
     text.footer(omitted,false);
 }
 
+extern "C" void ipc_mqueue_receive_continue(void);
+static void cdx23_port(Cdx15Text &text,unsigned i,const cdx19::Sample &s,const cdx19::Thread &t){
+    if(t.kind!=2 || !t.wait)return;
+    if(t.continuation!=(uint64_t)(uintptr_t)&ipc_mqueue_receive_continue)return;
+    for(unsigned base=8;base<=16;base+=8){
+        uint64_t port=t.wait-base;
+        for(unsigned off=0x30;off<=0x88;off+=8){
+            uint64_t v=*(const volatile uint64_t *)(uintptr_t)(port+off);
+            for(unsigned k=0;k<s.ntasks;++k){
+                if(s.tasks[k].task==v){
+                    char comm[9]={};
+                    for(unsigned j=0;j<8 && s.tasks[k].comm[j];++j)comm[j]=s.tasks[k].comm[j];
+                    text.line("R%u rx=%u %s\n",i,s.tasks[k].pid,comm);
+                    return;
+                }
+            }
+        }
+    }
+}
 static void cdx19_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t retired){
     unsigned page=option("luming-display-stack-page");if(page==6){cdx22_format(text,quiet,copies,retired);return;}if(page==5){cdx21_format(text,quiet,copies,retired);return;}if(page>4)page=0;
     unsigned selected=option("luming-display-stack-thread");if(selected>7)selected=0;
@@ -160,9 +179,7 @@ static void cdx19_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t ret
         if(selected>=p.n){text.line("T%u thread=unavailable\n",i);continue;}
         // One selected thread on screen per sample; all eight retained in State.
         // Preserve the distinction between wait-info absent and type zero.
-        unsigned pick=selected;for(unsigned j=0;j<8 && j<p.n;++j){if(p.threads[j].waitinfo){pick=j;break;}}
-        for(unsigned j=0;j<3 && j<p.n;++j)text.line("L%u %llx/%x/%u\n",i,(unsigned long long)p.threads[j].tid,p.threads[j].state,p.threads[j].waitinfo);
-        const auto &t=p.threads[pick];missing+=p.total-1;
+        const auto &t=p.threads[selected];missing+=p.total-1;
         text.line("T%u id=%llx st=%x fl=%llx wt=%u/%u\n",i,(unsigned long long)t.tid,t.state,
             (unsigned long long)t.flags,t.waitinfo,t.kind);
         // Kernel frames remain in State; give screen space to four user LRs.
@@ -176,6 +193,7 @@ static void cdx19_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t ret
             t.waitflags,(int)t.portlabel,(unsigned long long)t.owner,(unsigned long long)t.context);
         else text.line("W%u t=%u f=? l=? owner=%llx cx=%llx\n",i,t.kind,
             (unsigned long long)t.owner,(unsigned long long)t.context);
+        cdx23_port(text,i,s,t);
     }
     const auto &s=cdx19_samples[cdx19_taken==2?1:0];const auto &p=s.processes[page];
     const unsigned char *uuid=p.cacheValid?p.uuid:s.uuid;uint64_t slide=p.cacheValid?p.cacheSlide:s.cacheSlide;

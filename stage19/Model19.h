@@ -10,9 +10,11 @@ struct Process {
     uint64_t unique,cacheSlide;uint32_t pid,seen,total,run,wait,unint,n,omitted,cacheValid;
     unsigned char uuid[16];Thread threads[8];uint32_t matches,otherpid;
 };
+struct TaskRef {uint64_t task;uint32_t pid;char comm[16];};
 struct Sample {
     uint64_t begin,end,flags,cacheSlide;uint32_t rc,bytes,parsed,error,stored,cacheValid;
     unsigned char uuid[16];Process processes[5];uint32_t lsdInstances;
+    TaskRef tasks[128];uint32_t ntasks;
 };
 inline uint32_t u32(const unsigned char *p){uint32_t v;memcpy(&v,p,4);return v;}
 inline uint64_t u64(const unsigned char *p){uint64_t v;memcpy(&v,p,8);return v;}
@@ -77,6 +79,7 @@ inline bool parse(const void *buffer,size_t length,Sample &s){
             // Separate tasks may legitimately share comm; mark ambiguity and
             // never merge their threads or silently select a process by name.
             if(taskSnapshot)return bad(24);taskSnapshot=true;
+            if(s.ntasks<128){s.tasks[s.ntasks].task=scopes[depth-1].id;s.tasks[s.ntasks].pid=u32(data+84);memcpy(s.tasks[s.ntasks].comm,data+88,16);++s.ntasks;}
             proc=nameIndex(data+88,32);
             if(proc==3){
                 // Preserve two independent lsd task containers. Never merge
