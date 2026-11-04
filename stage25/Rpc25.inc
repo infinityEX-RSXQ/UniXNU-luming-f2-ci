@@ -1,6 +1,3 @@
-#include <libkern/libkern.h>
-#include <mach/vm_param.h>
-
 /* Stage25 opt-in diagnostics. Port and kmsg identities stay inside this file. */
 #define CDX25_CAPACITY 64
 #define CDX25_PENDING UINT32_MAX
@@ -16,6 +13,21 @@ struct cdx25_row {
 static struct cdx25_row cdx25_rows[CDX25_CAPACITY];
 static unsigned cdx25_enabled, cdx25_busy, cdx25_missed;
 static uint64_t cdx25_next;
+
+static bool
+cdx25_is_springboard(const char *name)
+{
+	static const char want[] = "SpringBoard";
+	if (!name) {
+		return false;
+	}
+	for (unsigned i = 0; i < sizeof(want); i++) {
+		if (name[i] != want[i]) {
+			return false;
+		}
+	}
+	return true;
+}
 
 extern char *proc_name_address(void *);
 void cdx25_arm(void);
@@ -86,7 +98,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	}
 	task_t task = current_task();
 	struct proc *proc = get_bsdtask_info(task);
-	if (!proc || strcmp(proc_name_address(proc), "SpringBoard") || !cdx25_lock()) {
+	if (!proc || !cdx25_is_springboard(proc_name_address(proc)) || !cdx25_lock()) {
 		return 0;
 	}
 	uint64_t seq = ++cdx25_next;
@@ -173,8 +185,11 @@ cdx25_receive_begin(ipc_kmsg_t kmsg, bool *is_reply)
 			match->peer = pid;
 			match->peer_tid = tid;
 			struct proc *proc = get_bsdtask_info(current_task());
-			if (proc) {
-				strlcpy(match->comm, proc_name_address(proc), sizeof(match->comm));
+			const char *name = proc ? proc_name_address(proc) : NULL;
+			if (name) {
+				for (unsigned i = 0; i + 1 < sizeof(match->comm) && name[i]; i++) {
+					match->comm[i] = name[i];
+				}
 			}
 		}
 	}
