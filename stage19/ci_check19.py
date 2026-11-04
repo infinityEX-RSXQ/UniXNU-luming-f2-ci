@@ -10,7 +10,7 @@ for rel in installed['before']:assert installed['before'][rel]==previous['after'
 for rel,h in installed['after'].items():assert hashlib.sha256((Path('device')/rel).read_bytes()).hexdigest()==h
 kernels=list(Path('unixnu/out').glob('**/kernel/kernel.macho'));assert len(kernels)==1
 kernel=kernels[0];info=inspect(kernel);raw=kernel.read_bytes()
-for marker in (b'CDX24 q=',b'CDX23 q=',b'CDX22 q=',b'luming-display-stack-thread',b'CDX21 q=',b'CDX21State0',b'CDX21State1',b'luming-display-stack-owner',b'luming-display-stackshot',b'CDX19Raw0',b'CDX19Raw1',b'CDX19State0',b'CDX19State1',b'CDX19 stackshot (intentional)'):
+for marker in (b'CDX25 q=', b'CDX24 q=',b'CDX23 q=',b'CDX22 q=',b'luming-display-stack-thread',b'CDX21 q=',b'CDX21State0',b'CDX21State1',b'luming-display-stack-owner',b'luming-display-stackshot',b'CDX19Raw0',b'CDX19Raw1',b'CDX19State0',b'CDX19State1',b'CDX19 stackshot (intentional)'):
     assert marker in raw,marker
 reports=list(Path('unixnu/out').glob('**/tree/build/native-legacy-display/build-report.json'))
 reports+=list(Path('unixnu/build/native-legacy-display').glob('build-report.json'));assert reports

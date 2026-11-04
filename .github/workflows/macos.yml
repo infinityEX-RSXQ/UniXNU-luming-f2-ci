@@ -618,6 +618,8 @@ jobs:
             | tee ci-artifacts/stage19-source-check.json
           python3 device/stage19/install_stage19.py --device device --apply \
             | tee ci-artifacts/stage19-install-report.json
+          python3 device/stage25/install_stage25.py --core unixnu --device device \
+            | tee ci-artifacts/stage25-install-report.json
           if [ -f device/scripts/ci/f2-luming-ci.sh ]; then
             bash device/scripts/ci/f2-luming-ci.sh pre_build
           else
@@ -643,6 +645,12 @@ jobs:
           args=(-D ../device)
           if [ -n "${UNIXNU_KERNELCACHE:-}" ]; then args+=(--kernelcache "$UNIXNU_KERNELCACHE"); fi
           if [ -n "${UNIXNU_IPSW:-}" ]; then args+=(--ipsw "$UNIXNU_IPSW"); fi
+          report_kernel_errors() {
+            find out -type f -name 'kernel*.log' -print | while IFS= read -r log; do
+              grep -n -m 20 -B 2 -A 3 -E 'fatal error:|error:|Undefined symbols|undefined symbol' "$log" || true
+            done
+          }
+          trap report_kernel_errors ERR
           ./unixnu build kernel "${args[@]}" -j 3 2>&1 | tee ../ci-artifacts/logs/kernel.log
 
       - name: Check the stage12 mode/refresh markers in the built kernel
@@ -2015,7 +2023,7 @@ jobs:
                        'stage16-install-report.json', 'stage16-kernel-check.json',
                        'stage17-install-report.json', 'stage17-kernel-check.json',
                        'stage18-install-report.json', 'stage18-kernel-check.json',
-                       'stage19-install-report.json', 'stage19-source-check.json', 'stage19-kernel-check.json'):
+                       'stage19-install-report.json', 'stage19-source-check.json', 'stage19-kernel-check.json', 'stage25-install-report.json'):
               path = root / 'ci-artifacts' / name
               if path.is_file():
                   files.append((path, name))

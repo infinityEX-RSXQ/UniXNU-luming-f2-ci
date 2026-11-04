@@ -1,0 +1,68 @@
+"""Install the default-off Stage25 Mach message trace against a pinned XNU feed."""
+from pathlib import Path
+import argparse
+import difflib
+import hashlib
+import json
+
+HERE = Path(__file__).resolve().parent
+SOURCE = 'osfmk/ipc/mach_msg.c'
+PATCH = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-cdx25-rpc.patch'
+
+
+def once(text, anchor, replacement):
+    if text.count(anchor) != 1:
+        raise ValueError(f'Stage25 anchor missing or ambiguous: {anchor!r}')
+    return text.replace(anchor, replacement)
+
+
+def make_patch(tree):
+    raw = (tree / SOURCE).read_bytes().replace(b'\r\n', b'\n')
+    pin = (HERE / 'mach_msg.sha256').read_text().strip()
+    if hashlib.sha256(raw).hexdigest() != pin:
+        raise ValueError('Stage25 mach_msg.c source drift')
+    old = raw.decode()
+    anchor = '#define mach_copyout_field'
+    new = once(old, anchor, (HERE / 'Rpc25.inc').read_text().rstrip() + '\n\n' + anchor)
+    anchor = '\tmsgr.msgr_context = ikm_header(kmsg)->msgh_remote_port->ip_context;\n'
+    new = once(new, anchor, anchor + '''
+	bool cdx25_reply = false;
+	uint64_t cdx25_seq = cdx25_receive_begin(kmsg, &cdx25_reply);
+''')
+    anchor = '\t/* kmsg freed */\n\nout:\n'
+    new = once(new, anchor, '\tcdx25_receive_end(cdx25_seq, cdx25_reply, mr);\n' + anchor)
+    anchor = '\tmr = ipc_kmsg_copyin_from_user(kmsg, send_uctx, space, map, priority, &options);'
+    new = once(new, anchor, '\tmach_port_name_t cdx25_name = send_uctx->send_header.msgh_local_port;\n' + anchor)
+    anchor = '\tmr = ipc_kmsg_send(kmsg, options, msg_timeout);\n'
+    new = once(new, anchor, '''
+	bool cdx25_reply = false;
+	uint64_t cdx25_seq = cdx25_send_begin(kmsg, cdx25_name, &cdx25_reply);
+''' + anchor + '\tcdx25_send_end(cdx25_seq, cdx25_reply, mr);\n')
+    diff = difflib.unified_diff(old.splitlines(True), new.splitlines(True),
+                                'a/' + SOURCE, 'b/' + SOURCE)
+    return (f'diff --git a/{SOURCE} b/{SOURCE}\n' + ''.join(diff)).encode()
+
+
+def install(tree, device):
+    patch = make_patch(tree)
+    directory = device / 'patches/xnu/device'
+    series = directory / 'series'
+    entries = series.read_text().splitlines()
+    if PATCH not in entries:
+        (directory / PATCH).write_bytes(patch)
+        series.write_bytes(('\n'.join([*entries, PATCH]) + '\n').encode())
+    elif (directory / PATCH).read_bytes() != patch:
+        raise ValueError('Stage25 patch changed after installation')
+    return {'patch': PATCH, 'sha256': hashlib.sha256(patch).hexdigest()}
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--core', type=Path, required=True)
+    parser.add_argument('--device', type=Path, required=True)
+    args = parser.parse_args()
+    feeds = [tree for tree in (args.core / 'out/feeds').glob('xnu-*')
+             if (tree / SOURCE).is_file()]
+    if len(feeds) != 1:
+        raise SystemExit(f'Expected one XNU feed, got {feeds}')
+    print(json.dumps(install(feeds[0], args.device)))
