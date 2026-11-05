@@ -1569,6 +1569,32 @@ static void cdx25_format(Cdx15Text &text, bool quiet, uint32_t copies, uint32_t 
             text.line("%.*s\n", int(end - line), line);
             line = end + 1;
         }
+        // Resolve only against the task in this same copied sample. The
+        // numeric PID was captured from the chain immediately after stackshot;
+        // it is an observation, not a stable identity across boots.
+        const char *p = nullptr;
+        for (unsigned offset = 0; offset + 6 < sizeof(cdx25_samples[i]) && cdx25_samples[i][offset]; ++offset) {
+            const char *q = cdx25_samples[i] + offset;
+            if (q[0]=='o' && q[1]=='w' && q[2]=='n' && q[3]=='e' && q[4]=='r' && q[5]=='=') { p = q; break; }
+        }
+        unsigned owner = 0;
+        if (p) { p += 6; while (*p >= '0' && *p <= '9' && owner < 1000000) owner = owner * 10 + unsigned(*p++ - '0'); }
+        const auto &sample = cdx19_samples[i];
+        const cdx19::Process *match = nullptr;
+        unsigned matches = 0;
+        if (sample.parsed && owner && sample.lsdInstances <= 2) {
+            for (unsigned k = 3; k < 5; ++k) {
+                const auto &candidate = sample.processes[k];
+                if (candidate.seen && candidate.matches == 1 && candidate.pid == owner) { match = &candidate; ++matches; }
+            }
+        }
+        if (matches != 1) { text.line("L%u unresolved pid=%u n=%u\n", i, owner, matches); continue; }
+        text.line("L%u p=%u total=%u kept=%u lost=%u\n", i, match->pid, match->total, match->n, match->omitted);
+        for (unsigned k = 0; k < match->n; ++k) {
+            const auto &t = match->threads[k];
+            text.line("T%u.%u %llx s=%x w=%u/%u\n", i, k,
+                (unsigned long long)t.tid, t.state, t.waitinfo, t.kind);
+        }
     }
     text.footer(0, false);
 }
