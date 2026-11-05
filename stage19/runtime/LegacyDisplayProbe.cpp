@@ -1592,8 +1592,11 @@ static void cdx25_format(Cdx15Text &text, bool quiet, uint32_t copies, uint32_t 
         text.line("L%u p=%u total=%u kept=%u lost=%u\n", i, match->pid, match->total, match->n, match->omitted);
         for (unsigned k = 0; k < match->n; ++k) {
             const auto &t = match->threads[k];
-            text.line("T%u.%u %llx s=%x w=%u/%u\n", i, k,
-                (unsigned long long)t.tid, t.state, t.waitinfo, t.kind);
+            // u is the first captured user return address, not necessarily
+            // the instruction pointer or the cause of a wait.
+            text.line("T%u.%u %llx %x %u/%u u%u:%llx\n", i, k,
+                (unsigned long long)t.tid, t.state, t.waitinfo, t.kind,
+                unsigned(t.nu != 0), (unsigned long long)(t.nu ? t.u[0] : 0));
         }
     }
     text.footer(0, false);

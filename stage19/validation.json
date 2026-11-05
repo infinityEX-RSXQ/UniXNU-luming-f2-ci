@@ -6,7 +6,7 @@
     "stage10/stage10-build/build-luming-cpu-legacy-display.py": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
   },
   "after": {
-    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "843c24ddaff041702489eec72862857de1129e45d9b4c87abb838669ca3dd5b5",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "ab9687fbf061862497046f4db5288df5404425359458dc7f3556fa0954dcbc1f",
     "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "3f75b236341f9a75f44590c09eda645ac7a5f25272629f12636360a1f9afc509",
     "stage10/stage10-build/build-luming-cpu-legacy-display.py": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
   },
