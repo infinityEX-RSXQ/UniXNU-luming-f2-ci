@@ -21,9 +21,11 @@ struct cdx25_row {
 	uint32_t peer, delivery_rc, reply, reply_tx, reply_rc;
 	char comm[17];
 	char svc[17];
+	char wait_svc[17];
 	ipc_kmsg_t message;
 	ipc_port_t reply_port;
 	uint64_t dest_addr, dest_space, dest_task;
+	uint64_t wait_owner;
 	uint32_t dest_hops;
 };
 static struct cdx25_row cdx25_rows[CDX25_CAPACITY];
@@ -139,6 +141,41 @@ cdx25_chain_task(ipc_port_t port, uint64_t *space_out, uint32_t *hops,
 	return TASK_NULL;
 }
 
+/*
+ * If the resolved peer is blocked receiving on a port, record that port's
+ * owner and (when it is a service port) its service label.  This answers
+ * "what is lsd itself waiting for" at the moment SpringBoard sends to it.
+ */
+static void
+cdx25_capture_wait(task_t task, uint64_t *owner, char *svc, size_t svc_size)
+{
+	thread_t th;
+	if (!task) {
+		return;
+	}
+	queue_iterate(&task->threads, th, thread_t, task_threads) {
+		if (th->block_hint != kThreadWaitPortReceive ||
+		    !th->waitq.wq_q || th->wait_event != IPC_MQUEUE_RECEIVE) {
+			continue;
+		}
+		thread_waitinfo_v2_t wi = {};
+		struct ipc_service_port_label *ispl = NULL;
+		wi.wait_type = kThreadWaitPortReceive;
+		kdp_mqueue_recv_find_owner(th->waitq.wq_q, th->wait_event,
+		    &wi, &ispl);
+		*owner = wi.owner ? wi.owner : wi.context;
+		if (ispl) {
+			struct cdx25_svc_label *label =
+			    (struct cdx25_svc_label *)ispl;
+			char *name = label->service_name;
+			if (name && ((uintptr_t)name >> 48) == 0xffff) {
+				cdx25_comm_copy(svc, svc_size, name);
+			}
+		}
+		break;
+	}
+}
+
 static uint64_t
 cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 {
@@ -189,6 +226,8 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	uint32_t peer_pid = 0;
 	char peer_comm[17] = {};
 	char svc[17] = {};
+	char wait_svc[17] = {};
+	uint64_t wait_owner = 0;
 	uint64_t dest_addr = 0, dest_space = 0, dest_task = 0;
 	uint32_t dest_hops = 0;
 	ipc_port_t dest = header->msgh_remote_port;
@@ -204,6 +243,8 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 			struct proc *peer_proc = get_bsdtask_info(peer_task);
 			cdx25_comm_copy(peer_comm, sizeof(peer_comm),
 			    peer_proc ? proc_name_address(peer_proc) : NULL);
+			cdx25_capture_wait(peer_task, &wait_owner,
+			    wait_svc, sizeof(wait_svc));
 		} else if (space) {
 			/* kernel-owned port: ipc_space_kernel has no is_task */
 			cdx25_comm_copy(peer_comm, sizeof(peer_comm), "kernel");
@@ -236,9 +277,11 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.dest_space = dest_space,
 		.dest_task = dest_task,
 		.dest_hops = dest_hops,
+		.wait_owner = wait_owner,
 	};
 	cdx25_comm_copy(row->comm, sizeof(row->comm), peer_comm);
 	cdx25_comm_copy(row->svc, sizeof(row->svc), svc);
+	cdx25_comm_copy(row->wait_svc, sizeof(row->wait_svc), wait_svc);
 	cdx25_unlock();
 	if (old) {
 		ip_release(old);
@@ -416,6 +459,15 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 				break;
 			}
 			used += w;
+		}
+		if (i == 0 && (found[i].wait_owner || found[i].wait_svc[0])) {
+			w = snprintf(out + used, size - used,
+			    "    L%u w%llx svc=%.12s\n", found[i].peer,
+			    (unsigned long long)found[i].wait_owner,
+			    found[i].wait_svc);
+			if (w > 0 && (size_t)w < size - used) {
+				used += w;
+			}
 		}
 		if (found[i].svc[0] && (size_t)used + 24 < size) {
 			w = snprintf(out + used, size - used,
