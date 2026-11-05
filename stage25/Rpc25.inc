@@ -9,6 +9,7 @@ struct cdx25_row {
 	char comm[17];
 	ipc_kmsg_t message;
 	ipc_port_t reply_port;
+	uint64_t dest_addr, dest_space, dest_task;
 };
 static struct cdx25_row cdx25_rows[CDX25_CAPACITY];
 static unsigned cdx25_enabled, cdx25_busy, cdx25_missed;
@@ -124,6 +125,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	 */
 	uint32_t peer_pid = 0;
 	char peer_comm[17] = {};
+	uint64_t dest_addr = 0, dest_space = 0, dest_task = 0;
 	ipc_port_t dest = header->msgh_remote_port;
 	if (IP_VALID(dest)) {
 		/*
@@ -132,10 +134,16 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		 *   ldr x8, [x19, #0x40]
 		 *   ldr x19, [x8, #0x28]
 		 */
+		dest_addr = (uint64_t)(uintptr_t)dest;
 		uintptr_t port_addr = (uintptr_t)dest;
 		uint64_t space = *(const volatile uint64_t *)(port_addr + 0x40);
-		if ((space >> 48) == 0xffff && !(space & 7)) {
+		dest_space = space;
+		if (!space) {
+			/* no receive right: service port is dead / not owned */
+			cdx25_comm_copy(peer_comm, sizeof(peer_comm), "no-recv");
+		} else if ((space >> 48) == 0xffff && !(space & 7)) {
 			uint64_t taskp = *(const volatile uint64_t *)(uintptr_t)(space + 0x28);
+			dest_task = taskp;
 			if (!taskp) {
 				/* kernel-owned port: ipc_space_kernel has no is_task */
 				cdx25_comm_copy(peer_comm, sizeof(peer_comm), "kernel");
@@ -169,6 +177,9 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.message = kmsg,
 		.reply_port = reply,
 		.peer = peer_pid,
+		.dest_addr = dest_addr,
+		.dest_space = dest_space,
+		.dest_task = dest_task,
 	};
 	cdx25_comm_copy(row->comm, sizeof(row->comm), peer_comm);
 	cdx25_unlock();
@@ -294,8 +305,17 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		    matches ? "ambiguous" : "unavailable", matches, (unsigned long long)seen, missed);
 		return;
 	}
-	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x\npeer=%u tid=%llx %s\nreply=%x tx=%x rx=%x missed=%u\n",
+	int used = snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x\npeer=%u tid=%llx %s\nreply=%x tx=%x rx=%x missed=%u\n",
 	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc,
 	    found.peer, (unsigned long long)found.peer_tid,
 	    found.comm[0] ? found.comm : "unknown", found.reply, found.reply_tx, found.reply_rc, missed);
+	if (used < 0 || (size_t)used >= size) {
+		return;
+	}
+	if (found.dest_addr) {
+		snprintf(out + used, size - used, "dest=%llx sp=%llx tk=%llx\n",
+		    (unsigned long long)found.dest_addr,
+		    (unsigned long long)found.dest_space,
+		    (unsigned long long)found.dest_task);
+	}
 }
