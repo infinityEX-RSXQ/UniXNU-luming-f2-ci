@@ -127,12 +127,13 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	ipc_port_t dest = header->msgh_remote_port;
 	if (IP_VALID(dest)) {
 		/*
-		 * XNU 10063.141.1 arm64: ip_receiver is at 0x50
-		 * (ip_object 8 + waitq 40 + ipc_mqueue 32).  0x48 is the last
-		 * word of ipc_mqueue and is not an ipc_space pointer.
+		 * XNU 10063.141.1 arm64: ip_receiver is at 0x40, is_task at
+		 * 0x28.  Disassembly of _ipc_port_get_receiver_task_locked:
+		 *   ldr x8, [x19, #0x40]
+		 *   ldr x19, [x8, #0x28]
 		 */
 		uintptr_t port_addr = (uintptr_t)dest;
-		uint64_t space = *(const volatile uint64_t *)(port_addr + 0x50);
+		uint64_t space = *(const volatile uint64_t *)(port_addr + 0x40);
 		if ((space >> 48) == 0xffff && !(space & 7)) {
 			uint64_t taskp = *(const volatile uint64_t *)(uintptr_t)(space + 0x28);
 			if (!taskp) {
