@@ -340,25 +340,24 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		for (unsigned j = 0; j < 8 && found[i].comm[j]; j++) {
 			comm[j] = found[i].comm[j];
 		}
-		int w;
-		if (i == 0) {
-			w = snprintf(out + used, size - used,
-			    "%llx %x t%x x%x p%u %s d%llx sp%llx tk%llx\n",
-			    (unsigned long long)found[i].seq, found[i].request,
-			    found[i].send_rc, found[i].delivery_rc, found[i].peer,
-			    comm[0] ? comm : "?", (unsigned long long)found[i].dest_addr,
-			    (unsigned long long)found[i].dest_space,
-			    (unsigned long long)found[i].dest_task);
-		} else {
-			w = snprintf(out + used, size - used,
-			    "%llx %x t%x x%x p%u %s d%llx\n",
-			    (unsigned long long)found[i].seq, found[i].request,
-			    found[i].send_rc, found[i].delivery_rc, found[i].peer,
-			    comm[0] ? comm : "?", (unsigned long long)found[i].dest_addr);
-		}
+		int w = snprintf(out + used, size - used,
+		    "%llx %x t%x x%x p%u %s d%llx\n",
+		    (unsigned long long)found[i].seq, found[i].request,
+		    found[i].send_rc, found[i].delivery_rc, found[i].peer,
+		    comm[0] ? comm : "?", (unsigned long long)found[i].dest_addr);
 		if (w < 0 || (size_t)w >= size - used) {
 			break;
 		}
 		used += w;
+		if (i == 0) {
+			w = snprintf(out + used, size - used,
+			    "sp%llx tk%llx\n",
+			    (unsigned long long)found[i].dest_space,
+			    (unsigned long long)found[i].dest_task);
+			if (w < 0 || (size_t)w >= size - used) {
+				break;
+			}
+			used += w;
+		}
 	}
 }
