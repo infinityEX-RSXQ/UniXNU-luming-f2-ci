@@ -302,13 +302,10 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		}
 	}
 
-	/* Then the most recent unanswered requests from the same client. */
-	for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen && n < 3; s--) {
+	/* Then one more recent send from the same client, answered or not. */
+	for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen && n < 2; s--) {
 		const struct cdx25_row *row = cdx25_slot(s);
 		if (row->seq != s || row->client != pid) {
-			continue;
-		}
-		if (row->reply_rc != CDX25_PENDING) {
 			continue;
 		}
 		if (row->send_rc != 0 && row->send_rc != CDX25_PENDING) {
@@ -343,11 +340,22 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		for (unsigned j = 0; j < 8 && found[i].comm[j]; j++) {
 			comm[j] = found[i].comm[j];
 		}
-		int w = snprintf(out + used, size - used,
-		    "%llx %x t%x x%x p%u %s d%llx\n",
-		    (unsigned long long)found[i].seq, found[i].request,
-		    found[i].send_rc, found[i].delivery_rc, found[i].peer,
-		    comm[0] ? comm : "?", (unsigned long long)found[i].dest_addr);
+		int w;
+		if (i == 0) {
+			w = snprintf(out + used, size - used,
+			    "%llx %x t%x x%x p%u %s d%llx sp%llx tk%llx\n",
+			    (unsigned long long)found[i].seq, found[i].request,
+			    found[i].send_rc, found[i].delivery_rc, found[i].peer,
+			    comm[0] ? comm : "?", (unsigned long long)found[i].dest_addr,
+			    (unsigned long long)found[i].dest_space,
+			    (unsigned long long)found[i].dest_task);
+		} else {
+			w = snprintf(out + used, size - used,
+			    "%llx %x t%x x%x p%u %s d%llx\n",
+			    (unsigned long long)found[i].seq, found[i].request,
+			    found[i].send_rc, found[i].delivery_rc, found[i].peer,
+			    comm[0] ? comm : "?", (unsigned long long)found[i].dest_addr);
+		}
 		if (w < 0 || (size_t)w >= size - used) {
 			break;
 		}
