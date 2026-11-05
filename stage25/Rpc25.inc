@@ -126,27 +126,25 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	char peer_comm[17] = {};
 	ipc_port_t dest = header->msgh_remote_port;
 	if (IP_VALID(dest)) {
+		/*
+		 * XNU 10063.141.1 arm64 with MACH_FLIPC=0: ip_receiver is at
+		 * 0x48 (0x50 is the ip_kobject union).  The built kernel has no
+		 * flipc symbols, so do not probe 0x50 and risk a bogus task.
+		 */
 		uintptr_t port_addr = (uintptr_t)dest;
-		for (unsigned poff = 0x48; poff <= 0x50; poff += 8) {
-			uint64_t space = *(const volatile uint64_t *)(port_addr + poff);
-			if ((space >> 48) != 0xffff || (space & 7)) {
-				continue;
-			}
+		uint64_t space = *(const volatile uint64_t *)(port_addr + 0x48);
+		if ((space >> 48) == 0xffff && !(space & 7)) {
 			uint64_t taskp = *(const volatile uint64_t *)(uintptr_t)(space + 0x28);
 			if (!taskp) {
 				/* kernel-owned port: ipc_space_kernel has no is_task */
 				cdx25_comm_copy(peer_comm, sizeof(peer_comm), "kernel");
-				break;
+			} else if ((taskp >> 48) == 0xffff && !(taskp & 7)) {
+				task_t peer_task = (task_t)(uintptr_t)taskp;
+				peer_pid = (uint32_t)task_pid(peer_task);
+				struct proc *peer_proc = get_bsdtask_info(peer_task);
+				cdx25_comm_copy(peer_comm, sizeof(peer_comm),
+				    peer_proc ? proc_name_address(peer_proc) : NULL);
 			}
-			if ((taskp >> 48) != 0xffff || (taskp & 7)) {
-				continue;
-			}
-			task_t peer_task = (task_t)(uintptr_t)taskp;
-			peer_pid = (uint32_t)task_pid(peer_task);
-			struct proc *peer_proc = get_bsdtask_info(peer_task);
-			cdx25_comm_copy(peer_comm, sizeof(peer_comm),
-			    peer_proc ? proc_name_address(peer_proc) : NULL);
-			break;
 		}
 	}
 	if (!cdx25_lock()) {
