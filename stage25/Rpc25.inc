@@ -2,6 +2,9 @@
 #define CDX25_CAPACITY 64
 #define CDX25_PENDING UINT32_MAX
 
+extern struct proc *proc_find(int pid);
+extern void proc_rele(struct proc *p);
+
 /*
  * Tail of struct ipc_service_port_label with CONFIG_SERVICE_PORT_INFO.
  * Kept local to avoid pulling another kernel header into mach_msg.c late.
@@ -29,6 +32,7 @@ struct cdx25_row {
 	uint64_t wait_ctx;
 	uint32_t wait_type;
 	uint32_t wait_flags;
+	uint32_t wait_pid;
 	uint32_t dest_hops;
 };
 static struct cdx25_row cdx25_rows[CDX25_CAPACITY];
@@ -151,7 +155,8 @@ cdx25_chain_task(ipc_port_t port, uint64_t *space_out, uint32_t *hops,
  */
 static void
 cdx25_capture_wait(task_t task, uint64_t *owner, uint64_t *ctx,
-    uint32_t *type, uint32_t *flags, char *svc, size_t svc_size)
+    uint32_t *type, uint32_t *flags, uint32_t *pid,
+    char *svc, size_t svc_size)
 {
 	thread_t th;
 	if (!task) {
@@ -172,6 +177,19 @@ cdx25_capture_wait(task_t task, uint64_t *owner, uint64_t *ctx,
 			*owner = wi.owner;
 			*ctx = wi.context;
 			*flags = wi.wait_flags;
+			if (waitq_type(th->waitq.wq_q) == WQT_PORT) {
+				ipc_port_t wp = ip_from_waitq(th->waitq.wq_q);
+				if (IP_VALID(wp) && ip_active(wp) &&
+				    wp->ip_specialreply) {
+					*pid = (uint32_t)wp->ip_pid;
+					struct proc *p = proc_find((int)*pid);
+					if (p) {
+						cdx25_comm_copy(svc, svc_size,
+						    proc_name_address(p));
+						proc_rele(p);
+					}
+				}
+			}
 			if (ispl) {
 				struct cdx25_svc_label *label =
 				    (struct cdx25_svc_label *)ispl;
@@ -240,6 +258,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	uint64_t wait_ctx = 0;
 	uint32_t wait_type = 0;
 	uint32_t wait_flags = 0;
+	uint32_t wait_pid = 0;
 	uint64_t dest_addr = 0, dest_space = 0, dest_task = 0;
 	uint32_t dest_hops = 0;
 	ipc_port_t dest = header->msgh_remote_port;
@@ -256,7 +275,8 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 			cdx25_comm_copy(peer_comm, sizeof(peer_comm),
 			    peer_proc ? proc_name_address(peer_proc) : NULL);
 			cdx25_capture_wait(peer_task, &wait_owner, &wait_ctx,
-			    &wait_type, &wait_flags, wait_svc, sizeof(wait_svc));
+			    &wait_type, &wait_flags, &wait_pid,
+			    wait_svc, sizeof(wait_svc));
 		} else if (space) {
 			/* kernel-owned port: ipc_space_kernel has no is_task */
 			cdx25_comm_copy(peer_comm, sizeof(peer_comm), "kernel");
@@ -293,6 +313,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.wait_ctx = wait_ctx,
 		.wait_type = wait_type,
 		.wait_flags = wait_flags,
+		.wait_pid = wait_pid,
 	};
 	cdx25_comm_copy(row->comm, sizeof(row->comm), peer_comm);
 	cdx25_comm_copy(row->svc, sizeof(row->svc), svc);
@@ -479,11 +500,12 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		if (i == 0 && (found[i].wait_owner || found[i].wait_ctx ||
 		    found[i].wait_svc[0] || found[i].wait_type)) {
 			w = snprintf(out + used, size - used,
-			    "    L%u ty%u w%llx c%llx f%x svc=%.8s\n",
+			    "    L%u ty%u w%llx c%llx f%x rp%u svc=%.8s\n",
 			    found[i].peer, found[i].wait_type,
 			    (unsigned long long)found[i].wait_owner,
 			    (unsigned long long)found[i].wait_ctx,
-			    found[i].wait_flags, found[i].wait_svc);
+			    found[i].wait_flags, found[i].wait_pid,
+			    found[i].wait_svc);
 			if (w > 0 && (size_t)w < size - used) {
 				used += w;
 			}
