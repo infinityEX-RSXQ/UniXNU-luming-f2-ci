@@ -127,12 +127,12 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	ipc_port_t dest = header->msgh_remote_port;
 	if (IP_VALID(dest)) {
 		/*
-		 * XNU 10063.141.1 arm64 with MACH_FLIPC=0: ip_receiver is at
-		 * 0x48 (0x50 is the ip_kobject union).  The built kernel has no
-		 * flipc symbols, so do not probe 0x50 and risk a bogus task.
+		 * XNU 10063.141.1 arm64: ip_receiver is at 0x50
+		 * (ip_object 8 + waitq 40 + ipc_mqueue 32).  0x48 is the last
+		 * word of ipc_mqueue and is not an ipc_space pointer.
 		 */
 		uintptr_t port_addr = (uintptr_t)dest;
-		uint64_t space = *(const volatile uint64_t *)(port_addr + 0x48);
+		uint64_t space = *(const volatile uint64_t *)(port_addr + 0x50);
 		if ((space >> 48) == 0xffff && !(space & 7)) {
 			uint64_t taskp = *(const volatile uint64_t *)(uintptr_t)(space + 0x28);
 			if (!taskp) {
