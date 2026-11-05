@@ -82,8 +82,9 @@ cdx25_port_state(ipc_port_t port)
 /* Follow at most four successive destinations. Each nibble is one
  * independent, locked observation; this is not an atomic chain snapshot. */
 static uint32_t
-cdx25_chain(ipc_port_t first)
+cdx25_chain(ipc_port_t first, int *owner)
 {
+	*owner = -1;
 	if (!IP_VALID(first)) return 0;
 	ip_reference(first);
 	ipc_port_t port = first;
@@ -99,7 +100,11 @@ cdx25_chain(ipc_port_t first)
 			if (IP_VALID(next)) ip_reference(next);
 		} else if (ip_in_limbo(port)) state = 3;
 		else if (ip_in_space(port, ipc_space_kernel)) state = 4;
-		else state = 5;
+		else {
+			state = 5;
+			/* XNU resolves the receiver PID while the port is locked. */
+			*owner = ipc_port_get_receiver_task_locked(port, NULL);
+		}
 		ip_mq_unlock(port);
 		result |= state << (i * 4);
 		ip_release(port);
@@ -301,10 +306,11 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		return;
 	}
 	uint32_t now_state = cdx25_port_state(found.dest_port);
-	uint32_t chain = cdx25_chain(found.dest_port);
+	int owner = -1;
+	uint32_t chain = cdx25_chain(found.dest_port, &owner);
 	if (found.dest_port) ip_release(found.dest_port);
-	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u/%u\npeer=%u tid=%llx %s\nchain=%x missed=%u\n",
+	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u/%u\npeer=%u tid=%llx %s\nchain=%x owner=%d missed=%u\n",
 	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc, found.dest_state, now_state,
 	    found.peer, (unsigned long long)found.peer_tid,
-	    found.comm[0] ? found.comm : "unknown", chain, missed);
+	    found.comm[0] ? found.comm : "unknown", chain, owner, missed);
 }
