@@ -280,42 +280,77 @@ void
 cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
     char *out, size_t size)
 {
-	struct cdx25_row found = {};
-	unsigned matches = 0;
+	struct cdx25_row found[3] = {};
+	unsigned n = 0;
 	uint64_t seen = 0;
-	if (!context || !name || !cdx25_lock()) {
-		snprintf(out, size, "rpc=unavailable\n");
+	unsigned missed = 0;
+
+	if (!pid || !cdx25_lock()) {
+		snprintf(out, size, "rpc=unavailable lock\n");
 		return;
 	}
 	seen = cdx25_next;
-	for (unsigned i = 0; i < CDX25_CAPACITY; i++) {
+
+	/* Exact thread/port match first, so the selected wait is always row 0. */
+	for (unsigned i = 0; i < CDX25_CAPACITY && n < 1; i++) {
 		const struct cdx25_row *row = &cdx25_rows[i];
 		if (row->seq && row->client == pid && row->tid == tid &&
 		    row->context == context && row->name == name &&
 		    row->reply_rc == CDX25_PENDING &&
 		    (row->send_rc == 0 || row->send_rc == CDX25_PENDING)) {
-			found = *row;
-			matches++;
+			found[n++] = *row;
 		}
 	}
+
+	/* Then the most recent unanswered requests from the same client. */
+	for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen && n < 3; s--) {
+		const struct cdx25_row *row = cdx25_slot(s);
+		if (row->seq != s || row->client != pid) {
+			continue;
+		}
+		if (row->reply_rc != CDX25_PENDING) {
+			continue;
+		}
+		if (row->send_rc != 0 && row->send_rc != CDX25_PENDING) {
+			continue;
+		}
+		bool dup = false;
+		for (unsigned j = 0; j < n; j++) {
+			if (found[j].seq == s) {
+				dup = true;
+			}
+		}
+		if (!dup) {
+			found[n++] = *row;
+		}
+	}
+	missed = __atomic_load_n(&cdx25_missed, __ATOMIC_RELAXED);
 	cdx25_unlock();
-	unsigned missed = __atomic_load_n(&cdx25_missed, __ATOMIC_RELAXED);
-	if (matches != 1) {
-		snprintf(out, size, "rpc=%s matches=%u seen=%llu missed=%u\n",
-		    matches ? "ambiguous" : "unavailable", matches, (unsigned long long)seen, missed);
+
+	if (!n) {
+		snprintf(out, size, "rpc none seen=%llu m=%u\n",
+		    (unsigned long long)seen, missed);
 		return;
 	}
-	int used = snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x\npeer=%u tid=%llx %s\nreply=%x tx=%x rx=%x missed=%u\n",
-	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc,
-	    found.peer, (unsigned long long)found.peer_tid,
-	    found.comm[0] ? found.comm : "unknown", found.reply, found.reply_tx, found.reply_rc, missed);
+
+	int used = snprintf(out, size, "rpc n=%u seen=%llu m=%u\n",
+	    n, (unsigned long long)seen, missed);
 	if (used < 0 || (size_t)used >= size) {
 		return;
 	}
-	if (found.dest_addr) {
-		snprintf(out + used, size - used, "dest=%llx sp=%llx tk=%llx\n",
-		    (unsigned long long)found.dest_addr,
-		    (unsigned long long)found.dest_space,
-		    (unsigned long long)found.dest_task);
+	for (unsigned i = 0; i < n; i++) {
+		char comm[9] = {};
+		for (unsigned j = 0; j < 8 && found[i].comm[j]; j++) {
+			comm[j] = found[i].comm[j];
+		}
+		int w = snprintf(out + used, size - used,
+		    "%llx %x t%x x%x p%u %s d%llx\n",
+		    (unsigned long long)found[i].seq, found[i].request,
+		    found[i].send_rc, found[i].delivery_rc, found[i].peer,
+		    comm[0] ? comm : "?", (unsigned long long)found[i].dest_addr);
+		if (w < 0 || (size_t)w >= size - used) {
+			break;
+		}
+		used += w;
 	}
 }
