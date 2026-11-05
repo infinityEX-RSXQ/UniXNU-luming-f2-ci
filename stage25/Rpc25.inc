@@ -82,8 +82,11 @@ cdx25_port_state(ipc_port_t port)
 
 /* Follow at most four successive destinations. Each nibble is one
  * independent, locked observation; this is not an atomic chain snapshot. */
+struct cdx25_queue {
+	uint32_t valid, token, count, seq, empty;
+};
 static uint32_t
-cdx25_chain(ipc_port_t first, int *owner)
+cdx25_chain(ipc_port_t first, int *owner, struct cdx25_queue *queues)
 {
 	*owner = -1;
 	if (!IP_VALID(first)) return 0;
@@ -94,6 +97,16 @@ cdx25_chain(ipc_port_t first, int *owner)
 		ipc_port_t next = IP_NULL;
 		uint32_t state;
 		ip_mq_lock(port);
+		if (i < 2 && ip_active(port)) {
+			struct cdx25_queue *q = &queues[i];
+			uint64_t permuted = VM_KERNEL_UNSLIDE_OR_PERM(port);
+			q->valid = 1;
+			/* 32-bit fingerprint: collisions and object reuse remain possible. */
+			q->token = (uint32_t)(permuted ^ (permuted >> 32));
+			q->count = port->ip_messages.imq_msgcount;
+			q->seq = port->ip_messages.imq_seqno;
+			q->empty = ipc_kmsg_queue_empty(&port->ip_messages.imq_messages) ? 1 : 0;
+		}
 		if (!ip_active(port)) state = 1;
 		else if (ip_in_transit(port)) {
 			state = 2;
@@ -308,12 +321,16 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	}
 	uint32_t now_state = cdx25_port_state(found.dest_port);
 	int owner = -1;
-	uint32_t chain = cdx25_chain(found.dest_port, &owner);
+	struct cdx25_queue queues[2] = {};
+	uint32_t chain = cdx25_chain(found.dest_port, &owner, queues);
 	if (found.dest_port) ip_release(found.dest_port);
 	char owner_name[17] = {};
 	if (owner > 0) proc_name(owner, owner_name, sizeof(owner_name));
-	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u/%u\npeer=%u tid=%llx %s\nchain=%x owner=%d %s missed=%u\n",
-	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc, found.dest_state, now_state,
-	    found.peer, (unsigned long long)found.peer_tid,
-	    found.comm[0] ? found.comm : "unknown", chain, owner, owner_name[0] ? owner_name : "unknown", missed);
+	int written = snprintf(out, size,
+	    "r=%llu req=%x tx=%x rx=%x d=%u/%u\nchain=%x owner=%d %s miss=%u\nQ=%u:%08x:%u:%u:%u P=%u:%08x:%u:%u:%u\n",
+	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc,
+	    found.dest_state, now_state, chain, owner, owner_name[0] ? owner_name : "unknown", missed,
+	    queues[0].valid, queues[0].token, queues[0].count, queues[0].seq, queues[0].empty,
+	    queues[1].valid, queues[1].token, queues[1].count, queues[1].seq, queues[1].empty);
+	if (written < 0 || (size_t)written >= size) snprintf(out, size, "rpc=truncated\n");
 }
