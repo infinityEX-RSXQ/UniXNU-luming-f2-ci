@@ -4,7 +4,7 @@
 
 struct cdx25_row {
 	uint64_t seq, tid, context, peer_tid;
-	uint32_t client, name, request, send_rc;
+	uint32_t client, name, request, send_rc, dest_state;
 	uint32_t peer, delivery_rc, reply, reply_tx, reply_rc;
 	char comm[17];
 	ipc_kmsg_t message;
@@ -98,9 +98,21 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	}
 	task_t task = current_task();
 	struct proc *proc = get_bsdtask_info(task);
-	if (!proc || !cdx25_is_springboard(proc_name_address(proc)) || !cdx25_lock()) {
+	if (!proc || !cdx25_is_springboard(proc_name_address(proc))) {
 		return 0;
 	}
+	/* Snapshot only; the receiver may change after releasing this lock. */
+	ipc_port_t dest = header->msgh_remote_port;
+	uint32_t dest_state = 0; /* invalid */
+	if (IP_VALID(dest)) {
+		ip_mq_lock(dest);
+		if (!ip_active(dest)) dest_state = 1; /* dead */
+		else if (!ip_in_a_space(dest)) dest_state = 2; /* transit/limbo */
+		else if (ip_in_space(dest, ipc_space_kernel)) dest_state = 3; /* kernel */
+		else dest_state = 4; /* userspace */
+		ip_mq_unlock(dest);
+	}
+	if (!cdx25_lock()) return 0;
 	uint64_t seq = ++cdx25_next;
 	struct cdx25_row *row = cdx25_slot(seq);
 	ipc_port_t old = row->reply_port;
@@ -112,6 +124,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.client = task_pid(task),
 		.name = reply_name,
 		.request = header->msgh_id,
+		.dest_state = dest_state,
 		.send_rc = CDX25_PENDING,
 		.delivery_rc = CDX25_PENDING,
 		.reply_tx = CDX25_PENDING,
@@ -242,8 +255,8 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		    matches ? "ambiguous" : "unavailable", matches, (unsigned long long)seen, missed);
 		return;
 	}
-	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x\npeer=%u tid=%llx %s\nreply=%x tx=%x rx=%x missed=%u\n",
-	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc,
+	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u\npeer=%u tid=%llx %s\nreply=%x tx=%x rx=%x missed=%u\n",
+	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc, found.dest_state,
 	    found.peer, (unsigned long long)found.peer_tid,
 	    found.comm[0] ? found.comm : "unknown", found.reply, found.reply_tx, found.reply_rc, missed);
 }
