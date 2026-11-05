@@ -2,11 +2,25 @@
 #define CDX25_CAPACITY 64
 #define CDX25_PENDING UINT32_MAX
 
+/*
+ * Tail of struct ipc_service_port_label with CONFIG_SERVICE_PORT_INFO.
+ * Kept local to avoid pulling another kernel header into mach_msg.c late.
+ */
+struct cdx25_svc_label {
+	void *sblabel;
+	uint64_t launchd_context;
+	uint32_t launchd_name;
+	uint16_t flags;
+	uint8_t domain;
+	char *service_name;
+};
+
 struct cdx25_row {
 	uint64_t seq, tid, context, peer_tid;
 	uint32_t client, name, request, send_rc;
 	uint32_t peer, delivery_rc, reply, reply_tx, reply_rc;
 	char comm[17];
+	char svc[17];
 	ipc_kmsg_t message;
 	ipc_port_t reply_port;
 	uint64_t dest_addr, dest_space, dest_task;
@@ -84,7 +98,8 @@ cdx25_slot(uint64_t seq)
  * with a receive right (a space/task) or at IP_NULL (limbo/dead).
  */
 static task_t
-cdx25_chain_task(ipc_port_t port, uint64_t *space_out, uint32_t *hops)
+cdx25_chain_task(ipc_port_t port, uint64_t *space_out, uint32_t *hops,
+    char *svc, size_t svc_size)
 {
 	ipc_port_t p = port;
 	*space_out = 0;
@@ -92,6 +107,14 @@ cdx25_chain_task(ipc_port_t port, uint64_t *space_out, uint32_t *hops)
 	for (unsigned i = 0; i < 8; i++) {
 		if (!IP_VALID(p)) {
 			break;
+		}
+		if (!svc[0] && ip_active(p) && p->ip_service_port && p->ip_splabel) {
+			struct cdx25_svc_label *label =
+			    (struct cdx25_svc_label *)p->ip_splabel;
+			char *name = label->service_name;
+			if (name && ((uintptr_t)name >> 48) == 0xffff) {
+				cdx25_comm_copy(svc, svc_size, name);
+			}
 		}
 		if (ip_in_a_space(p)) {
 			ipc_space_t space = p->ip_receiver;
@@ -165,13 +188,15 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	 */
 	uint32_t peer_pid = 0;
 	char peer_comm[17] = {};
+	char svc[17] = {};
 	uint64_t dest_addr = 0, dest_space = 0, dest_task = 0;
 	uint32_t dest_hops = 0;
 	ipc_port_t dest = header->msgh_remote_port;
 	if (IP_VALID(dest)) {
 		dest_addr = (uint64_t)(uintptr_t)dest;
 		uint64_t space = 0;
-		task_t peer_task = cdx25_chain_task(dest, &space, &dest_hops);
+		task_t peer_task = cdx25_chain_task(dest, &space, &dest_hops,
+		    svc, sizeof(svc));
 		dest_space = space;
 		dest_task = (uint64_t)(uintptr_t)peer_task;
 		if (peer_task) {
@@ -213,6 +238,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.dest_hops = dest_hops,
 	};
 	cdx25_comm_copy(row->comm, sizeof(row->comm), peer_comm);
+	cdx25_comm_copy(row->svc, sizeof(row->svc), svc);
 	cdx25_unlock();
 	if (old) {
 		ip_release(old);
@@ -390,6 +416,13 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 				break;
 			}
 			used += w;
+		}
+		if (found[i].svc[0] && (size_t)used + 24 < size) {
+			w = snprintf(out + used, size - used,
+			    "    svc=%.12s\n", found[i].svc);
+			if (w > 0 && (size_t)w < size - used) {
+				used += w;
+			}
 		}
 	}
 }
