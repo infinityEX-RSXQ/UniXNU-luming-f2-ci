@@ -30,6 +30,7 @@ cdx25_is_springboard(const char *name)
 }
 
 extern char *proc_name_address(void *);
+extern void proc_name(int pid, char *buf, int size);
 void cdx25_arm(void);
 void cdx25_snapshot(uint32_t, uint64_t, uint64_t, uint32_t, char *, size_t);
 
@@ -309,8 +310,10 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	int owner = -1;
 	uint32_t chain = cdx25_chain(found.dest_port, &owner);
 	if (found.dest_port) ip_release(found.dest_port);
-	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u/%u\npeer=%u tid=%llx %s\nchain=%x owner=%d missed=%u\n",
+	char owner_name[17] = {};
+	if (owner > 0) proc_name(owner, owner_name, sizeof(owner_name));
+	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u/%u\npeer=%u tid=%llx %s\nchain=%x owner=%d %s missed=%u\n",
 	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc, found.dest_state, now_state,
 	    found.peer, (unsigned long long)found.peer_tid,
-	    found.comm[0] ? found.comm : "unknown", chain, owner, missed);
+	    found.comm[0] ? found.comm : "unknown", chain, owner, owner_name[0] ? owner_name : "unknown", missed);
 }
