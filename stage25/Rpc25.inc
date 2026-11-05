@@ -29,6 +29,20 @@ cdx25_is_springboard(const char *name)
 	return true;
 }
 
+static void
+cdx25_comm_copy(char *dst, size_t n, const char *src)
+{
+	unsigned i = 0;
+	if (src) {
+		for (; i + 1 < n && src[i]; i++) {
+			dst[i] = src[i];
+		}
+	}
+	for (; i < n; i++) {
+		dst[i] = 0;
+	}
+}
+
 extern char *proc_name_address(void *);
 void cdx25_arm(void);
 void cdx25_snapshot(uint32_t, uint64_t, uint64_t, uint32_t, char *, size_t);
@@ -98,7 +112,44 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	}
 	task_t task = current_task();
 	struct proc *proc = get_bsdtask_info(task);
-	if (!proc || !cdx25_is_springboard(proc_name_address(proc)) || !cdx25_lock()) {
+	if (!proc || !cdx25_is_springboard(proc_name_address(proc))) {
+		return 0;
+	}
+
+	/*
+	 * Resolve the destination port's receiver now, while the send header
+	 * still holds a live kernel port pointer.  The receiver identity is
+	 * fixed for a port, so this answers "who is SpringBoard sending to"
+	 * even when the message stays queued and is never received.
+	 */
+	uint32_t peer_pid = 0;
+	char peer_comm[17] = {};
+	ipc_port_t dest = header->msgh_remote_port;
+	if (IP_VALID(dest)) {
+		uintptr_t port_addr = (uintptr_t)dest;
+		for (unsigned poff = 0x48; poff <= 0x50; poff += 8) {
+			uint64_t space = *(const volatile uint64_t *)(port_addr + poff);
+			if ((space >> 48) != 0xffff || (space & 7)) {
+				continue;
+			}
+			uint64_t taskp = *(const volatile uint64_t *)(uintptr_t)(space + 0x28);
+			if (!taskp) {
+				/* kernel-owned port: ipc_space_kernel has no is_task */
+				cdx25_comm_copy(peer_comm, sizeof(peer_comm), "kernel");
+				break;
+			}
+			if ((taskp >> 48) != 0xffff || (taskp & 7)) {
+				continue;
+			}
+			task_t peer_task = (task_t)(uintptr_t)taskp;
+			peer_pid = (uint32_t)task_pid(peer_task);
+			struct proc *peer_proc = get_bsdtask_info(peer_task);
+			cdx25_comm_copy(peer_comm, sizeof(peer_comm),
+			    peer_proc ? proc_name_address(peer_proc) : NULL);
+			break;
+		}
+	}
+	if (!cdx25_lock()) {
 		return 0;
 	}
 	uint64_t seq = ++cdx25_next;
@@ -118,7 +169,9 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.reply_rc = CDX25_PENDING,
 		.message = kmsg,
 		.reply_port = reply,
+		.peer = peer_pid,
 	};
+	cdx25_comm_copy(row->comm, sizeof(row->comm), peer_comm);
 	cdx25_unlock();
 	if (old) {
 		ip_release(old);
