@@ -8,7 +8,7 @@ struct cdx25_row {
 	uint32_t peer, delivery_rc, reply, reply_tx, reply_rc;
 	char comm[17];
 	ipc_kmsg_t message;
-	ipc_port_t reply_port;
+	ipc_port_t reply_port, dest_port;
 };
 static struct cdx25_row cdx25_rows[CDX25_CAPACITY];
 static unsigned cdx25_enabled, cdx25_busy, cdx25_missed;
@@ -61,6 +61,24 @@ cdx25_slot(uint64_t seq)
 	return &cdx25_rows[seq % CDX25_CAPACITY];
 }
 
+/* Values 0 invalid, 1 dead, 2 in transit, 3 limbo, 4 kernel, 5 userspace.
+ * Each is only a momentary observation protected by the port lock. */
+static uint32_t
+cdx25_port_state(ipc_port_t port)
+{
+	uint32_t state = 0;
+	if (IP_VALID(port)) {
+		ip_mq_lock(port);
+		if (!ip_active(port)) state = 1;
+		else if (ip_in_transit(port)) state = 2;
+		else if (ip_in_limbo(port)) state = 3;
+		else if (ip_in_space(port, ipc_space_kernel)) state = 4;
+		else state = 5;
+		ip_mq_unlock(port);
+	}
+	return state;
+}
+
 static uint64_t
 cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 {
@@ -103,20 +121,14 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	}
 	/* Snapshot only; the receiver may change after releasing this lock. */
 	ipc_port_t dest = header->msgh_remote_port;
-	uint32_t dest_state = 0; /* invalid */
-	if (IP_VALID(dest)) {
-		ip_mq_lock(dest);
-		if (!ip_active(dest)) dest_state = 1; /* dead */
-		else if (!ip_in_a_space(dest)) dest_state = 2; /* transit/limbo */
-		else if (ip_in_space(dest, ipc_space_kernel)) dest_state = 3; /* kernel */
-		else dest_state = 4; /* userspace */
-		ip_mq_unlock(dest);
-	}
+	uint32_t dest_state = cdx25_port_state(dest);
 	if (!cdx25_lock()) return 0;
 	uint64_t seq = ++cdx25_next;
 	struct cdx25_row *row = cdx25_slot(seq);
 	ipc_port_t old = row->reply_port;
+	ipc_port_t old_dest = row->dest_port;
 	ip_reference(reply);
+	if (IP_VALID(dest)) ip_reference(dest);
 	*row = (struct cdx25_row){
 		.seq = seq,
 		.tid = thread_tid(current_thread()),
@@ -131,11 +143,13 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.reply_rc = CDX25_PENDING,
 		.message = kmsg,
 		.reply_port = reply,
+		.dest_port = IP_VALID(dest) ? dest : IP_NULL,
 	};
 	cdx25_unlock();
 	if (old) {
 		ip_release(old);
 	}
+	if (old_dest) ip_release(old_dest);
 	return seq;
 }
 
@@ -248,6 +262,7 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 			matches++;
 		}
 	}
+	if (matches == 1 && found.dest_port) ip_reference(found.dest_port);
 	cdx25_unlock();
 	unsigned missed = __atomic_load_n(&cdx25_missed, __ATOMIC_RELAXED);
 	if (matches != 1) {
@@ -255,8 +270,10 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		    matches ? "ambiguous" : "unavailable", matches, (unsigned long long)seen, missed);
 		return;
 	}
-	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u\npeer=%u tid=%llx %s\nreply=%x tx=%x rx=%x missed=%u\n",
-	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc, found.dest_state,
+	uint32_t now_state = cdx25_port_state(found.dest_port);
+	if (found.dest_port) ip_release(found.dest_port);
+	snprintf(out, size, "rpc seq=%llu req=%x tx=%x rx=%x d=%u/%u\npeer=%u tid=%llx %s\nreply=%x tx=%x rx=%x missed=%u\n",
+	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc, found.dest_state, now_state,
 	    found.peer, (unsigned long long)found.peer_tid,
 	    found.comm[0] ? found.comm : "unknown", found.reply, found.reply_tx, found.reply_rc, missed);
 }
