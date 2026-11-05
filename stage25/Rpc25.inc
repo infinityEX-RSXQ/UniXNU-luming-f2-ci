@@ -26,6 +26,7 @@ struct cdx25_row {
 	ipc_port_t reply_port;
 	uint64_t dest_addr, dest_space, dest_task;
 	uint64_t wait_owner;
+	uint32_t wait_type;
 	uint32_t dest_hops;
 };
 static struct cdx25_row cdx25_rows[CDX25_CAPACITY];
@@ -147,29 +148,33 @@ cdx25_chain_task(ipc_port_t port, uint64_t *space_out, uint32_t *hops,
  * "what is lsd itself waiting for" at the moment SpringBoard sends to it.
  */
 static void
-cdx25_capture_wait(task_t task, uint64_t *owner, char *svc, size_t svc_size)
+cdx25_capture_wait(task_t task, uint64_t *owner, uint32_t *type,
+    char *svc, size_t svc_size)
 {
 	thread_t th;
 	if (!task) {
 		return;
 	}
 	queue_iterate(&task->threads, th, thread_t, task_threads) {
-		if (th->block_hint != kThreadWaitPortReceive ||
-		    !th->waitq.wq_q || th->wait_event != IPC_MQUEUE_RECEIVE) {
+		if (th->block_hint == kThreadWaitNone) {
 			continue;
 		}
-		thread_waitinfo_v2_t wi = {};
-		struct ipc_service_port_label *ispl = NULL;
-		wi.wait_type = kThreadWaitPortReceive;
-		kdp_mqueue_recv_find_owner(th->waitq.wq_q, th->wait_event,
-		    &wi, &ispl);
-		*owner = wi.owner ? wi.owner : wi.context;
-		if (ispl) {
-			struct cdx25_svc_label *label =
-			    (struct cdx25_svc_label *)ispl;
-			char *name = label->service_name;
-			if (name && ((uintptr_t)name >> 48) == 0xffff) {
-				cdx25_comm_copy(svc, svc_size, name);
+		*type = (uint32_t)th->block_hint;
+		if (th->block_hint == kThreadWaitPortReceive &&
+		    th->waitq.wq_q && th->wait_event == IPC_MQUEUE_RECEIVE) {
+			thread_waitinfo_v2_t wi = {};
+			struct ipc_service_port_label *ispl = NULL;
+			wi.wait_type = kThreadWaitPortReceive;
+			kdp_mqueue_recv_find_owner(th->waitq.wq_q,
+			    th->wait_event, &wi, &ispl);
+			*owner = wi.owner ? wi.owner : wi.context;
+			if (ispl) {
+				struct cdx25_svc_label *label =
+				    (struct cdx25_svc_label *)ispl;
+				char *name = label->service_name;
+				if (name && ((uintptr_t)name >> 48) == 0xffff) {
+					cdx25_comm_copy(svc, svc_size, name);
+				}
 			}
 		}
 		break;
@@ -228,6 +233,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	char svc[17] = {};
 	char wait_svc[17] = {};
 	uint64_t wait_owner = 0;
+	uint32_t wait_type = 0;
 	uint64_t dest_addr = 0, dest_space = 0, dest_task = 0;
 	uint32_t dest_hops = 0;
 	ipc_port_t dest = header->msgh_remote_port;
@@ -243,7 +249,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 			struct proc *peer_proc = get_bsdtask_info(peer_task);
 			cdx25_comm_copy(peer_comm, sizeof(peer_comm),
 			    peer_proc ? proc_name_address(peer_proc) : NULL);
-			cdx25_capture_wait(peer_task, &wait_owner,
+			cdx25_capture_wait(peer_task, &wait_owner, &wait_type,
 			    wait_svc, sizeof(wait_svc));
 		} else if (space) {
 			/* kernel-owned port: ipc_space_kernel has no is_task */
@@ -278,6 +284,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.dest_task = dest_task,
 		.dest_hops = dest_hops,
 		.wait_owner = wait_owner,
+		.wait_type = wait_type,
 	};
 	cdx25_comm_copy(row->comm, sizeof(row->comm), peer_comm);
 	cdx25_comm_copy(row->svc, sizeof(row->svc), svc);
@@ -451,18 +458,21 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		used += w;
 		if (i == 0) {
 			w = snprintf(out + used, size - used,
-			    "    sp%llx tk%llx h%u\n",
+			    "    sp%llx tk%llx h%u R%x rt%x rr%x\n",
 			    (unsigned long long)found[i].dest_space,
 			    (unsigned long long)found[i].dest_task,
-			    found[i].dest_hops);
+			    found[i].dest_hops, found[i].reply,
+			    found[i].reply_tx, found[i].reply_rc);
 			if (w < 0 || (size_t)w >= size - used) {
 				break;
 			}
 			used += w;
 		}
-		if (i == 0 && (found[i].wait_owner || found[i].wait_svc[0])) {
+		if (i == 0 && (found[i].wait_owner || found[i].wait_svc[0] ||
+		    found[i].wait_type)) {
 			w = snprintf(out + used, size - used,
-			    "    L%u w%llx svc=%.12s\n", found[i].peer,
+			    "    L%u ty%u w%llx svc=%.12s\n", found[i].peer,
+			    found[i].wait_type,
 			    (unsigned long long)found[i].wait_owner,
 			    found[i].wait_svc);
 			if (w > 0 && (size_t)w < size - used) {
