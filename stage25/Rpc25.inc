@@ -84,9 +84,11 @@ cdx25_port_state(ipc_port_t port)
  * independent, locked observation; this is not an atomic chain snapshot. */
 struct cdx25_queue {
 	uint32_t valid, token, count, seq, empty;
+	uint32_t scanned, match; /* 0=no identity, 1=absent, 2=candidate, 3=mismatch, 4=limited */
 };
 static uint32_t
-cdx25_chain(ipc_port_t first, int *owner, struct cdx25_queue *queues)
+cdx25_chain(ipc_port_t first, int *owner, struct cdx25_queue *queues,
+    ipc_kmsg_t expected, uint32_t request, ipc_port_t reply)
 {
 	*owner = -1;
 	if (!IP_VALID(first)) return 0;
@@ -106,6 +108,24 @@ cdx25_chain(ipc_port_t first, int *owner, struct cdx25_queue *queues)
 			q->count = port->ip_messages.imq_msgcount;
 			q->seq = port->ip_messages.imq_seqno;
 			q->empty = ipc_kmsg_queue_empty(&port->ip_messages.imq_messages) ? 1 : 0;
+			if (i == 0 && expected && reply) {
+				ipc_kmsg_queue_t queue = &port->ip_messages.imq_messages;
+				ipc_kmsg_t item = ipc_kmsg_queue_first(queue);
+				q->match = 1;
+				while (item && q->scanned < 16) {
+					++q->scanned;
+					if (item == expected) {
+						/* Queue lock owns item; never dereference the saved pointer. */
+						(void)ipc_kmsg_validate_signature(item);
+						const mach_msg_header_t *h = ikm_header(item);
+						q->match = ((uint32_t)h->msgh_id == request &&
+						    h->msgh_local_port == reply) ? 2 : 3;
+						break;
+					}
+					item = ipc_kmsg_queue_next(queue, item);
+				}
+				if (item && q->scanned == 16 && q->match == 1) q->match = 4;
+			}
 		}
 		if (!ip_active(port)) state = 1;
 		else if (ip_in_transit(port)) {
@@ -312,6 +332,7 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		}
 	}
 	if (matches == 1 && found.dest_port) ip_reference(found.dest_port);
+	if (matches == 1 && found.reply_port) ip_reference(found.reply_port);
 	cdx25_unlock();
 	unsigned missed = __atomic_load_n(&cdx25_missed, __ATOMIC_RELAXED);
 	if (matches != 1) {
@@ -322,15 +343,18 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	uint32_t now_state = cdx25_port_state(found.dest_port);
 	int owner = -1;
 	struct cdx25_queue queues[2] = {};
-	uint32_t chain = cdx25_chain(found.dest_port, &owner, queues);
+	uint32_t chain = cdx25_chain(found.dest_port, &owner, queues,
+	    found.message, found.request, found.reply_port);
 	if (found.dest_port) ip_release(found.dest_port);
+	if (found.reply_port) ip_release(found.reply_port);
 	char owner_name[17] = {};
 	if (owner > 0) proc_name(owner, owner_name, sizeof(owner_name));
 	int written = snprintf(out, size,
-	    "r=%llu req=%x tx=%x rx=%x d=%u/%u\nchain=%x owner=%d %s miss=%u\nQ=%u:%08x:%u:%u:%u P=%u:%08x:%u:%u:%u\n",
+	    "r=%llu req=%x tx=%x rx=%x d=%u/%u\nchain=%x owner=%d %s miss=%u\nQ=%u:%08x:%u:%u:%u P=%u:%08x:%u:%u:%u M=%u/%u\n",
 	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc,
 	    found.dest_state, now_state, chain, owner, owner_name[0] ? owner_name : "unknown", missed,
 	    queues[0].valid, queues[0].token, queues[0].count, queues[0].seq, queues[0].empty,
-	    queues[1].valid, queues[1].token, queues[1].count, queues[1].seq, queues[1].empty);
+	    queues[1].valid, queues[1].token, queues[1].count, queues[1].seq, queues[1].empty,
+	    queues[0].match, queues[0].scanned);
 	if (written < 0 || (size_t)written >= size) snprintf(out, size, "rpc=truncated\n");
 }
