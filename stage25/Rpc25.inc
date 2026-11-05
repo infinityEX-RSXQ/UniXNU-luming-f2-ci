@@ -128,32 +128,29 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	uint64_t dest_addr = 0, dest_space = 0, dest_task = 0;
 	ipc_port_t dest = header->msgh_remote_port;
 	if (IP_VALID(dest)) {
-		/*
-		 * XNU 10063.141.1 arm64: ip_receiver is at 0x40, is_task at
-		 * 0x28.  Disassembly of _ipc_port_get_receiver_task_locked:
-		 *   ldr x8, [x19, #0x40]
-		 *   ldr x19, [x8, #0x28]
-		 */
 		dest_addr = (uint64_t)(uintptr_t)dest;
-		uintptr_t port_addr = (uintptr_t)dest;
-		uint64_t space = *(const volatile uint64_t *)(port_addr + 0x40);
-		dest_space = space;
-		if (!space) {
-			/* no receive right: service port is dead / not owned */
-			cdx25_comm_copy(peer_comm, sizeof(peer_comm), "no-recv");
-		} else if ((space >> 48) == 0xffff && !(space & 7)) {
-			uint64_t taskp = *(const volatile uint64_t *)(uintptr_t)(space + 0x28);
-			dest_task = taskp;
-			if (!taskp) {
-				/* kernel-owned port: ipc_space_kernel has no is_task */
-				cdx25_comm_copy(peer_comm, sizeof(peer_comm), "kernel");
-			} else if ((taskp >> 48) == 0xffff && !(taskp & 7)) {
-				task_t peer_task = (task_t)(uintptr_t)taskp;
+		/*
+		 * ip_receiver is only an ipc_space when the port is active and
+		 * has a non-NULL ip_receiver_name.  Otherwise the union holds
+		 * ip_destination (port in limbo/in transit) or ip_timestamp
+		 * (dead port), and reading it as a space dereferences garbage.
+		 */
+		if (ip_in_a_space(dest)) {
+			ipc_space_t space = dest->ip_receiver;
+			task_t peer_task = space->is_task;
+			dest_space = (uint64_t)(uintptr_t)space;
+			dest_task = (uint64_t)(uintptr_t)peer_task;
+			if (peer_task) {
 				peer_pid = (uint32_t)task_pid(peer_task);
 				struct proc *peer_proc = get_bsdtask_info(peer_task);
 				cdx25_comm_copy(peer_comm, sizeof(peer_comm),
 				    peer_proc ? proc_name_address(peer_proc) : NULL);
+			} else {
+				/* kernel-owned port: ipc_space_kernel has no is_task */
+				cdx25_comm_copy(peer_comm, sizeof(peer_comm), "kernel");
 			}
+		} else {
+			cdx25_comm_copy(peer_comm, sizeof(peer_comm), "no-recv");
 		}
 	}
 	if (!cdx25_lock()) {
