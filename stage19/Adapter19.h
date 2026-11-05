@@ -6,7 +6,7 @@ static cdx19::Sample cdx19_samples[2]={};
 static cdx21::Relations cdx21_samples[2]={};
 static uint32_t cdx21_saved[2]={};
 extern "C" void cdx25_snapshot(uint32_t,uint64_t,uint64_t,uint32_t,char *,size_t);
-static char cdx25_samples[2][216];
+static char cdx25_samples[2][320];
 static void cdx25_capture(unsigned index, const cdx19::Sample &sample) {
     auto &out = cdx25_samples[index];
     const auto &process = sample.processes[1];
@@ -308,7 +308,7 @@ static void cdx25_format(Cdx15Text &text, bool quiet, uint32_t copies, uint32_t 
             const auto &t = match->threads[k];
             // u is the first captured user return address, not necessarily
             // the instruction pointer or the cause of a wait.
-            text.line("T%u.%u %llx %x %u/%u u%u:%llx\n", i, k,
+            text.line("T%u.%u %llx %x %u/%u %u:%llx\n", i, k,
                 (unsigned long long)t.tid, t.state, t.waitinfo, t.kind,
                 unsigned(t.nu != 0), (unsigned long long)(t.nu ? t.u[0] : 0));
         }

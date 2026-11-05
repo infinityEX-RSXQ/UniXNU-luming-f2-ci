@@ -82,7 +82,80 @@ cdx25_port_state(ipc_port_t port)
 
 /* Follow at most four successive destinations. Each nibble is one
  * independent, locked observation; this is not an atomic chain snapshot. */
+/* Called only with the carrier port's mqueue lock held and the target port
+ * referenced. Never mutates messages, ports, or queue entries. */
+struct cdx35_carrier {
+	uint32_t valid, scanned, matches, flags;
+	uint32_t first_id;
+	int first_sender;
+};
+extern int get_audit_token_pid(audit_token_t *);
+static void
+cdx35_scan_carriers(ipc_mqueue_t mq, ipc_port_t target, struct cdx35_carrier *out)
+{
+	out->valid = 1;
+	out->first_sender = -1;
+#if DEVELOPMENT || DEBUG
+	ipc_kmsg_queue_t queue = &mq->imq_messages;
+	ipc_kmsg_t item = ipc_kmsg_queue_first(queue);
+	while (item && out->scanned < 16) {
+		++out->scanned;
+		mach_msg_size_t count = ipc_kmsg_validate_signature(item);
+		mach_msg_header_t *header = ikm_header(item);
+		bool match = MACH_MSGH_BITS_LOCAL(header->msgh_bits) == MACH_MSG_TYPE_PORT_RECEIVE &&
+		    header->msgh_local_port == target;
+		if (header->msgh_bits & MACH_MSGH_BITS_COMPLEX) {
+			mach_msg_kbase_t *base = mach_msg_header_to_kbase(header);
+			uintptr_t start = (uintptr_t)base->msgb_dsc_array;
+			uintptr_t end = (uintptr_t)ikm_kdata_end(item);
+			if (start > end || count > (end - start) / sizeof(mach_msg_kdescriptor_t)) {
+				out->flags |= 8; /* signed count does not fit the kdata buffer */
+			} else {
+				mach_msg_size_t limit = count;
+				if (limit > 32) { limit = 32; out->flags |= 2; }
+				for (mach_msg_size_t j = 0; j < limit; ++j) {
+					mach_msg_kdescriptor_t *d = &base->msgb_dsc_array[j];
+					switch (mach_msg_kdescriptor_type(d)) {
+					case MACH_MSG_PORT_DESCRIPTOR:
+						if (d->kdesc_port.disposition == MACH_MSG_TYPE_PORT_RECEIVE &&
+						    d->kdesc_port.name == target) match = true;
+						break;
+					case MACH_MSG_GUARDED_PORT_DESCRIPTOR:
+						if (d->kdesc_guarded_port.disposition == MACH_MSG_TYPE_PORT_RECEIVE &&
+						    d->kdesc_guarded_port.name == target) match = true;
+						break;
+					case MACH_MSG_OOL_PORTS_DESCRIPTOR:
+						if (d->kdesc_port_array.disposition == MACH_MSG_TYPE_PORT_RECEIVE)
+							out->flags |= 4; /* OOL array intentionally not traversed */
+						break;
+					case MACH_MSG_OOL_DESCRIPTOR:
+					case MACH_MSG_OOL_VOLATILE_DESCRIPTOR:
+						break;
+					default:
+						out->flags |= 16; /* unrecognized type */
+						break;
+					}
+				}
+			}
+		}
+		if (match) {
+			++out->matches;
+			if (out->matches == 1) {
+				out->first_id = (uint32_t)header->msgh_id;
+				out->first_sender = get_audit_token_pid(&ipc_kmsg_get_trailer(item)->msgh_audit);
+			}
+		}
+		item = ipc_kmsg_queue_next(queue, item);
+	}
+	if (item) out->flags |= 1; /* queue scan limited */
+#else
+	(void)mq; (void)target;
+	out->flags |= 32; /* kdata-bound helper unavailable */
+#endif
+}
+
 struct cdx25_queue {
+	struct cdx35_carrier carrier;
 	uint32_t valid, token, count, seq, empty;
 	uint32_t scanned, match; /* 0=no identity, 1=absent, 2=candidate, 3=mismatch, 4=limited */
 };
@@ -108,6 +181,7 @@ cdx25_chain(ipc_port_t first, int *owner, struct cdx25_queue *queues,
 			q->count = port->ip_messages.imq_msgcount;
 			q->seq = port->ip_messages.imq_seqno;
 			q->empty = ipc_kmsg_queue_empty(&port->ip_messages.imq_messages) ? 1 : 0;
+			if (i == 1) cdx35_scan_carriers(&port->ip_messages, first, &q->carrier);
 			if (i == 0 && expected && reply) {
 				ipc_kmsg_queue_t queue = &port->ip_messages.imq_messages;
 				ipc_kmsg_t item = ipc_kmsg_queue_first(queue);
@@ -350,11 +424,13 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	char owner_name[17] = {};
 	if (owner > 0) proc_name(owner, owner_name, sizeof(owner_name));
 	int written = snprintf(out, size,
-	    "r=%llu req=%x tx=%x rx=%x d=%u/%u\nchain=%x owner=%d %s miss=%u\nQ=%u:%08x:%u:%u:%u P=%u:%08x:%u:%u:%u M=%u/%u\n",
+	    "r=%llu req=%x tx=%x rx=%x d=%u/%u\nchain=%x owner=%d %s miss=%u\nQ=%u:%08x:%u:%u:%u P=%u:%08x:%u:%u:%u M=%u/%u\nC=%u/%u/%u f=%x id=%x pid=%d\n",
 	    (unsigned long long)found.seq, found.request, found.send_rc, found.delivery_rc,
 	    found.dest_state, now_state, chain, owner, owner_name[0] ? owner_name : "unknown", missed,
 	    queues[0].valid, queues[0].token, queues[0].count, queues[0].seq, queues[0].empty,
 	    queues[1].valid, queues[1].token, queues[1].count, queues[1].seq, queues[1].empty,
-	    queues[0].match, queues[0].scanned);
+	    queues[0].match, queues[0].scanned,
+	    queues[1].carrier.valid, queues[1].carrier.scanned, queues[1].carrier.matches,
+	    queues[1].carrier.flags, queues[1].carrier.first_id, queues[1].carrier.first_sender);
 	if (written < 0 || (size_t)written >= size) snprintf(out, size, "rpc=truncated\n");
 }
