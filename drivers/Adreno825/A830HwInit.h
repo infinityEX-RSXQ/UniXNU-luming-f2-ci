@@ -194,169 +194,70 @@ A830_HWINIT_TABLE uint32_t A830HwInitBicubic[A830_HWINIT_BICUBIC_COUNT] = {
 /* ARCHITECTURE 4.11 step 10, 4.17 P2: the power-up restore lists of Linux a8xx_patch_pwrup_reglist (a830). The CP restores
  * the IFPC list after IFPC, the pwrup list after IFPC and preemption, and the dynamic list as {pipe << 12, offset, value}
  * triplets for every pipe BR..DDE_BV whose bit is set (LPAC included, as Linux reads it). */
-#define A830_HWINIT_PWRUP_COUNT 49u
+#define A830_HWINIT_PWRUP_COUNT 22u
 A830_HWINIT_TABLE uint32_t A830HwInitPwrup[A830_HWINIT_PWRUP_COUNT] = {
-    0x00e01u,   /* UCHE_MODE_CNTL */
-    0x00e10u,   /* UCHE_VARB_IDLE_TIMEOUT */
-    0x00e12u,   /* UCHE_GBIF_GX_CONFIG */
-    0x00e04u,   /* UCHE_CACHE_WAYS */
-    0x00f01u,   /* UCHE_CCHE_MODE_CNTL */
-    0x00f02u,   /* UCHE_CCHE_CACHE_WAYS */
-    0x00f08u,   /* UCHE_CCHE_GC_GMEM_RANGE_MIN */
-    0x00f09u,   /* UCHE_CCHE_GC_GMEM_RANGE_MIN_HI */
-    0x00f0au,   /* UCHE_CCHE_LPAC_GMEM_RANGE_MIN */
-    0x00f0bu,   /* UCHE_CCHE_LPAC_GMEM_RANGE_MIN_HI */
-    0x00f06u,   /* UCHE_CCHE_TRAP_BASE */
-    0x00f07u,   /* UCHE_CCHE_TRAP_BASE_HI */
-    0x00f04u,   /* UCHE_CCHE_WRITE_THRU_BASE */
-    0x00f05u,   /* UCHE_CCHE_WRITE_THRU_BASE_HI */
-    0x00e16u,   /* UCHE_HW_DBG_CNTL */
-    0x00e06u,   /* UCHE_WRITE_THRU_BASE */
-    0x00e07u,   /* UCHE_WRITE_THRU_BASE_HI */
-    0x00e08u,   /* UCHE_TRAP_BASE */
-    0x00e09u,   /* UCHE_TRAP_BASE_HI */
-    0x00e11u,   /* UCHE_CLIENT_PF */
-    0x00df0u,   /* VSC_KMD_DBG_ECO_CNTL */
-    0x08f00u,   /* RB_CMP_NC_MODE_CNTL */
-    0x0ae6bu,   /* SP_HLSQ_TIMEOUT_THRESHOLD_DP */
-    0x0ae10u,   /* SP_HLSQ_GC_GMEM_RANGE_MIN */
-    0x0ae11u,   /* SP_HLSQ_GC_GMEM_RANGE_MIN_HI */
-    0x0ae6du,   /* SP_READ_SEL */
-    0x0b604u,   /* TPL1_NC_MODE_CNTL */
-    0x0b600u,   /* TPL1_DBG_ECO_CNTL */
-    0x0b602u,   /* TPL1_DBG_ECO_CNTL1 */
-    0x0b606u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[0] */
-    0x0b607u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[1] */
-    0x0b608u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[2] */
-    0x0b609u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[3] */
-    0x0b60au,   /* TPL1_BICUBIC_WEIGHTS_TABLE[4] */
-    0x0b60bu,   /* TPL1_BICUBIC_WEIGHTS_TABLE[5] */
-    0x0b60cu,   /* TPL1_BICUBIC_WEIGHTS_TABLE[6] */
-    0x0b60du,   /* TPL1_BICUBIC_WEIGHTS_TABLE[7] */
-    0x0b60eu,   /* TPL1_BICUBIC_WEIGHTS_TABLE[8] */
-    0x0b60fu,   /* TPL1_BICUBIC_WEIGHTS_TABLE[9] */
-    0x0b610u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[10] */
-    0x0b611u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[11] */
-    0x0b612u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[12] */
-    0x0b613u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[13] */
-    0x0b614u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[14] */
-    0x0b615u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[15] */
-    0x0b616u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[16] */
-    0x0b617u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[17] */
-    0x0b618u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[18] */
-    0x0b619u,   /* TPL1_BICUBIC_WEIGHTS_TABLE[19] */
+    0x00000e01u, 0x00000e10u, 0x00000e12u, 0x00000e04u,
+    0x00000f01u, 0x00000f02u, 0x00000f08u, 0x00000f09u,
+    0x00000f0au, 0x00000f0bu, 0x00000e16u, 0x00000e06u,
+    0x00000e07u, 0x00000e08u, 0x00000e09u, 0x00000e11u,
+    0x00000df0u, 0x00008f00u, 0x0000ae6bu, 0x0000ae10u,
+    0x0000ae11u, 0x0000ae6du,
 };
-#define A830_HWINIT_IFPC_COUNT 77u
+#define A830_HWINIT_IFPC_COUNT 81u
 A830_HWINIT_TABLE uint32_t A830HwInitIfpc[A830_HWINIT_IFPC_COUNT] = {
-    0x00440u,   /* RBBM_NC_MODE_CNTL */
-    0x0058fu,   /* RBBM_SLICE_INTERFACE_HANG_INT_CNTL */
-    0x005ecu,   /* RBBM_SLICE_NC_MODE_CNTL */
-    0x0ae02u,   /* SP_NC_MODE_CNTL */
-    0x0ae12u,   /* SP_HLSQ_LPAC_GMEM_RANGE_MIN */
-    0x0ae13u,   /* SP_HLSQ_LPAC_GMEM_RANGE_MIN_HI */
-    0x0ae08u,   /* SP_CHICKEN_BITS_1 */
-    0x0ae09u,   /* SP_CHICKEN_BITS_2 */
-    0x0ae0au,   /* SP_CHICKEN_BITS_3 */
-    0x0ae0fu,   /* SP_PERFCTR_SHADER_MASK */
-    0x0ae6cu,   /* SP_HLSQ_DBG_ECO_CNTL */
-    0x008b6u,   /* CP_INTERRUPT_STATUS_MASK_GLOBAL */
-    0x00460u,   /* RBBM_PERFCTR_CNTL */
-    0x00850u,   /* CP_PROTECT_GLOBAL[0] */
-    0x00851u,   /* CP_PROTECT_GLOBAL[1] */
-    0x00852u,   /* CP_PROTECT_GLOBAL[2] */
-    0x00853u,   /* CP_PROTECT_GLOBAL[3] */
-    0x00854u,   /* CP_PROTECT_GLOBAL[4] */
-    0x00855u,   /* CP_PROTECT_GLOBAL[5] */
-    0x00856u,   /* CP_PROTECT_GLOBAL[6] */
-    0x00857u,   /* CP_PROTECT_GLOBAL[7] */
-    0x00858u,   /* CP_PROTECT_GLOBAL[8] */
-    0x00859u,   /* CP_PROTECT_GLOBAL[9] */
-    0x0085au,   /* CP_PROTECT_GLOBAL[10] */
-    0x0085bu,   /* CP_PROTECT_GLOBAL[11] */
-    0x0085cu,   /* CP_PROTECT_GLOBAL[12] */
-    0x0085du,   /* CP_PROTECT_GLOBAL[13] */
-    0x0085eu,   /* CP_PROTECT_GLOBAL[14] */
-    0x0085fu,   /* CP_PROTECT_GLOBAL[15] */
-    0x00860u,   /* CP_PROTECT_GLOBAL[16] */
-    0x00861u,   /* CP_PROTECT_GLOBAL[17] */
-    0x00862u,   /* CP_PROTECT_GLOBAL[18] */
-    0x00863u,   /* CP_PROTECT_GLOBAL[19] */
-    0x00864u,   /* CP_PROTECT_GLOBAL[20] */
-    0x00865u,   /* CP_PROTECT_GLOBAL[21] */
-    0x00866u,   /* CP_PROTECT_GLOBAL[22] */
-    0x00867u,   /* CP_PROTECT_GLOBAL[23] */
-    0x00868u,   /* CP_PROTECT_GLOBAL[24] */
-    0x00869u,   /* CP_PROTECT_GLOBAL[25] */
-    0x0086au,   /* CP_PROTECT_GLOBAL[26] */
-    0x0086bu,   /* CP_PROTECT_GLOBAL[27] */
-    0x0086cu,   /* CP_PROTECT_GLOBAL[28] */
-    0x0086du,   /* CP_PROTECT_GLOBAL[29] */
-    0x0086eu,   /* CP_PROTECT_GLOBAL[30] */
-    0x0086fu,   /* CP_PROTECT_GLOBAL[31] */
-    0x00870u,   /* CP_PROTECT_GLOBAL[32] */
-    0x00871u,   /* CP_PROTECT_GLOBAL[33] */
-    0x00872u,   /* CP_PROTECT_GLOBAL[34] */
-    0x00873u,   /* CP_PROTECT_GLOBAL[35] */
-    0x00874u,   /* CP_PROTECT_GLOBAL[36] */
-    0x00875u,   /* CP_PROTECT_GLOBAL[37] */
-    0x00876u,   /* CP_PROTECT_GLOBAL[38] */
-    0x00877u,   /* CP_PROTECT_GLOBAL[39] */
-    0x00878u,   /* CP_PROTECT_GLOBAL[40] */
-    0x00879u,   /* CP_PROTECT_GLOBAL[41] */
-    0x0087au,   /* CP_PROTECT_GLOBAL[42] */
-    0x0087bu,   /* CP_PROTECT_GLOBAL[43] */
-    0x0087cu,   /* CP_PROTECT_GLOBAL[44] */
-    0x0087du,   /* CP_PROTECT_GLOBAL[45] */
-    0x0087eu,   /* CP_PROTECT_GLOBAL[46] */
-    0x0087fu,   /* CP_PROTECT_GLOBAL[47] */
-    0x00880u,   /* CP_PROTECT_GLOBAL[48] */
-    0x00881u,   /* CP_PROTECT_GLOBAL[49] */
-    0x00882u,   /* CP_PROTECT_GLOBAL[50] */
-    0x00883u,   /* CP_PROTECT_GLOBAL[51] */
-    0x00884u,   /* CP_PROTECT_GLOBAL[52] */
-    0x00885u,   /* CP_PROTECT_GLOBAL[53] */
-    0x00886u,   /* CP_PROTECT_GLOBAL[54] */
-    0x00887u,   /* CP_PROTECT_GLOBAL[55] */
-    0x00888u,   /* CP_PROTECT_GLOBAL[56] */
-    0x00889u,   /* CP_PROTECT_GLOBAL[57] */
-    0x0088au,   /* CP_PROTECT_GLOBAL[58] */
-    0x0088bu,   /* CP_PROTECT_GLOBAL[59] */
-    0x0088cu,   /* CP_PROTECT_GLOBAL[60] */
-    0x0088du,   /* CP_PROTECT_GLOBAL[61] */
-    0x0088eu,   /* CP_PROTECT_GLOBAL[62] */
-    0x0088fu,   /* CP_PROTECT_GLOBAL[63] */
+    0x00000440u, 0x0000058fu, 0x000005ecu, 0x0000ae02u,
+    0x0000ae12u, 0x0000ae13u, 0x0000ae08u, 0x0000ae09u,
+    0x0000ae0au, 0x0000ae0fu, 0x0000b604u, 0x0000b600u,
+    0x0000b602u, 0x0000b607u, 0x0000b608u, 0x0000b609u,
+    0x0000b60au, 0x0000b60bu, 0x0000b60cu, 0x0000b60du,
+    0x0000b60eu, 0x0000b60fu, 0x0000b610u, 0x0000b611u,
+    0x0000b612u, 0x0000b613u, 0x0000b614u, 0x0000b615u,
+    0x0000b616u, 0x0000b617u, 0x0000b618u, 0x0000b619u,
+    0x00000850u, 0x00000851u, 0x00000852u, 0x00000853u,
+    0x00000854u, 0x00000855u, 0x00000856u, 0x00000857u,
+    0x00000858u, 0x00000859u, 0x0000085au, 0x0000085bu,
+    0x0000085cu, 0x0000085du, 0x0000085eu, 0x0000085fu,
+    0x00000860u, 0x00000861u, 0x00000862u, 0x00000863u,
+    0x00000864u, 0x00000865u, 0x00000866u, 0x00000867u,
+    0x00000868u, 0x00000869u, 0x0000086au, 0x0000086bu,
+    0x0000086cu, 0x0000086du, 0x0000086eu, 0x0000086fu,
+    0x00000870u, 0x00000871u, 0x00000872u, 0x00000873u,
+    0x00000874u, 0x00000875u, 0x00000876u, 0x00000877u,
+    0x00000878u, 0x00000879u, 0x0000087au, 0x0000087bu,
+    0x0000087cu, 0x0000087du, 0x0000087eu, 0x0000088fu,
+    0x000008b6u,
 };
 #define A830_HWINIT_DYN_COUNT 28u
 #define A830_HWINIT_DYN_TRIPLETS 60u   /* entries times pipes */
 A830_HWINIT_TABLE A830HwInitPipeList A830HwInitDynPwrup[A830_HWINIT_DYN_COUNT] = {
-    {0x008b4u, 0xfeu},   /* CP_HW_FAULT_STATUS_MASK_PIPE BR|BV|LPAC|AQE0|AQE1|DDE_BR|DDE_BV */
-    {0x008b8u, 0xfeu},   /* CP_INTERRUPT_STATUS_MASK_PIPE BR|BV|LPAC|AQE0|AQE1|DDE_BR|DDE_BV */
-    {0x0084eu, 0x0eu},   /* CP_PROTECT_CNTL_PIPE BR|BV|LPAC */
-    {0x008afu, 0x0eu},   /* CP_PROTECT_PIPE[15] BR|BV|LPAC */
-    {0x08600u, 0x06u},   /* GRAS_TSEFE_DBG_ECO_CNTL BR|BV */
-    {0x08700u, 0x06u},   /* GRAS_NC_MODE_CNTL BR|BV */
-    {0x08702u, 0x06u},   /* GRAS_DBG_ECO_CNTL BR|BV */
-    {0x08e07u, 0x02u},   /* RB_CCU_CNTL BR */
-    {0x08e06u, 0x02u},   /* RB_CCU_DBG_ECO_CNTL BR */
-    {0x08e08u, 0x02u},   /* RB_CCU_NC_MODE_CNTL BR */
-    {0x08f00u, 0x02u},   /* RB_CMP_NC_MODE_CNTL BR */
-    {0x08f01u, 0x02u},   /* RB_RESOLVE_PREFETCH_CNTL BR */
-    {0x08f02u, 0x02u},   /* RB_CMP_DBG_ECO_CNTL BR */
-    {0x08e09u, 0x02u},   /* RB_GC_GMEM_PROTECT BR */
-    {0x08e50u, 0x02u},   /* RB_CONTEXT_SWITCH_GMEM_SAVE_RESTORE_ENABLE BR */
-    {0x09741u, 0x06u},   /* VPC_FLATSHADE_MODE_CNTL BR|BV */
-    {0x09e50u, 0x06u},   /* PC_CHICKEN_BITS_1 BR|BV */
-    {0x09f20u, 0x06u},   /* PC_CHICKEN_BITS_2 BR|BV */
-    {0x09e22u, 0x06u},   /* PC_CHICKEN_BITS_3 BR|BV */
-    {0x09e23u, 0x06u},   /* PC_CHICKEN_BITS_4 BR|BV */
-    {0x09e0au, 0x06u},   /* PC_AUTO_VERTEX_STRIDE BR|BV */
-    {0x09e0du, 0x06u},   /* PC_VIS_STREAM_CNTL BR|BV */
-    {0x09e64u, 0x06u},   /* PC_CONTEXT_SWITCH_STABILIZE_CNTL_1 BR|BV */
-    {0x0a639u, 0x06u},   /* VFD_CB_BV_THRESHOLD BR|BV */
-    {0x0a63au, 0x06u},   /* VFD_CB_BR_THRESHOLD BR|BV */
-    {0x0a63bu, 0x06u},   /* VFD_CB_BUSY_REQ_CNT BR|BV */
-    {0x0a63cu, 0x06u},   /* VFD_CB_LP_REQ_CNT BR|BV */
-    {0x0a600u, 0x06u},   /* VFD_DBG_ECO_CNTL BR|BV */
+    {0x008b4u, 0xfeu},
+    {0x008b8u, 0xfeu},
+    {0x0084eu, 0x0eu},
+    {0x008afu, 0x0eu},
+    {0x08600u, 0x06u},
+    {0x08700u, 0x06u},
+    {0x08702u, 0x06u},
+    {0x08e07u, 0x02u},
+    {0x08e08u, 0x02u},
+    {0x08f00u, 0x02u},
+    {0x08f01u, 0x02u},
+    {0x08f02u, 0x02u},
+    {0x08e09u, 0x02u},
+    {0x08e0au, 0x02u},
+    {0x08e50u, 0x02u},
+    {0x09741u, 0x06u},
+    {0x09e50u, 0x06u},
+    {0x09f20u, 0x06u},
+    {0x09e22u, 0x06u},
+    {0x09e23u, 0x06u},
+    {0x09e0au, 0x06u},
+    {0x09e0du, 0x06u},
+    {0x09e64u, 0x06u},
+    {0x0a639u, 0x06u},
+    {0x0a63au, 0x06u},
+    {0x0a63bu, 0x06u},
+    {0x0a63cu, 0x06u},
+    {0x0a600u, 0x06u},
 };
 
 #endif
