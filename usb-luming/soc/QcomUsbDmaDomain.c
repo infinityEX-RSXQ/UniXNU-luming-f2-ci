@@ -286,18 +286,25 @@ QUSB_DOMAIN_RESULT QcomUsbDomainInstall(const QUSB_DOMAIN_PLATFORM *p,void *cpu,
      !p->read32(p->cookie,QUSB_SMMU_BASE,&l->original_cr0)||
      !p->read32(p->cookie,QUSB_SMMU_BASE+8,&cr2))return QusbDomainReadFailed;
   l->stream_count=l->id0&255U;l->bank_count=l->id1&255U;
-  l->extended_stream_ids=(l->original_cr0>>3)&1U;
-  if(!l->stream_count||l->stream_count>128||!l->bank_count||l->bank_count>128||
-     !(l->id0&(1U<<30))||!(l->id0&(1U<<27))||!(l->id2&(1U<<12))||
-     (l->original_cr0&0x401U)!=0x400U||(cr2&0xa0000000U)||
-     (l->extended_stream_ids&&!(l->id0&(1U<<8))))return QusbDomainUnsupported;
+  l->extended_stream_ids=(l->original_cr0>>3)&1U;l->diag_cr2=cr2;
+  /* Record all failed guards at once; these bits do not change admission. */
+  if(!l->stream_count||l->stream_count>128)l->diag_reject|=1U<<0;
+  if(!l->bank_count||l->bank_count>128)l->diag_reject|=1U<<1;
+  if(!(l->id0&(1U<<30)))l->diag_reject|=1U<<2;
+  if(!(l->id0&(1U<<27)))l->diag_reject|=1U<<3;
+  if(!(l->id2&(1U<<12)))l->diag_reject|=1U<<4;
+  if((l->original_cr0&0x401U)!=0x400U)l->diag_reject|=1U<<5;
+  if(cr2&0xa0000000U)l->diag_reject|=1U<<6;
+  if(l->extended_stream_ids&&!(l->id0&(1U<<8)))l->diag_reject|=1U<<7;
+  if(l->diag_reject)return QusbDomainUnsupported;
   ps=(l->id2&15U)<((l->id2>>4)&15U)?(l->id2&15U):((l->id2>>4)&15U);
-  bits=physical_bits(ps);if(!bits)return QusbDomainUnsupported;
+  bits=physical_bits(ps);if(!bits){l->diag_reject|=1U<<8;return QusbDomainUnsupported;}
   r=QcomUsbDomainBuildTables(cpu,pt,pt_bytes,dma,dma_bytes,bits);if(r)return r;
   shift=(l->id1>>31)?16U:12U;pages=2U<<((l->id1>>28)&7U);
   l->gr1_base=QUSB_SMMU_BASE+(1ULL<<shift);
-  if(QUSB_SMMU_BASE+(((QUSB_U64)pages+l->bank_count)<<shift)>QUSB_SMMU_BASE+QUSB_SMMU_BYTES)
-    return QusbDomainUnsupported;
+  if(QUSB_SMMU_BASE+(((QUSB_U64)pages+l->bank_count)<<shift)>QUSB_SMMU_BASE+QUSB_SMMU_BYTES) {
+    l->diag_reject|=1U<<9;return QusbDomainUnsupported;
+  }
   ns2=(l->id1>>16)&255U;if(ns2>=l->bank_count)return QusbDomainNoBank;
   r=scan(p,l,used,0);if(r)return r;
   for(i=0;i<l->bank_count;i++) {

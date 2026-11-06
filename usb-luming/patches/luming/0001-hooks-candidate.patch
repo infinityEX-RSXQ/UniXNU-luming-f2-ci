@@ -318,7 +318,7 @@
  	for (;;) {
  #if defined(__arm__) || defined(__arm64__)
  		/* On arm32, which doesn't have a WFE timeout, this may not return.  But that should be OK on this path. */
-@@ -1368,6 +1384,15 @@
+@@ -1368,6 +1384,17 @@
  #pragma clang diagnostic pop
  		}
  		paniclog_append_noflush("\n");
@@ -329,6 +329,8 @@
 +		if (usb.phase >= QCOM_USB_DEBUG_PREPARING) {
 +			paniclog_append_noflush("USB init phase=%u error=%u qualify=%u domain=%u\n",
 +			    usb.phase, usb.error, usb.qualify, usb.domain);
++			paniclog_append_noflush("USB SMMU id=%x/%x/%x\n", usb.smmu_id0, usb.smmu_id1, usb.smmu_id2);
++			paniclog_append_noflush("USB SMMU cr=%x/%x reject=%x\n", usb.smmu_cr0, usb.smmu_cr2, usb.smmu_reject);
 +		}
 +#endif
  	}
