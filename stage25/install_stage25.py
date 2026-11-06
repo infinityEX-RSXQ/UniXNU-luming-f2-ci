@@ -38,6 +38,17 @@ def make_patch(tree):
 	bool cdx25_reply = false;
 	uint64_t cdx25_seq = cdx25_send_begin(kmsg, cdx25_name, &cdx25_reply);
 ''' + anchor + '\tcdx25_send_end(cdx25_seq, cdx25_reply, mr);\n')
+    anchor = '\tthread_t           self = current_thread();\n\tipc_space_t        space = current_space();\n'
+    new = once(new, anchor, anchor + '''	{
+		task_t cdx25_task = current_task();
+		struct proc *cdx25_proc = get_bsdtask_info(cdx25_task);
+		if (cdx25_proc &&
+		    cdx25_is_lsd(proc_name_address(cdx25_proc))) {
+			cdx25_lsd_recv_name = rcv_name;
+			cdx25_lsd_recv_pid = task_pid(cdx25_task);
+		}
+	}
+''')
     diff = difflib.unified_diff(old.splitlines(True), new.splitlines(True),
                                 'a/' + SOURCE, 'b/' + SOURCE)
     return (f'diff --git a/{SOURCE} b/{SOURCE}\n' + ''.join(diff)).encode()
@@ -50,15 +61,7 @@ def install(tree, device):
     entries = series.read_text().splitlines()
     if PATCH not in entries:
         (directory / PATCH).write_bytes(patch)
-        # Keep the cdx14 -> cdx14p1 -> cdx15 -> cdx17 diagnostic tail intact:
-        # the CI series checks require cdx17 to stay last.  The Stage25 patch
-        # only touches osfmk/ipc/mach_msg.c and can safely precede cdx14.
-        anchor = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
-        if anchor in entries:
-            entries.insert(entries.index(anchor), PATCH)
-        else:
-            entries.append(PATCH)
-        series.write_bytes(('\n'.join(entries) + '\n').encode())
+        series.write_bytes(('\n'.join([*entries, PATCH]) + '\n').encode())
     elif (directory / PATCH).read_bytes() != patch:
         raise ValueError('Stage25 patch changed after installation')
     return {'patch': PATCH, 'sha256': hashlib.sha256(patch).hexdigest()}
