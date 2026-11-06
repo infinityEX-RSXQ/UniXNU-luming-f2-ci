@@ -287,6 +287,8 @@ static void usb_diag_update(void)
  * The release/acquire phase publishes the error fields written before it. */
 static uint32_t usb_init_phase, usb_init_error, usb_init_qualify, usb_init_domain;
 static uint32_t usb_init_id0, usb_init_id1, usb_init_id2, usb_init_cr0, usb_init_cr2, usb_init_reject;
+static uint32_t usb_init_domain_stage;
+static uint64_t usb_init_domain_address, usb_init_domain_expected, usb_init_domain_readback;
 static void publish_init_snapshot(void)
 {
     __atomic_store_n(&usb_init_error, native.status.error, __ATOMIC_RELAXED);
@@ -298,6 +300,10 @@ static void publish_init_snapshot(void)
     __atomic_store_n(&usb_init_cr0, native.lease.original_cr0, __ATOMIC_RELAXED);
     __atomic_store_n(&usb_init_cr2, native.lease.diag_cr2, __ATOMIC_RELAXED);
     __atomic_store_n(&usb_init_reject, native.lease.diag_reject, __ATOMIC_RELAXED);
+    __atomic_store_n(&usb_init_domain_stage, native.lease.stage, __ATOMIC_RELAXED);
+    __atomic_store_n(&usb_init_domain_address, native.lease.last_address, __ATOMIC_RELAXED);
+    __atomic_store_n(&usb_init_domain_expected, native.lease.last_expected, __ATOMIC_RELAXED);
+    __atomic_store_n(&usb_init_domain_readback, native.lease.last_readback, __ATOMIC_RELAXED);
     __atomic_store_n(&usb_init_phase, native.status.phase, __ATOMIC_RELEASE);
 }
 void qcom_usb_debug_init_snapshot(qcom_usb_init_snapshot *snapshot)
@@ -313,6 +319,10 @@ void qcom_usb_debug_init_snapshot(qcom_usb_init_snapshot *snapshot)
     snapshot->smmu_cr0 = __atomic_load_n(&usb_init_cr0, __ATOMIC_RELAXED);
     snapshot->smmu_cr2 = __atomic_load_n(&usb_init_cr2, __ATOMIC_RELAXED);
     snapshot->smmu_reject = __atomic_load_n(&usb_init_reject, __ATOMIC_RELAXED);
+    snapshot->domain_stage = __atomic_load_n(&usb_init_domain_stage, __ATOMIC_RELAXED);
+    snapshot->domain_address = __atomic_load_n(&usb_init_domain_address, __ATOMIC_RELAXED);
+    snapshot->domain_expected = __atomic_load_n(&usb_init_domain_expected, __ATOMIC_RELAXED);
+    snapshot->domain_readback = __atomic_load_n(&usb_init_domain_readback, __ATOMIC_RELAXED);
 }
 static void fail(unsigned int error, int core_result)
 {

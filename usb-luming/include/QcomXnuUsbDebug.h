@@ -100,6 +100,8 @@ extern "C" {
 typedef struct qcom_usb_init_snapshot {
     uint32_t phase, error, qualify, domain;
     uint32_t smmu_id0, smmu_id1, smmu_id2, smmu_cr0, smmu_cr2, smmu_reject;
+    uint32_t domain_stage;
+    uint64_t domain_address, domain_expected, domain_readback;
 } qcom_usb_init_snapshot;
 void qcom_usb_debug_init_snapshot(qcom_usb_init_snapshot *snapshot);
 
