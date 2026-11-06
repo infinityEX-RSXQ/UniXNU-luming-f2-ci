@@ -180,7 +180,24 @@ int main(void)
         return 1;
     }
 
-    printf("PASS sm8735 gpu power survey + CX GDSC + PLL (id=%08x)\n", s.gpu_id_candidate);
+    Fake s1 = {0};
+    s1.pll_lock_on_run = 1;
+    s1.power_on_gdsc = 1;
+    put(&s1, SM8735_GPUCC_PHYS + 0x00, 0u);
+    put(&s1, SM8735_GPUCC_PHYS + 0x04, 0u);
+    put(&s1, SM8735_GPUCC_PHYS + 0x9094, 0u);
+    put(&s1, SM8735_GPU_PHYS + 0x000, 0u);
+    put(&s1, SM8735_GPU_PHYS + 0x004, 0x44030000u);
+    put(&s1, SM8735_GPU_PHYS + 0x100, 0xffffffffu);
+    Sm8735GpuPowerIo io7 = { &s1, fake_read, fake_write, fake_delay };
+    uint32_t id = 0;
+    Sm8735GpuPowerStatus s1st = Sm8735GpuPowerOnS1(&io7, NULL, &id);
+    if (s1st != Sm8735GpuPowerOk || id != 0x44030000u) {
+        printf("s1 failed st=%d id=%08x\n", (int)s1st, id);
+        return 1;
+    }
+
+    printf("PASS sm8735 gpu power survey + CX GDSC + PLL + S1 (id=%08x)\n", id);
     return 0;
 }
 
