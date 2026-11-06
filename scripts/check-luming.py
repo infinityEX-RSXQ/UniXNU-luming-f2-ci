@@ -149,12 +149,13 @@ def check_board(device: Path, unixnu: Path, board: dict) -> None:
 def check_prelink(board: dict) -> None:
     prelink = board.get('kernel', {}).get('prelink', {})
     roots = prelink.get('roots', [])
-    if len(roots) == 27:
-        add('PASS', 'prelink roots = 27 (dada proven shape)')
+    if len(roots) == 28:
+        add('PASS', 'prelink roots = 28 (dada shape + IOMobileGraphicsFamily)')
     else:
-        add('ERROR', f'prelink roots = {len(roots)} (expected 27)')
+        add('ERROR', f'prelink roots = {len(roots)} (expected 28)')
     for name in ('com.apple.driver.AppleMobileFileIntegrity', 'com.apple.driver.ApplePMGR',
-                 'com.apple.security.sandbox', 'com.apple.security.AppleImage4'):
+                 'com.apple.security.sandbox', 'com.apple.security.AppleImage4',
+                 'com.apple.iokit.IOMobileGraphicsFamily'):
         add('PASS' if name in roots else 'ERROR', f'prelink root {name}')
     if prelink.get('early_security_init') == 'com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0':
         add('PASS', 'early_security_init restored (AMFI initializer)')
