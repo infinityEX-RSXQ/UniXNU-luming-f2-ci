@@ -61,8 +61,10 @@ typedef struct A830HwInitPipeReg {uint32_t offset, value, pipes;} A830HwInitPipe
 typedef struct A830HwInitProtect {uint32_t index, value;} A830HwInitProtect;   /* CP_PROTECT_GLOBAL[index] */
 typedef struct A830HwInitPipeList {uint32_t offset, pipes;} A830HwInitPipeList;
 
-/* ARCHITECTURE 4.8 step 10: KGSL gen8_0_0_nonctxt_regs, written pipe by pipe (PIPE_NONE with the aperture at 0). */
-#define A830_HWINIT_NONCTXT_COUNT 40u
+/* [measured] stock luming msm_kgsl.ko: KGSL gen8_6_0_nonctxt_regs (39 entries), written pipe by pipe
+ * (PIPE_NONE with the aperture at 0). Differs from A830 gen8_0_0_nonctxt_regs at 0x9e22, 0x8e09,
+ * 0xa63c and omits 0x0e04. */
+#define A830_HWINIT_NONCTXT_COUNT 39u
 A830_HWINIT_TABLE A830HwInitPipeReg A830HwInitNonctxt[A830_HWINIT_NONCTXT_COUNT] = {
     {0x00814u, 0x00000101u, 0x01u},   /* CP_SMMU_STREAM_ID_LPAC NONE */
     {0x08702u, 0x00000800u, 0x06u},   /* GRAS_DBG_ECO_CNTL BR|BV */
@@ -71,12 +73,12 @@ A830_HWINIT_TABLE A830HwInitPipeReg A830HwInitNonctxt[A830_HWINIT_NONCTXT_COUNT]
     {0x09e64u, 0x00000002u, 0x06u},   /* PC_CONTEXT_SWITCH_STABILIZE_CNTL_1 BR|BV */
     {0x09e50u, 0x00000003u, 0x06u},   /* PC_CHICKEN_BITS_1 BR|BV */
     {0x09f20u, 0x00000200u, 0x06u},   /* PC_CHICKEN_BITS_2 BR|BV */
-    {0x09e22u, 0x00400000u, 0x06u},   /* PC_CHICKEN_BITS_3 BR|BV */
+    {0x09e22u, 0x00500000u, 0x06u},   /* PC_CHICKEN_BITS_3 BR|BV */
     {0x09e23u, 0x00500050u, 0x06u},   /* PC_CHICKEN_BITS_4 BR|BV */
     {0x00e12u, 0x010240e0u, 0x01u},   /* UCHE_GBIF_GX_CONFIG NONE */
     {0x00008u, 0x22122212u, 0x01u},   /* RBBM_GBIF_CLIENT_QOS_CNTL NONE */
     {0x08e07u, 0x00000068u, 0x02u},   /* RB_CCU_CNTL BR */
-    {0x08e09u, 0x0c000000u, 0x02u},   /* RB_GC_GMEM_PROTECT BR */
+    {0x08e09u, 0x02600000u, 0x02u},   /* RB_GC_GMEM_PROTECT BR */
     {0x08f01u, 0x00000007u, 0x02u},   /* RB_RESOLVE_PREFETCH_CNTL BR */
     {0x08f02u, 0x00004000u, 0x02u},   /* RB_CMP_DBG_ECO_CNTL BR */
     {0x00440u, 0x00000001u, 0x01u},   /* RBBM_NC_MODE_CNTL NONE */
@@ -89,23 +91,22 @@ A830_HWINIT_TABLE A830HwInitPipeReg A830HwInitNonctxt[A830_HWINIT_NONCTXT_COUNT]
     {0x0ae09u, 0x00c00000u, 0x01u},   /* SP_CHICKEN_BITS_2 NONE */
     {0x0ae0au, 0x00300000u, 0x01u},   /* SP_CHICKEN_BITS_3 NONE */
     {0x0ae6bu, 0x00000080u, 0x01u},   /* SP_HLSQ_TIMEOUT_THRESHOLD_DP NONE */
-    {0x0b600u, 0x10100000u, 0x01u},   /* TPL1_DBG_ECO_CNTL NONE */
+    {0x0b600u, 0x10000000u, 0x01u},   /* TPL1_DBG_ECO_CNTL NONE */
     {0x0b602u, 0x00000724u, 0x01u},   /* TPL1_DBG_ECO_CNTL1 NONE */
     {0x00e01u, 0x00080000u, 0x01u},   /* UCHE_MODE_CNTL NONE */
     {0x00f01u, 0x00001000u, 0x01u},   /* UCHE_CCHE_MODE_CNTL NONE */
     {0x00f02u, 0x00000800u, 0x01u},   /* UCHE_CCHE_CACHE_WAYS NONE */
-    {0x00e04u, 0x00080000u, 0x01u},   /* UCHE_CACHE_WAYS NONE */
     {0x00e16u, 0x00000100u, 0x01u},   /* UCHE_HW_DBG_CNTL NONE */
     {0x00e10u, 0x00000020u, 0x01u},   /* UCHE_VARB_IDLE_TIMEOUT NONE */
     {0x0a600u, 0x00008000u, 0x06u},   /* VFD_DBG_ECO_CNTL BR|BV */
     {0x0a639u, 0x00500050u, 0x06u},   /* VFD_CB_BV_THRESHOLD BR|BV */
     {0x0a63au, 0x00600060u, 0x06u},   /* VFD_CB_BR_THRESHOLD BR|BV */
     {0x0a63bu, 0x00200020u, 0x06u},   /* VFD_CB_BUSY_REQ_CNT BR|BV */
-    {0x0a63cu, 0x00100020u, 0x06u},   /* VFD_CB_LP_REQ_CNT BR|BV */
+    {0x0a63cu, 0x00000020u, 0x06u},   /* VFD_CB_LP_REQ_CNT BR|BV */
     {0x09741u, 0x00000001u, 0x06u},   /* VPC_FLATSHADE_MODE_CNTL BR|BV */
     {0x00df0u, 0x00000800u, 0x01u},   /* VSC_KMD_DBG_ECO_CNTL NONE */
 };
-#define A830_HWINIT_GMEM_PROTECT_VALUE 0x0c000000u   /* the table's RB_GC_GMEM_PROTECT, rewritten after the secure exit */
+#define A830_HWINIT_GMEM_PROTECT_VALUE 0x02600000u   /* the table's RB_GC_GMEM_PROTECT, rewritten after the secure exit */
 
 /* ARCHITECTURE 4.8 step 13: KGSL gen8_0_0_protected_regs, value = start | (end - start) << 18 | noaccess << 31. Indices
  * 47..62 are not written; the last entry (63) is also written to CP_PROTECT_PIPE[15] of BR and BV (last span). */
