@@ -64,6 +64,8 @@ cdx25_is_lsd(const char *name)
 	    name[3] == '\0';
 }
 
+extern char *proc_name_address(void *);
+
 static bool
 cdx25_lsd_selfreply(ipc_kmsg_t kmsg, ipc_port_t reply)
 {
@@ -713,3 +715,4 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		}
 	}
 }
+
