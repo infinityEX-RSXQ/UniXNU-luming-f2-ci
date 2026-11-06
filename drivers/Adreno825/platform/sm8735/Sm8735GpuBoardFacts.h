@@ -21,6 +21,24 @@
 /* qcom,actlr = <0 0x3ff 0x32b>; the third cell is the ACTLR value. */
 #define SM8735_GPU_SMMU_ACTLR       0x32bu
 
+/* [measured] qcom,gmu@3d37000: reg-names "gmu", "gmu_ao_blk_dec0". */
+#define SM8735_GPU_GMU_PHYS         0x03d37000ull
+#define SM8735_GPU_GMU_BYTES        0x00068000ull
+#define SM8735_GPU_GMU_AO_PHYS      0x03d40000ull
+#define SM8735_GPU_GMU_AO_BYTES     0x00010000ull
+
+/* [measured] reserved-memory: gpu_microcode_region@94e9a000 is the ZAP carveout
+ * (zap-shader memory-region phandle 0x304). There is no zap firmware file in the
+ * stock vendor tree. */
+#define SM8735_GPU_ZAP_PHYS         0x94e9a000ull
+#define SM8735_GPU_ZAP_BYTES        0x00002000ull
+
+/* [measured] reserved-memory/smem_region@81d00000 and aop_cmd_db_region@81c60000. */
+#define SM8735_SMEM_PHYS            0x81d00000ull
+#define SM8735_SMEM_BYTES           0x00200000ull
+#define SM8735_CMD_DB_PHYS          0x81c60000ull
+#define SM8735_CMD_DB_BYTES         0x00020000ull
+
 /* SMMU global interrupt plus 11 context-bank interrupts: 677..687. */
 #define SM8735_GPU_SMMU_IRQ_GLOBAL  673u
 #define SM8735_GPU_SMMU_CB_COUNT    11u
