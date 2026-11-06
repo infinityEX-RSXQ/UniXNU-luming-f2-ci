@@ -236,7 +236,7 @@ public:
     void dumpStall(Adreno830Status *status);
     /* S7 step 8: CP_SET_SECURE_MODE 0 through the ring (fenced WPTR), then waitIdle(timeout_us) (annibale: its criterion). */
     IOReturn exitSecure(uint32_t timeout_us);
-    /* S7 step 9: RB_GC_GMEM_PROTECT (BR) = the non-context table's value (0x0C000000) once the GPU is non-secure; aperture 0. */
+    /* S7 step 9: RB_GC_GMEM_PROTECT (BR) = the non-context table's value (0x02600000) once the GPU is non-secure; aperture 0. */
     IOReturn programGmemProtect();
     /* S7 step 10 (a8xx_patch_pwrup_reglist): reads the IFPC and pwrup lists (aperture 0) and the dynamic list for every pipe
      * BR..DDE_BV in its mask (aperture = pipe), then packs page (4096 bytes, the CPU view of GPU VA 0x301000) with
