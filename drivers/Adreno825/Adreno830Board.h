@@ -82,7 +82,7 @@ struct Adreno830Board {
     Adreno830Window gpu,rscc,cx_dbgc,cx_misc,gmu,gmu_ao,gpucc,gcc,smmu,cmd_db,smem,zap,qfprom,rsc_drv2,
                     aoss_msgram,ipcc,tsens_tm;           /* the last three are optional: the M3 QMP step, M11 thermal */
     Adreno830Window llcc[Adreno830LlccWindows];      /* optional (M11): zero windows leave the LLCC slices untouched */
-    uint32_t chip_id,soc_id;                          /* 0x44050001, 618 */
+    uint32_t chip_id,soc_id;                          /* 0x44030000, luming SM8735 */
     uint32_t irq_gpu,irq_cx_host,irq_hfi,irq_gmu;    /* 332, 112, 336, 337 */
     uint32_t irq_smmu_global,irq_smmu_cb[4];         /* 706, 710..713 */
     uint32_t irq_scm_waitq;                          /* 994 */
