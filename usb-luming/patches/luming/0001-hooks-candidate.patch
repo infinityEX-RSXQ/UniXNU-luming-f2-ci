@@ -1,6 +1,6 @@
 --- a/bsd/kern/bsd_init.c
 +++ b/bsd/kern/bsd_init.c
-@@ -107,6 +107,13 @@
+@@ -107,6 +107,14 @@
  #include <kern/zalloc.h>
  #include <kern/ux_handler.h>            /* for ux_handler_setup() */
  #include <kern/sched_hygiene.h>
@@ -10,11 +10,12 @@
 +#include <kern/cpu_number.h>
 +#include <kern/processor.h>
 +#include <kern/debug.h>
++#include <kern/kalloc.h>
 +#endif
  
  #if (DEVELOPMENT || DEBUG)
  #include <kern/debug.h>
-@@ -123,6 +130,9 @@
+@@ -123,6 +131,9 @@
  #include <sys/monotonic.h>
  
  #include <mach/mach_types.h>
@@ -24,7 +25,7 @@
  #include <mach/vm_prot.h>
  #include <mach/semaphore.h>
  #include <mach/sync_policy.h>
-@@ -1100,11 +1110,232 @@
+@@ -1100,11 +1111,306 @@
  	lock_trace = 1;
  }
  
@@ -140,6 +141,79 @@
 +	}
 +}
 +
++/* Independent, opt-in, bounded stackshot producer.  It never panics and
++ * never touches the USB controller; the existing worker drains the FIFO. */
++static unsigned int qcom_rawshot_started;
++static void
++qcom_rawshot_delay(unsigned seconds)
++{
++	uint64_t deadline;
++	clock_interval_to_deadline(seconds, NSEC_PER_SEC, &deadline);
++	if (assert_wait_deadline((event_t)&qcom_rawshot_started,
++	    THREAD_UNINT, deadline) == THREAD_WAITING) {
++		thread_block(THREAD_CONTINUE_NULL);
++	}
++}
++
++static void
++qcom_rawshot_worker(void *argument __unused, wait_result_t result __unused)
++{
++	const uint32_t capacity = 1024u * 1024u;
++	const uint64_t flags = 0x10000ULL | 0x2ULL | 0x8ULL | 0x100000ULL |
++	    0x800000ULL | 0x1000000ULL | 0x40000000ULL | 0x400000000ULL;
++	uint8_t *buffer;
++	thread_set_thread_name(current_thread(), "qcom-usb-rawshot");
++	qcom_rawshot_delay(60);
++	buffer = kalloc_data(capacity, Z_WAITOK | Z_ZERO);
++	if (!buffer) {
++		kprintf("QCOM RAWSHOT allocation failed\n");
++		thread_terminate_self();
++	}
++	for (unsigned sample = 0; sample < 2; ++sample) {
++		char line[192];
++		unsigned used = 0, failed = 0;
++		uint32_t fnv = 2166136261u;
++		kern_return_t rc = stack_snapshot_from_kernel(-1, buffer, capacity,
++		    flags, 0, 0, &used);
++		int n = snprintf(line, sizeof(line), "\nQRAWSHOT BEGIN s=%u rc=%x bytes=%u\n", sample, rc, used);
++		if (n <= 0 || (size_t)n >= sizeof(line) || qcom_usb_debug_enqueue(line, (size_t)n) != (size_t)n) ++failed;
++		if (rc == KERN_SUCCESS && used <= capacity) {
++			static const char hex[] = "0123456789abcdef";
++			for (unsigned off = 0; off < used; off += 64) {
++				unsigned len = used - off < 64 ? used - off : 64;
++				n = snprintf(line, sizeof(line), "\nQRAWSHOT D s=%u off=%x hex=", sample, off);
++				if (n <= 0 || (size_t)n + 2u * len + 1u >= sizeof(line)) { ++failed; break; }
++				for (unsigned j = 0; j < len; ++j) {
++					uint8_t b = buffer[off + j];
++					fnv = (fnv ^ b) * 16777619u;
++					line[n++] = hex[b >> 4]; line[n++] = hex[b & 15u];
++				}
++				line[n++] = '\n';
++				if (qcom_usb_debug_enqueue(line, (size_t)n) != (size_t)n) ++failed;
++			}
++		}
++		n = snprintf(line, sizeof(line), "\nQRAWSHOT END s=%u bytes=%u fail=%u fnv=%08x\n", sample, used, failed, fnv);
++		if (n > 0 && (size_t)n < sizeof(line)) (void)qcom_usb_debug_enqueue(line, (size_t)n);
++		if (sample == 0) qcom_rawshot_delay(15);
++	}
++	kfree_data(buffer, capacity);
++	thread_terminate_self();
++}
++
++static void
++qcom_rawshot_start_once(void)
++{
++	int enabled = 0;
++	unsigned expected = 0;
++	thread_t thread = THREAD_NULL;
++	if (!PE_parse_boot_argn("qcom-usb-rawshot", &enabled, sizeof(enabled)) || enabled != 1) return;
++	if (!__atomic_compare_exchange_n(&qcom_rawshot_started, &expected, 1u, 0,
++	    __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) return;
++	kern_return_t kr = kernel_thread_start(qcom_rawshot_worker, NULL, &thread);
++	if (kr == KERN_SUCCESS) thread_deallocate(thread);
++	else kprintf("QCOM RAWSHOT thread failed kr=%d\n", kr);
++}
++
 +static void
 +qcom_usb_worker(void *argument __unused, wait_result_t result __unused)
 +{
@@ -174,6 +248,7 @@
 +		goto stopped;
 +	}
 +	__atomic_store_n(&qcom_usb_worker_state, 2u, __ATOMIC_RELEASE);
++	qcom_rawshot_start_once();
 +	(void)PE_parse_boot_argn("qcom-usb-heartbeat", &heartbeat_enabled, sizeof(heartbeat_enabled));
 +	kprintf("QCOM USB WORKER active cpu=%d period_ms=5 buffer=%llu\n",
 +	    cpu_number(), status.buffer_capacity);
