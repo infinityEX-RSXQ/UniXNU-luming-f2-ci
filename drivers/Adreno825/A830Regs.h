@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 /*
- * A830Regs.h：A830（Gen8，chip id 0x44050001，DT "qcom,adreno-gpu-gen8-0-1"）/ SM8750 / 一加 13T PKX110
+ * A830Regs.h：A825（Gen8-6-0，chip id 0x44030000，DT "qcom,adreno-gpu-gen8-6-0"）/ SM8735 / luming
  * 的唯一寄存器头文件。驱动的每个模块（A830Smmu、A830Gmu、A830Hfi、A830Votes、A830Cp、A830Zap、A830Irq、
  * A830Fence、A830Dcvs、Adreno830Start、参数化后的 NativeAdreno* 与主机测试）都从这里取硬件事实。
  *
@@ -382,10 +382,10 @@
 #define A830_TPL1_BICUBIC_WEIGHTS_WRITTEN 20u
 
 #define A830_GMEM_BASE                  0x0000000004000000ull   /* uche_gmem_alignment 64 MiB；DeviceInfo.gmem_base */
-#define A830_GMEM_BYTES                 0x00C00000u    /* 12 MiB */
+#define A830_GMEM_BYTES                 0x00260000u    /* [measured] A825: 2 MiB + 256 KiB + 128 KiB */
 #define A830_UCHE_TRAP_ADDR             0x0001FFFFFFFFF000ull   /* 超出 32 位输入，天然不可映射 */
 #define A830_UCHE_CLIENT_PF_VALUE       0x00000081u    /* BIT(7) | 1 */
-#define A830_RB_GC_GMEM_PROTECT_VALUE   0x0C000000u
+#define A830_RB_GC_GMEM_PROTECT_VALUE   0x02600000u    /* [measured] A825 gen8_6_0 table */
 #define A830_RB_CONTEXT_SWITCH_GMEM_SAVE_RESTORE_VALUE 0x00000001u
 
 /* UBWC 5.0（DT qcom,ubwc-mode=5；ubwc_5_0_hbb16）：DeviceInfo 必须报同一组（ARCH 4.14.3） */
@@ -518,7 +518,7 @@
 #define A830_GMU_HFI_QTBL_INFO_VALUE    0x00000001u
 #define A830_GMU_HFI_CTRL_INIT_VALUE    0x00000001u
 #define A830_GMU_CACHE_CONFIG_VALUE     0x00000001u     /* ICACHE、DCACHE、SYS_BUS_CONFIG 都写 1 */
-#define A830_GMU_CHIPID                 0x08000100u     /* GENERAL_10：ADRENO_GMU_REV(8.0.1) [KGSL] = gmu_chipid [LNX] = [BIN] */
+#define A830_GMU_CHIPID                 0x08000600u     /* [measured] A825 GMU 8.6.0 */
 #define A830_GMU_LOG_CFG(va, bytes)     (((uint32_t)(va) & 0xFFFFF000u) | (((uint32_t)(bytes) / 0x1000u - 1u) & 0xFFu))
 #define A830_GMU_PWRCNT_XOCLK0_GPU_BUSY 0x00000020u     /* SELECT_XOCLK_0 [7:0] |= 0x20 */
 #define A830_GMU_PWRCNT_XOCLK1_IFPC     0x00000004u     /* SELECT_XOCLK_1 [7:0] = 0x04 */
@@ -1484,7 +1484,7 @@ A830_STATIC_ASSERT(A830_RBBM_INTERFACE_HANG_INT_CNTL_VALUE == (A8XX_RBBM_INTERFA
                    A830_RBBM_SLICE_INTERFACE_HANG_INT_CNTL_VALUE == A8XX_RBBM_INTERFACE_HANG_INT_CNTL_EN, "hang detect (ARCH 4.8 step 11)");
 /* UCHE/UBWC/GBIF（ARCH 4.8、4.14、4.15） */
 A830_STATIC_ASSERT(A830_GMEM_BASE == 0x4000000ull && A830_GMEM_BASE % 0x4000000ull == 0u &&
-                   A830_GMEM_BASE + A830_GMEM_BYTES <= A830_GPU_VA_CLIENT_BASE, "GMEM window 0x4000000, 12 MiB");
+                   A830_GMEM_BASE + A830_GMEM_BYTES <= A830_GPU_VA_CLIENT_BASE, "GMEM window 0x4000000, 2.375 MiB");
 A830_STATIC_ASSERT(A830_UCHE_CLIENT_PF_VALUE == ((1u << 7) | 1u), "UCHE_CLIENT_PF 0x81");
 A830_STATIC_ASSERT(A830_UBWC_HBB == 3u && A830_GRAS_NC_MODE_CNTL_VALUE == (A830_UBWC_HBB << 5) &&
                    A830_RB_CCU_NC_MODE_CNTL_VALUE == ((A830_UBWC_HBB_HI << 3) | (A830_UBWC_HBB_LO << 1)) &&
