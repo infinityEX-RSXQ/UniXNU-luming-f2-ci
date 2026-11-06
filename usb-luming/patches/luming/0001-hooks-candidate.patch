@@ -320,17 +320,16 @@
  		/* On arm32, which doesn't have a WFE timeout, this may not return.  But that should be OK on this path. */
 --- a/osfmk/kern/printf.c
 +++ b/osfmk/kern/printf.c
-@@ -913,6 +913,21 @@
+@@ -913,6 +913,20 @@
  	return vprintf_internal(fmt, ap, __builtin_return_address(0));
  }
  
 +#if XNU_QCOM_USB_DEBUG
 +#include <QcomXnuUsbDebug.h>
 +/* True when the fan-out to PE_kputc below would reach _cnputs again, which is
-+ * where this port tees.  Two values do: the USB sink itself, and the console
-+ * fallback, whose body is a thin wrapper over _cnputs.  The second case is the
-+ * state left behind when USB initialization is refused and PE_kputc keeps its
-+ * pre-existing console value; the byte is already in the log once.
++ * where the buffered console path tees. The USB sink would duplicate that
++ * copy; the console fallback would duplicate display output. The unbuffered
++ * path enqueues explicitly because it bypasses _cnputs on this XNU.
 + */
 +static inline bool
 +qcom_usb_pe_kputc_reenters_console(void)
@@ -342,7 +341,7 @@
  void
  consdebug_putc(char c)
  {
-@@ -921,6 +936,13 @@
+@@ -921,6 +935,13 @@
  	debug_putc(c);
  
  	if (!console_is_serial() && !disable_serial_output) {
@@ -356,12 +355,21 @@
  		PE_kputc(c);
  	}
  }
-@@ -933,6 +955,10 @@
+@@ -928,11 +949,19 @@
+ void
+ consdebug_putc_unbuffered(char c)
+ {
++#if XNU_QCOM_USB_DEBUG
++	/* This XNU's unbuffered path calls _cnputc directly, not _cnputs. */
++	(void)qcom_usb_debug_enqueue(&c, 1);
++#endif
+ 	console_write_unbuffered(c);
+ 
  	debug_putc(c);
  
  	if (!console_is_serial() && !disable_serial_output) {
 +#if XNU_QCOM_USB_DEBUG
-+		/* console_write_unbuffered is a thin wrapper over _cnputs. */
++		/* The USB copy was enqueued above; avoid re-entering the console. */
 +		if (!qcom_usb_pe_kputc_reenters_console())
 +#endif
  		PE_kputc(c);
@@ -395,14 +403,14 @@
 +#if XNU_QCOM_USB_DEBUG
 +/* kprintf reaches the console through _doprnt_log(..., PE_kputc, ...), which
 + * bypasses _cnputs, so this hook is kprintf's only USB copy.  There is exactly
-+ * two cases where PE_kputc already emits to USB: the USB sink itself, and
-+ * console_write_unbuffered, which reaches the USB tee in _cnputs. Other
-+ * non-null sinks need the explicit USB copy.
++ * one case where PE_kputc already emits to USB: the USB sink itself.
++ * The current XNU console_write_unbuffered calls _cnputc directly, bypassing
++ * _cnputs and its queue hook, so its bytes need the explicit USB copy.
 + */
 +static bool
 +qcom_usb_pe_kputc_owns_usb_byte(void)
 +{
-+	return PE_kputc != console_write_unbuffered && PE_kputc != qcom_usb_debug_putc;
++	return PE_kputc != qcom_usb_debug_putc;
 +}
 +
 +static void
