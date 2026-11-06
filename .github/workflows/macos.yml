@@ -193,6 +193,15 @@ jobs:
           path: device
           persist-credentials: false
 
+      - name: Host-test the SM8735 GPU power survey
+        run: |
+          set -euo pipefail
+          d=device/drivers/Adreno825/platform/sm8735
+          clang -std=c11 -Wall -Wextra -Werror -I "$d" \
+            "$d/tests/test_sm8735_power.c" "$d/Sm8735GpuPower.c" \
+            -o "$RUNNER_TEMP/test_sm8735_power"
+          "$RUNNER_TEMP/test_sm8735_power"
+
       - name: Check out the luming UEFI repository
         if: ${{ inputs.dry_run != true && (contains(inputs.steps, 'firmware') || contains(inputs.steps, 'bootimg')) && inputs.uefi_repository != '' && inputs.uefi_archive_release_tag == '' }}
         uses: actions/checkout@v4
