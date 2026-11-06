@@ -478,6 +478,32 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	if (used < 0 || (size_t)used >= size) {
 		return;
 	}
+	if (found[0].dest_task) {
+		task_t lt = (task_t)(uintptr_t)found[0].dest_task;
+		thread_t th;
+		unsigned printed = 0;
+		queue_iterate(&lt->threads, th, thread_t, task_threads) {
+			if (printed >= 5) {
+				break;
+			}
+			struct arm_saved_state *ss = get_user_regs(th);
+			if (!ss || !is_saved_state64(ss)) {
+				continue;
+			}
+			int w = snprintf(out + used, size - used,
+			    "    T%llx b%u pc%llx\n",
+			    (unsigned long long)thread_tid(th),
+			    (unsigned)th->block_hint,
+			    (unsigned long long)saved_state64(ss)->pc);
+			if (w > 0 && (size_t)w < size - used) {
+				used += w;
+				printed++;
+			} else {
+				break;
+			}
+		}
+		return;
+	}
 	for (unsigned i = 0; i < n; i++) {
 		char comm[9] = {};
 		for (unsigned j = 0; j < 8 && found[i].comm[j]; j++) {
