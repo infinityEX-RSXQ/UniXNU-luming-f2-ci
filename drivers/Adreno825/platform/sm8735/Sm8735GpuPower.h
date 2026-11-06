@@ -5,11 +5,11 @@
 #include <stdint.h>
 
 /*
- * Minimal, read-only survey of the SM8735 GPU power/clock block.
+ * Minimal SM8735 GPU power bring-up.
  *
- * This is deliberately not the A830 power sequence: it never writes a register.
- * Its only purpose is to learn whether the bootloader left the GPU powered and
- * which GPU_ID candidate is valid, before any PLL/GDSC/RPMh sequence is written.
+ * SurveyRead() is read-only and safe for first hardware probing.
+ * EnableCxGdsc() writes only the GPUCC CX GDSC block (the offset matches the
+ * A830/SM8750 layout); it does not touch PLL, RPMh, SMMU, GMU or CP.
  */
 
 #ifdef __cplusplus
@@ -43,11 +43,32 @@ typedef struct Sm8735GpuPowerSurvey {
     uint32_t gpu_id_candidate;   /* first non-zero/non-0xffffffff of the three */
 } Sm8735GpuPowerSurvey;
 
+typedef enum Sm8735GpuPowerStatus {
+    Sm8735GpuPowerOk = 0,
+    Sm8735GpuPowerIoError,
+    Sm8735GpuPowerUnexpectedState,
+    Sm8735GpuPowerTimeout,
+} Sm8735GpuPowerStatus;
+
+typedef struct Sm8735GpuPowerTrace {
+    uint64_t offset;             /* last register touched */
+    uint32_t value;              /* last value written/read */
+    uint32_t reads, writes;
+} Sm8735GpuPowerTrace;
+
 /* Read-only. Returns 0 when every register was read, -1 otherwise; out->ok is set. */
 int Sm8735GpuPowerSurveyRead(const Sm8735GpuPowerIo *io, Sm8735GpuPowerSurvey *out);
 
 /* Pure helper for host tests: choose the first plausible GPU ID word. */
 uint32_t Sm8735GpuPowerChooseId(uint32_t id0, uint32_t id4, uint32_t id100);
+
+/*
+ * Conservative CX GDSC enable: update(CxGdscr, 0xfff007, 0x228000), wait 1 us,
+ * poll CxGdsHwCtrl.PWR_ON for at most 2000 us, then set RETAIN_FF.
+ * No PLL, no RPMh, no SMMU, no GMU.
+ */
+Sm8735GpuPowerStatus Sm8735GpuPowerEnableCxGdsc(const Sm8735GpuPowerIo *io,
+    Sm8735GpuPowerTrace *trace);
 
 #ifdef __cplusplus
 }
