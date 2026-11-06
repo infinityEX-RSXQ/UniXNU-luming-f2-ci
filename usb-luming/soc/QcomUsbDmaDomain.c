@@ -227,10 +227,12 @@ static QUSB_DOMAIN_RESULT scan(const QUSB_DOMAIN_PLATFORM *p,QUSB_DOMAIN_LEASE *
     }
     mask=(smr>>16)&(l->extended_stream_ids?0xffffU:0x7fffU);
     id=smr&(l->extended_stream_ids?0xffffU:0x7fffU);
-    /* A live mapping owns its context bank; a dead one does not. Marking a dead bank as used
-     * would refuse the only bank the reclaimed stream could then be pointed at. */
-    if(used&&(s2cr&255U)<l->bank_count) used[s2cr&255U]=1;
-    if((QUSB_STREAM_ID&~mask)!=(id&~mask))continue;
+    /* Preserve every other stream's context-bank reservation. A reclaimable
+     * matching USB entry is handled below without clearing prior reservations. */
+    if((QUSB_STREAM_ID&~mask)!=(id&~mask)) {
+      if(used&&(s2cr&255U)<l->bank_count) used[s2cr&255U]=1;
+      continue;
+    }
     matches++;
     /* Record what firmware actually mapped SID 0 to, so the refusal is not the same for
      * every cause. S2CR bits 17:16 are the memory-access type: 0 translation, 1 bypass,
@@ -255,7 +257,6 @@ static QUSB_DOMAIN_RESULT scan(const QUSB_DOMAIN_PLATFORM *p,QUSB_DOMAIN_LEASE *
          * rather than refusing, and release its bank for reuse. A bank that does hold a live
          * mapping is still refused, because nothing here can prove its tables are ours. */
         if(!(sctlr&1U)&&!ttbr0&&used){
-          if(cbb<l->bank_count) used[cbb]=0;
           l->reclaimed=1;
           matches--;
           if(first==0xffffffffU){first=i;oldsmr=smr;olds2cr=s2cr;}
