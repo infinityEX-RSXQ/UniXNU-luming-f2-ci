@@ -41,6 +41,8 @@ static unsigned cdx25_enabled, cdx25_busy, cdx25_missed;
 static uint64_t cdx25_next;
 static uint32_t cdx25_lsd_recv_name;
 static uint32_t cdx25_lsd_recv_pid;
+static uint32_t cdx25_lsd_recv_msg_id;
+static uint32_t cdx25_lsd_recv_msg_size;
 
 static bool
 cdx25_is_springboard(const char *name)
@@ -401,6 +403,12 @@ cdx25_receive_begin(ipc_kmsg_t kmsg, bool *is_reply)
 		return 0;
 	}
 	const mach_msg_header_t *header = ikm_header(kmsg);
+	task_t recv_task = current_task();
+	struct proc *recv_proc = get_bsdtask_info(recv_task);
+	if (recv_proc && cdx25_is_lsd(proc_name_address(recv_proc))) {
+		cdx25_lsd_recv_msg_id = (uint32_t)header->msgh_id;
+		cdx25_lsd_recv_msg_size = header->msgh_size;
+	}
 	const uint64_t tid = thread_tid(current_thread());
 	const int pid = task_pid(current_task());
 	struct cdx25_row *match = NULL;
@@ -563,8 +571,9 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 			xc[j] = x->comm[j];
 		}
 		snprintf(out + used, size - used,
-		    "    W%x M%llx req%x p%u %s d%llx s%.8s\n",
-		    wn, (unsigned long long)x->seq, x->request, x->peer,
+		    "    W%x M%llx req%x r%x p%u %s d%llx s%.8s\n",
+		    wn, (unsigned long long)x->seq, x->request,
+		    cdx25_lsd_recv_msg_id, x->peer,
 		    xc[0] ? xc : "?", (unsigned long long)x->dest_addr, x->svc);
 	} else if (wn) {
 		snprintf(out + used, size - used, "    W%x no-row\n", wn);
