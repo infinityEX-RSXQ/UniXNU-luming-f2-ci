@@ -68,11 +68,12 @@ def install(tree, device):
     directory = device / 'patches/xnu/device'
     series = directory / 'series'
     entries = series.read_text().splitlines()
+    (directory / PATCH).write_bytes(patch)
     if PATCH not in entries:
-        (directory / PATCH).write_bytes(patch)
-        series.write_bytes(('\n'.join([*entries, PATCH]) + '\n').encode())
-    elif (directory / PATCH).read_bytes() != patch:
-        raise ValueError('Stage25 patch changed after installation')
+        anchor = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
+        index = entries.index(anchor) if anchor in entries else len(entries)
+        entries.insert(index, PATCH)
+        series.write_bytes(('\n'.join(entries) + '\n').encode())
     return {'patch': PATCH, 'sha256': hashlib.sha256(patch).hexdigest()}
 
 
