@@ -24,6 +24,18 @@
 /* [measured] stock DTB clock-controller@3d90000: qcom,tuna-gpuccsyscon. */
 #define SM8735_GPUCC_PHYS          0x03d90000ull
 #define SM8735_GPUCC_BYTES         0x00009800ull
+/* [measured] gpucc-tuna.c: every branch has enable_reg == halt_reg, enable_mask BIT(0). */
+#define SM8735_GPUCC_AHB_CLK_EN    0x000090bcull
+#define SM8735_GPUCC_CX_GMU_CLK_EN 0x000090d4ull
+#define SM8735_GPUCC_CXO_CLK_EN    0x000090e4ull
+#define SM8735_GPUCC_HUB_AON_EN    0x000093e8ull
+#define SM8735_GPUCC_HUB_CX_INT_EN 0x000090e8ull
+#define SM8735_GPUCC_GX_GMU_CLK_EN 0x00009060ull
+#define SM8735_GPUCC_MEMNOC_GFX_EN 0x000090f4ull
+#define SM8735_GPUCC_SMMU_VOTE_EN  0x00007000ull
+#define SM8735_GPUCC_DEMET_CLK_EN  0x00009010ull
+#define SM8735_GPUCC_GX_ACCU_EN    0x00009070ull
+#define SM8735_GPUCC_CX_ACCU_EN    0x0000910cull
 /* [measured] GPUCC GDSC nodes: 0x3d9905c and 0x3d99080 => offsets 0x905c / 0x9080. */
 #define SM8735_GPUCC_CX_GDSC_OFF   0x0000905cull
 #define SM8735_GPUCC_GX_GDSC_OFF   0x00009080ull
