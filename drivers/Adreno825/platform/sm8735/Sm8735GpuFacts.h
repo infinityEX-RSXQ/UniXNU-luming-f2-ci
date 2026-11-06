@@ -21,6 +21,15 @@
 #define SM8735_CX_MISC_PHYS        0x03d9e000ull
 #define SM8735_CX_MISC_BYTES       0x00002000ull
 
+/* [measured] stock DTB clock-controller@3d90000: qcom,tuna-gpuccsyscon. */
+#define SM8735_GPUCC_PHYS          0x03d90000ull
+#define SM8735_GPUCC_BYTES         0x00009800ull
+/* [measured] GPUCC GDSC nodes: 0x3d9905c and 0x3d99080 => offsets 0x905c / 0x9080. */
+#define SM8735_GPUCC_CX_GDSC_OFF   0x0000905cull
+#define SM8735_GPUCC_GX_GDSC_OFF   0x00009080ull
+/* [measured] GX clock controller inside the GMU window. */
+#define SM8735_GX_CLKCTL_PHYS      0x03d68024ull
+
 /* [measured] /soc/qcom,gmu@3d37000. */
 #define SM8735_GMU_PHYS            0x03d37000ull
 /* [missing] gmu_ao window: not exposed in the stock DTB; must be measured before S3. */
