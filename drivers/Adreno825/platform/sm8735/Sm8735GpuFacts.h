@@ -84,11 +84,23 @@
 /* [measured] GPU model string and Gen8-6-0 compatible. */
 #define SM8735_GPU_MODEL           "Adreno825"
 
-/* [adapted] Vulkan deviceID reported for Adreno 825 is 0x44030000
- * (vulkan.gpuinfo.org report 43087). This is the best current candidate for the
- * KGSL/GPU chip id; it must be confirmed by reading GPU_ID after S1/S2.
- * Do not use the A830 0x44050001 here. */
-#define SM8735_GPU_CHIP_ID_CANDIDATE 0x44030000u
-#define SM8735_GPU_CHIP_ID_MISSING 1
+/* [measured] stock vendor_boot.dtb: /soc/qcom,kgsl-3d0@3d00000
+ *   qcom,chipid = <0x44030000>
+ *   qcom,gpu-model = "Adreno825"
+ *   compatible = "qcom,adreno-gpu-gen8-6-0", "qcom,kgsl-3d0"
+ * The DT property is authoritative for this board; the earlier Vulkan
+ * deviceID 0x44030000 is consistent with it. */
+#define SM8735_GPU_CHIP_ID 0x44030000u
+
+/* [measured] stock vendor_dlkm msm_kgsl.ko, adreno_gpu_core_gen8_6_0 +
+ * GEN8_6_0_NUM_PHYSICAL_SLICES: */
+#define SM8735_GPU_PHYSICAL_SLICES 2u
+#define SM8735_GPU_GMEM_BYTES      (2u * 1024u * 1024u + 256u * 1024u + 128u * 1024u)
+#define SM8735_GPU_HIGHEST_BANK_BIT 16u
+#define SM8735_GPU_BUS_WIDTH       32u
+#define SM8735_GPU_DDR_CHANNELS    4u
+/* The stock core table points at gen80000_zap.mbn; the luming vendor tree does
+ * not carry that file. Do not invent a ZAP image: use the driver's SECVID
+ * fallback until a signed luming ZAP is found. */
 
 #endif /* SM8735_GPU_FACTS_H */
