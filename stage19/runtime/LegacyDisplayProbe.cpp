@@ -690,8 +690,18 @@ static bool cdx14p1_quiesce(void) {
 
 extern "C" unsigned cdx14p1_console_reclaim(void);
 extern "C" bool cdx19_capture_next(void);
+extern "C" void cdx_usb_batch_emit(void);
 static thread_call_t cdx14_snapshot_call;
 static void cdx14_snapshot_callback(thread_call_param_t,thread_call_param_t) {
+    if(option("luming-usb-batch")==1){
+        bool again=cdx19_capture_next();
+        cdx_usb_batch_emit();
+        if(again){
+            uint64_t deadline;clock_interval_to_deadline(15,NSEC_PER_SEC,&deadline);
+            thread_call_enter_delayed(cdx14_snapshot_call,deadline);
+        }
+        return;
+    }
     if(option("luming-display-stackshot")==1){
         if(cdx19_capture_next()){
             uint64_t deadline;clock_interval_to_deadline(15,NSEC_PER_SEC,&deadline);
@@ -711,7 +721,7 @@ static void cdx14_snapshot_callback(thread_call_param_t,thread_call_param_t) {
 }
 extern "C" void cdx14p1_schedule_snapshot(void) {
     // Opt-in, independent delayed snapshot survives a stalled display work loop.
-    if(option("luming-display-snapshot")==1 && !cdx14_snapshot_call) {
+    if((option("luming-display-snapshot")==1 || option("luming-usb-batch")==1) && !cdx14_snapshot_call) {
         cdx14_snapshot_call=thread_call_allocate(cdx14_snapshot_callback,nullptr);
         if(cdx14_snapshot_call) {
             uint64_t deadline;clock_interval_to_deadline(15,NSEC_PER_SEC,&deadline);
@@ -1317,7 +1327,7 @@ static constexpr uint32_t cdx19_capacity=4U*1024U*1024U;
 static constexpr uint64_t cdx19_flags=0x10000ULL|0x2ULL|0x8ULL|0x100000ULL|
     0x800000ULL|0x1000000ULL|0x40000000ULL|0x400000000ULL;
 extern "C" bool cdx19_capture_next(void){
-    if(option("luming-display-stackshot")!=1)return false;
+    if(option("luming-display-stackshot")!=1 && option("luming-usb-batch")!=1)return false;
     unsigned expected=0;
     if(!__atomic_compare_exchange_n(&cdx19_busy,&expected,1,false,__ATOMIC_ACQUIRE,__ATOMIC_RELAXED))return false;
     unsigned index=cdx19_taken;
@@ -1349,6 +1359,43 @@ extern "C" bool cdx19_capture_next(void){
     cdx19_taken=index+1;__atomic_store_n(&cdx19_busy,0,__ATOMIC_RELEASE);
     return index==0;
 }
+// Opt-in bounded USB-visible diagnostic; no quiesce, console reclaim or panic.
+// Completeness requires BEGIN and END plus every sequential thread/frame row.
+extern "C" void cdx_usb_batch_emit(void) {
+    unsigned taken=__atomic_load_n(&cdx19_taken,__ATOMIC_ACQUIRE);
+    if(!taken || taken>2){IOLog("CDXBATCH unavailable taken=%u\n",taken);return;}
+    unsigned i=taken-1; const auto &s=cdx19_samples[i];
+    IOLog("CDXBATCH BEGIN s=%u rc=%x bytes=%u parsed=%u err=%u lsd=%u\n",
+        i,s.rc,s.bytes,s.parsed,s.error,s.lsdInstances);
+    if(s.parsed){
+        const char *names[]={"backboardd","SpringBoard","launchd","lsd0","lsd1"};
+        for(unsigned p=0;p<5;++p){
+            const auto &proc=s.processes[p];
+            IOLog("CDXBATCH P s=%u p=%u name=%s seen=%u matches=%u pid=%u other=%u total=%u kept=%u omitted=%u cache=%u slide=%llx\n",
+                i,p,names[p],proc.seen,proc.matches,proc.pid,proc.otherpid,proc.total,proc.n,proc.omitted,
+                proc.cacheValid,(unsigned long long)proc.cacheSlide);
+            IOSleep(10);
+            IOLog("CDXBATCH UUID s=%u p=%u v=%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\n",
+                i,p,proc.uuid[0],proc.uuid[1],proc.uuid[2],proc.uuid[3],proc.uuid[4],proc.uuid[5],proc.uuid[6],proc.uuid[7],
+                proc.uuid[8],proc.uuid[9],proc.uuid[10],proc.uuid[11],proc.uuid[12],proc.uuid[13],proc.uuid[14],proc.uuid[15]);
+            IOSleep(10);
+            if(proc.matches!=1 || (p>=3 && s.lsdInstances>2)) continue;
+            for(unsigned j=0;j<proc.n && j<8;++j){
+                const auto &t=proc.threads[j];
+                IOLog("CDXBATCH T s=%u p=%u j=%u tid=%llx state=%x flags=%llx wi=%u kind=%u owner=%llx cx=%llx nu=%u nk=%u cont=%llx\n",
+                    i,p,j,(unsigned long long)t.tid,t.state,(unsigned long long)t.flags,t.waitinfo,t.kind,
+                    (unsigned long long)t.owner,(unsigned long long)t.context,t.nu,t.nk,(unsigned long long)t.continuation);
+                IOSleep(10);
+                for(unsigned k=0;k<t.nu && k<32;++k){
+                    IOLog("CDXBATCH U s=%u p=%u j=%u k=%u a=%llx\n",i,p,j,k,(unsigned long long)t.u[k]);
+                    IOSleep(10);
+                }
+            }
+        }
+    }
+    IOLog("CDXBATCH END s=%u\n",i);
+}
+
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 // One compact report for both copied samples. Full owners/labels stay in State.
 static void cdx21_format(Cdx15Text &text,bool quiet,uint32_t copies,uint32_t retired){

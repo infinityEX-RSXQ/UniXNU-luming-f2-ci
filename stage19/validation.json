@@ -6,7 +6,7 @@
     "stage10/stage10-build/build-luming-cpu-legacy-display.py": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
   },
   "after": {
-    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "0db18b3ad71cd6bc8d3c7b358c4361047a6094f8d8bd611ee3ec6d5977062dd8",
+    "stage10/stage10-runtime/LegacyDisplayProbe.cpp": "303b92704c6c2deff57a6fbefb4a24abecccabf3e6fb8f48e58bc15674d8e511",
     "stage10/stage10-runtime/NativeLegacyDisplay.cpp": "3f75b236341f9a75f44590c09eda645ac7a5f25272629f12636360a1f9afc509",
     "stage10/stage10-build/build-luming-cpu-legacy-display.py": "6dfb103955461816f3b4f4617728e23320fdf8ccc408cde951cbfc53e645da9f"
   },
@@ -43,5 +43,6 @@
   },
   "gpr_only_instructions_checked": 11993,
   "max_local_stack_frame": 2832,
-  "fixture": "D:\\Codex\\tmp\\stage19-check-1793776903323335000"
+  "fixture": "D:\\Codex\\tmp\\stage19-check-1793776903323335000",
+  "batch_candidate_note": "Original validation applies to baseline; batch emitter checked in host harness only; hardware unverified."
 }

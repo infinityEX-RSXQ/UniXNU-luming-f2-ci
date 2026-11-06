@@ -42,6 +42,13 @@ def install(device,apply=False):
 '''+anchor)
     probe=once(probe,'static unsigned option(const char *name) {','extern "C" void cdx25_arm(void);\nstatic unsigned option(const char *name) {')
     probe=once(probe,'                activeLegacyDisplay=display;activeGOPNub=nub;','                activeLegacyDisplay=display;activeGOPNub=nub;\n                if(option("luming-display-stackshot")==1 && option("luming-display-stack-page")==9)cdx25_arm();')
+    probe=once(probe,'extern "C" bool cdx19_capture_next(void);\nstatic thread_call_t cdx14_snapshot_call;',
+        'extern "C" bool cdx19_capture_next(void);\nextern "C" void cdx_usb_batch_emit(void);\nstatic thread_call_t cdx14_snapshot_call;')
+    probe=once(probe,
+        'static void cdx14_snapshot_callback(thread_call_param_t,thread_call_param_t) {\n    if(option("luming-display-stackshot")==1){',
+        'static void cdx14_snapshot_callback(thread_call_param_t,thread_call_param_t) {\n    if(option("luming-usb-batch")==1){\n        bool again=cdx19_capture_next();\n        cdx_usb_batch_emit();\n        if(again){\n            uint64_t deadline;clock_interval_to_deadline(15,NSEC_PER_SEC,&deadline);\n            thread_call_enter_delayed(cdx14_snapshot_call,deadline);\n        }\n        return;\n    }\n    if(option("luming-display-stackshot")==1){')
+    probe=once(probe,'if(option("luming-display-snapshot")==1 && !cdx14_snapshot_call) {',
+        'if((option("luming-display-snapshot")==1 || option("luming-usb-batch")==1) && !cdx14_snapshot_call) {')
     changes={P:probe.encode()}
     result=dict(stage=19,before={p:sha(b) for p,b in before.items()},after={P:sha(changes[P]),B:sha(before[B]),G:sha(before[G])},
         backend_unchanged=True,generator_unchanged=True,display_abi_unchanged=True,
