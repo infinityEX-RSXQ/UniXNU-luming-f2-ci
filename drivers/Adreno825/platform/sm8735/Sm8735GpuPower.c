@@ -40,7 +40,7 @@ enum : uint32_t {
     Sm8735GpuPll0ConfigVal = 0x20485699u,
     Sm8735GpuPll0ConfigUVal = 0x00182261u,
     Sm8735GpuPll0ConfigU1Val = 0x82aa299cu,
-    Sm8735GpuPll0UserCtlVal = 0x00000004u,
+    Sm8735GpuPll0UserCtlVal = 0x00000400u,
     Sm8735GpuPll0UserCtlUVal = 0x00000005u,
     Sm8735GpuPll0Outctrl = 1u << 0,
     Sm8735GpuPll0ResetN = 1u << 2,
