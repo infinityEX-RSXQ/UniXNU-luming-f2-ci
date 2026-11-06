@@ -4,6 +4,7 @@ import argparse
 import os
 from pathlib import Path
 import subprocess
+import shutil
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -34,14 +35,24 @@ def main():
     return env
 '''
     kernel.write_text(source[:begin]+segment.replace(needle, replacement)+source[end:], encoding='utf-8')
-    objects = ['pexpert/DEVELOPMENT/pe_kprintf.o', 'osfmk/DEVELOPMENT/debug.o',
-               'osfmk/DEVELOPMENT/printf.o', 'osfmk/DEVELOPMENT/serial_console.o',
-               'osfmk/DEVELOPMENT/serial_general.o', 'bsd/DEVELOPMENT/bsd_init.o',
-               'mach.development.bcm2837.unstripped.noctf']
-    for name in objects:
-        target = records/name
-        if not target.is_file(): raise SystemExit('missing previous object: '+str(target))
-        target.unlink()
+    # Reuse the exact enabled hook units compiled and checked immediately above.
+    # The build pipeline scans existing kernel objects before invoking make; deleting
+    # them here breaks its corecrypto symbol scan before recompilation can occur.
+    hooks = workspace/'tmp/usb-hooks'
+    objects = {'pe_kprintf-1.o':'pexpert/DEVELOPMENT/pe_kprintf.o',
+               'debug-1.o':'osfmk/DEVELOPMENT/debug.o',
+               'printf-1.o':'osfmk/DEVELOPMENT/printf.o',
+               'serial_console-1.o':'osfmk/DEVELOPMENT/serial_console.o',
+               'serial_general-1.o':'osfmk/DEVELOPMENT/serial_general.o',
+               'bsd_init-1.o':'bsd/DEVELOPMENT/bsd_init.o'}
+    for source_name, target_name in objects.items():
+        src, target = hooks/source_name, records/target_name
+        if not src.is_file() or not target.is_file():
+            raise SystemExit('missing checked or original object: '+str(src)+' / '+str(target))
+        shutil.copyfile(src, target)
+    kernel_object = records/'mach.development.bcm2837.unstripped.noctf'
+    if not kernel_object.is_file(): raise SystemExit('missing previous kernel: '+str(kernel_object))
+    kernel_object.unlink()
     print('Prepared disposable source for model link; hardware unqualified')
 
 if __name__ == '__main__': main()
