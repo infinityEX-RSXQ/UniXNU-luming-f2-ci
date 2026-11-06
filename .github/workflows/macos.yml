@@ -664,6 +664,21 @@ jobs:
           python3 device/usb-luming/scripts/check_luming_hooks.py --xnu "$root/.cache/xnu-work" --records "$root/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837" --archive "$GITHUB_WORKSPACE/tmp/usb-model/libQcomXnuUsbDebug.a" --nm "$(brew --prefix llvm)/bin/llvm-nm" --patch device/usb-luming/patches/luming/0001-hooks-candidate.patch --output "$GITHUB_WORKSPACE/tmp/usb-hooks"
           echo "USB model archive only; no USB code linked into kernel or flashed"
 
+      - name: Link USB model into disposable XNU (never publish)
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' && contains(inputs.steps, 'kernel') }}
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/unixnu/out/luming/ipados-17.7.11-21H461/luming/tree"
+          export LUMING_USB_MODEL_LINK=1
+          export LUMING_USB_ARCHIVE="$GITHUB_WORKSPACE/tmp/usb-model/libQcomXnuUsbDebug.a"
+          export LUMING_USB_INCLUDE="$GITHUB_WORKSPACE/device/usb-luming/include"
+          python3 device/usb-luming/scripts/prepare_luming_link_ci.py --workspace "$GITHUB_WORKSPACE" --patch device/usb-luming/patches/luming/0001-hooks-candidate.patch --archive "$LUMING_USB_ARCHIVE" --include "$LUMING_USB_INCLUDE"
+          (cd unixnu && ./unixnu build kernel -D ../device --kernelcache "$UNIXNU_KERNELCACHE" -j 3)
+          grep -q qcom_usb_debug_init "$root/.cache/xnu-work/pexpert/arm/pe_kprintf.c"
+          "$(brew --prefix llvm)/bin/llvm-nm" --defined-only "$root/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf" > "$GITHUB_WORKSPACE/tmp/usb-linked-symbols.txt"
+          grep -q '_qcom_usb_debug_init' "$GITHUB_WORKSPACE/tmp/usb-linked-symbols.txt"
+          echo "Model-only USB XNU link completed; this kernel is not device-qualified"
+
       - name: Check the stage12 mode/refresh markers in the built kernel
         if: ${{ inputs.dry_run != true && contains(inputs.steps, 'kernel') }}
         run: |
@@ -1943,7 +1958,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload kernel and boot.img to the private release
-        if: ${{ inputs.upload_artifacts == true && inputs.dry_run != true && success() }}
+        if: false
         env:
           PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
         run: |
