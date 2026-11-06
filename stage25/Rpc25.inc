@@ -538,6 +538,35 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	} else {
 		snprintf(out + used, size - used, "    R0 none\n");
 	}
+	{
+		uint32_t spid = n ? found[0].client : 0;
+		struct cdx25_row *latest = NULL;
+		if (spid) {
+			for (unsigned i = 0; i < CDX25_CAPACITY; i++) {
+				struct cdx25_row *row = &cdx25_rows[i];
+				if (row->seq && row->client == spid &&
+				    (!latest || row->seq > latest->seq)) {
+					latest = row;
+				}
+			}
+		}
+		if (latest) {
+			char lc[9] = {};
+			for (unsigned j = 0; j < 8 && latest->comm[j]; j++) {
+				lc[j] = latest->comm[j];
+			}
+			int lw = snprintf(out + used, size - used,
+			    "    L%llx req%x tx%x rc%x p%u %s\n",
+			    (unsigned long long)latest->seq, latest->request,
+			    latest->reply_tx, latest->reply_rc, latest->peer,
+			    lc[0] ? lc : "?");
+			if (lw > 0 && (size_t)lw < size - used) {
+				used += lw;
+			}
+		} else {
+			snprintf(out + used, size - used, "    L none\n");
+		}
+	}
 	struct cdx25_row *x = NULL;
 	uint32_t wn = cdx25_lsd_recv_name;
 	uint32_t wpid = cdx25_lsd_recv_pid;
