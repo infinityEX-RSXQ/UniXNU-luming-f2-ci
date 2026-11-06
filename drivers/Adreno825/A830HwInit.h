@@ -164,15 +164,14 @@ A830_HWINIT_TABLE A830HwInitProtect A830HwInitProtectRegs[A830_HWINIT_PROTECT_CO
 #define A830_HWINIT_PROTECT_LAST_INDEX 63u
 #define A830_HWINIT_PROTECT_LAST_VALUE 0x80027c02u
 
-/* KGSL gen8_0_0_gbif_cx_regs: written by the GMU cold boot (ARCHITECTURE 4.7.3 B6). */
-#define A830_HWINIT_GBIF_CX_COUNT 6u
+/* [measured] stock luming msm_kgsl.ko: KGSL gen8_3_0_gbif_cx_regs (5 entries; no GMUCX_MRC_GBIF_QOS_CTRL). */
+#define A830_HWINIT_GBIF_CX_COUNT 5u
 A830_HWINIT_TABLE A830HwInitReg A830HwInitGbifCx[A830_HWINIT_GBIF_CX_COUNT] = {
     {0x03c03u, 0x00071e20u},   /* GBIF_QSB_SIDE0 */
     {0x03c04u, 0x00071e20u},   /* GBIF_QSB_SIDE1 */
     {0x03c05u, 0x00071e20u},   /* GBIF_QSB_SIDE2 */
     {0x03c06u, 0x00071e20u},   /* GBIF_QSB_SIDE3 */
     {0x03c00u, 0x20023000u},   /* GBIF_CX_CONFIG */
-    {0x1f50bu, 0x00000033u},   /* GMUCX_MRC_GBIF_QOS_CTRL */
 };
 
 /* KGSL gen8_ao_hwcg_regs: GMU AO clock gating (ARCHITECTURE 4.7.8, 4.11 step 11); 0 turns gating off. */
