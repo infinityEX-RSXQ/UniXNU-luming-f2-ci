@@ -8,7 +8,7 @@
  * SMMU's IDR2.UBS is below 34 bits or the 32 MiB table pool cannot be had), an empty zeroed TTBR1 guard table (a CP that clears
  * TCR.EPD1 then walks nothing), one context bank programmed and routed through the board's programmer (CB0, ASID 1, SID 0 on slot 0),
  * the LPAC stream (SID 1 on slot 3) added once the bank is enabled, then the kernel buffers the command processor needs at fixed GPU
- * addresses below the 12 MiB GMEM window (UCHE_CCHE_GC_GMEM_RANGE_MIN 0x4000000), which the VM refuses to map, as it refuses
+ * addresses below the 2.375 MiB GMEM window (UCHE_CCHE_GC_GMEM_RANGE_MIN 0x4000000), which the VM refuses to map, as it refuses
  * the null guard below 0x100000 (ARCHITECTURE 4.6.2):
  *   sqe      0x100000  0x1C000  the SQE microcode (gen80000_sqe.fw without its first dword), read + execute, unprivileged readable
  *   aqe      0x180000  0x7000   the AQE microcode, the same attributes
@@ -22,7 +22,7 @@
  * stream IDs are board inputs. Nothing is torn down. */
 enum : uint64_t {
     GpuSqeIova=0x100000, GpuAqeIova=0x180000, GpuRingIova=0x200000, GpuMemptrsIova=0x300000, GpuPwrupIova=0x301000,
-    GpuScratchIova=0x302000, GpuNullGuardBytes=0x100000, GpuGmemIova=0x4000000, GpuGmemBytes=0xC00000,
+    GpuScratchIova=0x302000, GpuNullGuardBytes=0x100000, GpuGmemIova=0x4000000, GpuGmemBytes=0x260000,
     GpuApertureBytes=0x100000000, GpuApertureBytes2G=0x80000000, GpuApertureBytes16G=0x400000000, GpuClientBase=0x20000000
 };
 enum : size_t {GpuSqeBytes=0x1C000, GpuAqeBytes=0x7000, GpuRingBytes=0x8000, GpuPageBytes=0x1000};
