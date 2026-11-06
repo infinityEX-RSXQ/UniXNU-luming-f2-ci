@@ -42,6 +42,27 @@
 #define SM8735_CMD_DB_PHYS          0x81c60000ull
 #define SM8735_CMD_DB_BYTES         0x00020000ull
 
+/* [adapted] Gen8 convention, not present in the stock GPU node: GPU SID 0,
+ * LPAC SID 1, GMU SID 5 (the GMU SID is [measured] from iommus = <&gpu_smmu 5 0>).
+ * Confirm with the SMMU SMR registers or a stock KGSL log before trusting it. */
+#define SM8735_GPU_SID_GPU          0u
+#define SM8735_GPU_SID_LPAC         1u
+#define SM8735_GPU_SID_GMU          5u
+#define SM8735_GPU_SLOT_GPU         0u
+#define SM8735_GPU_SLOT_LPAC        3u
+#define SM8735_GPU_SLOT_GMU         1u
+#define SM8735_GPU_CB_GPU           0u
+#define SM8735_GPU_CB_GMU           2u
+
+/* [adapted] The driver attaches four SMMU CB interrupts. A825 exposes 11
+ * (677..687); the first four are used for bring-up until the actual mapping is
+ * measured. */
+#define SM8735_GPU_SMMU_CB_USED     4u
+
+/* [missing] SCM waitq IRQ: /firmware/qcom_scm in this DTB has no interrupts
+ * property. Keep it 0 (not attached) until a real SPI is measured. */
+#define SM8735_GPU_IRQ_SCM_WAITQ    0u
+
 /* SMMU global interrupt plus 11 context-bank interrupts: 677..687. */
 #define SM8735_GPU_SMMU_IRQ_GLOBAL  673u
 #define SM8735_GPU_SMMU_CB_COUNT    11u
