@@ -344,6 +344,8 @@ static void fail(unsigned int error, int core_result)
          * through QusbDomainCleanFailed=12 in QcomUsbDmaDomain.h), and which one it is decides
          * the fix: StreamExists means firmware still owns the stream, NoSlot means the SMMU has
          * no free context, ReadFailed means the registers did not answer at all. */
+        p = append_text(p, " qualify=");
+        p = append_decimal(p, (uint64_t)native.status.qcom_result);
         p = append_text(p, " domain=");
         p = append_decimal(p, (uint64_t)native.status.domain_result);
         /* For StreamExists, scan() records what firmware mapped SID 0 to: smr and s2cr.
@@ -945,8 +947,12 @@ int qcom_usb_debug_init(void)
      * change exists to remove. */
     {
         extern void boot_progress_persist(const char *, uint32_t) __attribute__((weak_import));
-        if (&boot_progress_persist)
-            boot_progress_persist("QCOM USB ACTIVE (CDC-ACM up)", 0xff00ff88u);
+        if (&boot_progress_persist) {
+            if (dwc3_ready(native.core))
+                boot_progress_persist("QCOM USB READY (CDC configured, DTR)", 0xff00ff88u);
+            else
+                boot_progress_persist("QCOM USB STARTED (initial host not ready)", 0xffffcc00u);
+        }
     }
     ret = 1;
 out:

@@ -409,7 +409,7 @@
 +qcom_usb_tee(char c)
 +{
 +	if (PE_kputc && qcom_usb_pe_kputc_owns_usb_byte()) {
-+		qcom_usb_debug_putc(c);
++		(void)qcom_usb_debug_enqueue(&c, 1);
 +	}
 +	if (PE_kputc) {
 +		PE_kputc(c);
@@ -443,25 +443,13 @@
  PE_init_kprintf(void)
  {
 +#if XNU_QCOM_USB_DEBUG
-+	const bool qcom_usb_ready = qcom_usb_debug_init();
++	(void)qcom_usb_debug_init();
 +	disable_kprintf_output = !qcom_usb_debug_kprintf_requested;
 +#endif
  	if (serial_init()) {
  		PE_kputc = serial_putc_crlf;
  	} else {
-@@ -68,6 +116,11 @@
- 		 */
- 		PE_kputc = console_write_unbuffered;
- 	}
-+#if XNU_QCOM_USB_DEBUG
-+	if (qcom_usb_ready) {
-+		PE_kputc = qcom_usb_debug_putc;
-+	}
-+#endif
- }
- STARTUP(KPRINTF, STARTUP_RANK_FIRST, PE_init_kprintf);
- 
-@@ -78,7 +131,7 @@
+@@ -78,7 +126,7 @@
  	va_list         listp;
  
  	va_start(listp, format);
@@ -470,7 +458,7 @@
  	va_end(listp);
  }
  #define MP_DEBUG_KPRINTF(x...)  _kprintf(x)
-@@ -121,7 +174,7 @@
+@@ -121,7 +169,7 @@
  			cpu_last_locked = cpu_number();
  		}
  
