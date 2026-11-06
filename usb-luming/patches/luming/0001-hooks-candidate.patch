@@ -14,7 +14,7 @@
  
  #if (DEVELOPMENT || DEBUG)
  #include <kern/debug.h>
-@@ -1100,11 +1107,223 @@
+@@ -1100,11 +1107,231 @@
  	lock_trace = 1;
  }
  
@@ -137,6 +137,8 @@
 +	processor_t processor = cpu_to_processor(master_cpu);
 +	int control_enabled = 0;
 +	int control_active = 0;
++	int heartbeat_enabled = 0;
++	unsigned int heartbeat_ticks = 0;
 +
 +	thread_set_thread_name(current_thread(), "qcom-usb-debug");
 +	/* Bind the way sched_prim.c binds its master-processor threads, then
@@ -162,6 +164,7 @@
 +		goto stopped;
 +	}
 +	__atomic_store_n(&qcom_usb_worker_state, 2u, __ATOMIC_RELEASE);
++	(void)PE_parse_boot_argn("qcom-usb-heartbeat", &heartbeat_enabled, sizeof(heartbeat_enabled));
 +	kprintf("QCOM USB WORKER active cpu=%d period_ms=5 buffer=%llu\n",
 +	    cpu_number(), status.buffer_capacity);
 +	/* Read the control opt-in here, in normal thread context only.  The
@@ -185,6 +188,11 @@
 +		qcom_usb_debug_get_status(&status);
 +		if (status.phase != QCOM_USB_DEBUG_ACTIVE) {
 +			break;
++		}
++		if (heartbeat_enabled == 1 && ++heartbeat_ticks >= 1000u) {
++			static const char heartbeat[] = "\nQCOM USB HEARTBEAT\n";
++			heartbeat_ticks = 0;
++			(void)qcom_usb_debug_enqueue(heartbeat, sizeof(heartbeat) - 1);
 +		}
 +		qcom_usb_debug_poll();
 +		if (control_active) {
