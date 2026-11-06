@@ -383,6 +383,7 @@
 
 #define A830_GMEM_BASE                  0x0000000004000000ull   /* uche_gmem_alignment 64 MiB；DeviceInfo.gmem_base */
 #define A830_GMEM_BYTES                 0x00260000u    /* [measured] A825: 2 MiB + 256 KiB + 128 KiB */
+#define A830_PHYSICAL_SLICES            2u             /* [measured] A825 GEN8_6_0_NUM_PHYSICAL_SLICES */
 #define A830_UCHE_TRAP_ADDR             0x0001FFFFFFFFF000ull   /* 超出 32 位输入，天然不可映射 */
 #define A830_UCHE_CLIENT_PF_VALUE       0x00000081u    /* BIT(7) | 1 */
 #define A830_RB_GC_GMEM_PROTECT_VALUE   0x02600000u    /* [measured] A825 gen8_6_0 table */
