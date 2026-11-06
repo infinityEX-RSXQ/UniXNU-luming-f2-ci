@@ -7,6 +7,7 @@ import json
 
 HERE = Path(__file__).resolve().parent
 SOURCE = 'osfmk/ipc/mach_msg.c'
+SOURCE2 = 'osfmk/ipc/mach_port.c'
 PATCH = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-cdx25-rpc.patch'
 
 
@@ -37,10 +38,39 @@ def make_patch(tree):
     new = once(new, anchor, '''
 	bool cdx25_reply = false;
 	uint64_t cdx25_seq = cdx25_send_begin(kmsg, cdx25_name, &cdx25_reply);
-''' + anchor + '\tcdx25_send_end(cdx25_seq, cdx25_reply, mr);\n')
+''' + '\tcdx25_lsd_selfreply(kmsg, ikm_header(kmsg)->msgh_local_port);\n' + anchor + '\tcdx25_send_end(cdx25_seq, cdx25_reply, mr);\n')
+    anchor = '\tthread_t           self = current_thread();\n\tipc_space_t        space = current_space();\n'
+    new = once(new, anchor, anchor + '''	{
+		task_t cdx25_task = current_task();
+		struct proc *cdx25_proc = get_bsdtask_info(cdx25_task);
+		if (cdx25_proc &&
+		    cdx25_is_lsd(proc_name_address(cdx25_proc))) {
+			cdx25_lsd_recv_name = rcv_name;
+			cdx25_lsd_recv_pid = task_pid(cdx25_task);
+		}
+	}
+''')
     diff = difflib.unified_diff(old.splitlines(True), new.splitlines(True),
                                 'a/' + SOURCE, 'b/' + SOURCE)
-    return (f'diff --git a/{SOURCE} b/{SOURCE}\n' + ''.join(diff)).encode()
+    raw2 = (tree / SOURCE2).read_bytes().replace(b'\r\n', b'\n')
+    pin2 = (HERE / 'mach_port.sha256').read_text().strip()
+    if hashlib.sha256(raw2).hexdigest() != pin2:
+        raise ValueError('Stage25 mach_port.c source drift')
+    old2 = raw2.decode()
+    anchor2 = '\tkern_return_t ret;\n\n\tif (space == IS_NULL) {\n'
+    new2 = once(old2, anchor2, '''	kern_return_t ret;
+
+	if (filter_policy_id) {
+		*filter_policy_id = 0;
+	}
+	return KERN_SUCCESS;
+
+	if (space == IS_NULL) {
+''')
+    diff_port = difflib.unified_diff(old2.splitlines(True), new2.splitlines(True),
+                                     'a/' + SOURCE2, 'b/' + SOURCE2)
+    return (f'diff --git a/{SOURCE} b/{SOURCE}\n' + ''.join(diff) +
+            f'diff --git a/{SOURCE2} b/{SOURCE2}\n' + ''.join(diff_port)).encode()
 
 
 def install(tree, device):
@@ -48,19 +78,12 @@ def install(tree, device):
     directory = device / 'patches/xnu/device'
     series = directory / 'series'
     entries = series.read_text().splitlines()
+    (directory / PATCH).write_bytes(patch)
     if PATCH not in entries:
-        (directory / PATCH).write_bytes(patch)
-        # Keep the cdx14 -> cdx14p1 -> cdx15 -> cdx17 diagnostic tail intact:
-        # the CI series checks require cdx17 to stay last.  The Stage25 patch
-        # only touches osfmk/ipc/mach_msg.c and can safely precede cdx14.
         anchor = 'zzzzzzzzzzzzzzzzzzzzzz-cdx14-observation.patch'
-        if anchor in entries:
-            entries.insert(entries.index(anchor), PATCH)
-        else:
-            entries.append(PATCH)
+        index = entries.index(anchor) if anchor in entries else len(entries)
+        entries.insert(index, PATCH)
         series.write_bytes(('\n'.join(entries) + '\n').encode())
-    elif (directory / PATCH).read_bytes() != patch:
-        raise ValueError('Stage25 patch changed after installation')
     return {'patch': PATCH, 'sha256': hashlib.sha256(patch).hexdigest()}
 
 
