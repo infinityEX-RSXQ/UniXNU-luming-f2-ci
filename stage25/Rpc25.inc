@@ -158,17 +158,21 @@ cdx25_capture_wait(task_t task, uint64_t *owner, uint64_t *ctx,
     uint32_t *type, uint32_t *flags, uint32_t *pid,
     char *svc, size_t svc_size)
 {
-	thread_t th;
+	thread_t th, fallback = NULL;
 	if (!task) {
 		return;
 	}
 	queue_iterate(&task->threads, th, thread_t, task_threads) {
-		if (th->block_hint == kThreadWaitNone) {
+		if (th->block_hint == kThreadWaitNone ||
+		    th->block_hint == kThreadWaitParkedWorkQueue) {
 			continue;
 		}
-		*type = (uint32_t)th->block_hint;
+		if (!fallback) {
+			fallback = th;
+		}
 		if (th->block_hint == kThreadWaitPortReceive &&
 		    th->waitq.wq_q && th->wait_event == IPC_MQUEUE_RECEIVE) {
+			*type = (uint32_t)kThreadWaitPortReceive;
 			thread_waitinfo_v2_t wi = {};
 			struct ipc_service_port_label *ispl = NULL;
 			wi.wait_type = kThreadWaitPortReceive;
@@ -198,8 +202,11 @@ cdx25_capture_wait(task_t task, uint64_t *owner, uint64_t *ctx,
 					cdx25_comm_copy(svc, svc_size, name);
 				}
 			}
+			return;
 		}
-		break;
+	}
+	if (fallback) {
+		*type = (uint32_t)fallback->block_hint;
 	}
 }
 
