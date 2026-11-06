@@ -528,6 +528,16 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	if (used < 0 || (size_t)used >= size) {
 		return;
 	}
+	if (n) {
+		int rw = snprintf(out + used, size - used,
+		    "    R0 tx%x rc%x r%x\n", found[0].reply_tx,
+		    found[0].reply_rc, found[0].reply);
+		if (rw > 0 && (size_t)rw < size - used) {
+			used += rw;
+		}
+	} else {
+		snprintf(out + used, size - used, "    R0 none\n");
+	}
 	struct cdx25_row *x = NULL;
 	uint32_t wn = cdx25_lsd_recv_name;
 	uint32_t wpid = cdx25_lsd_recv_pid;
