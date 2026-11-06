@@ -492,6 +492,41 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 			break;
 		}
 		used += w;
+		if (i == 0 && found[i].dest_task) {
+			task_t lt = (task_t)(uintptr_t)found[i].dest_task;
+			thread_t th, pick = NULL, first = NULL;
+			queue_iterate(&lt->threads, th, thread_t, task_threads) {
+				if (!first) {
+					first = th;
+				}
+				if (th->block_hint == kThreadWaitNone ||
+				    th->block_hint == kThreadWaitParkedWorkQueue) {
+					continue;
+				}
+				pick = th;
+				if (th->block_hint == kThreadWaitPortReceive) {
+					break;
+				}
+			}
+			if (!pick) {
+				pick = first;
+			}
+			if (pick) {
+				struct arm_saved_state *ss = get_user_regs(pick);
+				if (ss && is_saved_state64(ss)) {
+					w = snprintf(out + used, size - used,
+					    "    T%llx b%u pc%llx lr%llx\n",
+					    (unsigned long long)thread_tid(pick),
+					    (unsigned)pick->block_hint,
+					    (unsigned long long)saved_state64(ss)->pc,
+					    (unsigned long long)saved_state64(ss)->lr);
+					if (w > 0 && (size_t)w < size - used) {
+						used += w;
+					}
+				}
+			}
+			continue;
+		}
 		if (i == 0) {
 			w = snprintf(out + used, size - used,
 			    "    sp%llx tk%llx h%u R%x rt%x rr%x\n",
