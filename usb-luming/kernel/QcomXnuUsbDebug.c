@@ -317,12 +317,31 @@ static void usb_diag_update(void)
         qcom_usb_diag_failed = (uint32_t)snap.failed;
     } else qcom_usb_diag_failed = 0;
 }
+/* Independent panic-visible initialization snapshot: no locks, CPU lookup or MMIO.
+ * The release/acquire phase publishes the error fields written before it. */
+static uint32_t usb_init_phase, usb_init_error, usb_init_qualify, usb_init_domain;
+static void publish_init_snapshot(void)
+{
+    __atomic_store_n(&usb_init_error, native.status.error, __ATOMIC_RELAXED);
+    __atomic_store_n(&usb_init_qualify, native.status.qcom_result, __ATOMIC_RELAXED);
+    __atomic_store_n(&usb_init_domain, native.status.domain_result, __ATOMIC_RELAXED);
+    __atomic_store_n(&usb_init_phase, native.status.phase, __ATOMIC_RELEASE);
+}
+void qcom_usb_debug_init_snapshot(qcom_usb_init_snapshot *snapshot)
+{
+    if (!snapshot) return;
+    snapshot->phase = __atomic_load_n(&usb_init_phase, __ATOMIC_ACQUIRE);
+    snapshot->error = __atomic_load_n(&usb_init_error, __ATOMIC_RELAXED);
+    snapshot->qualify = __atomic_load_n(&usb_init_qualify, __ATOMIC_RELAXED);
+    snapshot->domain = __atomic_load_n(&usb_init_domain, __ATOMIC_RELAXED);
+}
 static void fail(unsigned int error, int core_result)
 {
     native.status.error = error;
     native.status.core_result = core_result;
     native.status.phase = QCOM_USB_DEBUG_REFUSED;
     native.status.dma_lease_active = native.lease.active;
+    publish_init_snapshot();
     /* Say which check refused, on the panel. The module otherwise gives up silently: no USB
      * device appears and nothing anywhere says why, because the console it would have reported
      * on is the one that failed. boot_progress_stage writes into the diagnostic page the board
@@ -762,6 +781,7 @@ int qcom_usb_debug_init(void)
         native.status.phase = QCOM_USB_DEBUG_DISABLED; goto out;
     }
     native.status.phase = QCOM_USB_DEBUG_PREPARING;
+    publish_init_snapshot();
     diag_checkpoint(QCOM_USB_DEBUG_DIAG_AFTER_ACQUIRE);
     if (dwc3_context_bytes() > sizeof(usb_context)) {
         fail(QCOM_USB_DEBUG_CONTEXT_TOO_SMALL, 0); goto out;
@@ -957,6 +977,7 @@ int qcom_usb_debug_init(void)
     ret = 1;
 out:
     buffer_status_owned();
+    publish_init_snapshot();
     release(flags);
     if (usb_diag_enabled && native.status.phase == QCOM_USB_DEBUG_REFUSED)
         diag_reset(12u + 4u * native.status.error);

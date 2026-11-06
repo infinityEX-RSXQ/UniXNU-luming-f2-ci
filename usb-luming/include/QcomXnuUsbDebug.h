@@ -94,6 +94,14 @@ typedef struct qcom_usb_debug_status {
 extern "C" {
 #endif
 
+/* Lock-free, hardware-free snapshot published at initialization or failure.
+ * In-progress initialization reports PREPARING; concurrent fields may reflect
+ * adjacent updates. Safe for the panic path on any CPU. */
+typedef struct qcom_usb_init_snapshot {
+    uint32_t phase, error, qualify, domain;
+} qcom_usb_init_snapshot;
+void qcom_usb_debug_init_snapshot(qcom_usb_init_snapshot *snapshot);
+
 /* Call once on the boot CPU, after arm_vm_init and ExitBootServices, at or
  * before PE_init_kprintf. Requires exclusive USB ownership and no competing
  * firmware callbacks. Returns 1 only when the fresh native core is running.
