@@ -56,8 +56,11 @@
 /* [measured] GPU model string and Gen8-6-0 compatible. */
 #define SM8735_GPU_MODEL           "Adreno825"
 
-/* [missing] chip id: read GPU_ID after S1/S2 or take it from a stock KGSL log.
+/* [adapted] Vulkan deviceID reported for Adreno 825 is 0x44030000
+ * (vulkan.gpuinfo.org report 43087). This is the best current candidate for the
+ * KGSL/GPU chip id; it must be confirmed by reading GPU_ID after S1/S2.
  * Do not use the A830 0x44050001 here. */
+#define SM8735_GPU_CHIP_ID_CANDIDATE 0x44030000u
 #define SM8735_GPU_CHIP_ID_MISSING 1
 
 #endif /* SM8735_GPU_FACTS_H */
