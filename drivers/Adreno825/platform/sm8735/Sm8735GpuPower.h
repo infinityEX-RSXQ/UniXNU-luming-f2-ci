@@ -79,6 +79,15 @@ Sm8735GpuPowerStatus Sm8735GpuPowerEnableCxGdsc(const Sm8735GpuPowerIo *io,
 Sm8735GpuPowerStatus Sm8735GpuPowerProgramPll(const Sm8735GpuPowerIo *io,
     Sm8735GpuPowerTrace *trace);
 
+/*
+ * Conservative S1: enable GCC GPU CFG AHB, GPLL0 votes, the GPUCC AHB/CXO/HUB/
+ * SMMU/GMU branches, program PLL0, enable the CX GDSC, then read the GPU ID.
+ * No SMMU, no GMU, no CP. This is the first write path; it is only called by
+ * the explicit diagnostic, not by the normal boot.
+ */
+Sm8735GpuPowerStatus Sm8735GpuPowerOnS1(const Sm8735GpuPowerIo *io,
+    Sm8735GpuPowerTrace *trace, uint32_t *gpu_id);
+
 #ifdef __cplusplus
 }
 #endif
