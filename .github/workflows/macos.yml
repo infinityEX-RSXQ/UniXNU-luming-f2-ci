@@ -653,6 +653,15 @@ jobs:
           trap report_kernel_errors ERR
           ./unixnu build kernel "${args[@]}" -j 3 2>&1 | tee ../ci-artifacts/logs/kernel.log
 
+      - name: Compile SM8735 USB model archive (no link or device)
+        if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' && contains(inputs.steps, 'kernel') }}
+        run: |
+          set -euo pipefail
+          record="unixnu/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/pexpert/DEVELOPMENT/pe_kprintf.o.json"
+          test -f "$record"
+          python3 device/usb-luming/scripts/build.py --compile-record "$record" --soc soc/Sm8735Model.h --output "$GITHUB_WORKSPACE/tmp/usb-model" --ar "$(xcrun --find llvm-ar)" --nm "$(xcrun --find llvm-nm)"
+          echo "USB model archive only; no USB code linked into kernel or flashed"
+
       - name: Check the stage12 mode/refresh markers in the built kernel
         if: ${{ inputs.dry_run != true && contains(inputs.steps, 'kernel') }}
         run: |
