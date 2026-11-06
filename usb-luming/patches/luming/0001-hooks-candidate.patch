@@ -25,7 +25,7 @@
  #include <mach/vm_prot.h>
  #include <mach/semaphore.h>
  #include <mach/sync_policy.h>
-@@ -1100,11 +1111,306 @@
+@@ -1100,11 +1111,323 @@
  	lock_trace = 1;
  }
  
@@ -155,6 +155,23 @@
 +	}
 +}
 +
++/* A busy producer may reject the whole record. Retry only a zero-byte
++ * rejection; a partial record is reported as loss and never duplicated. */
++static int
++qcom_rawshot_write(const char *bytes, size_t length)
++{
++	for (unsigned retry = 0; retry < 100; ++retry) {
++		size_t written = qcom_usb_debug_enqueue(bytes, length);
++		if (written == length) return 1;
++		if (written != 0) return 0;
++		uint64_t deadline;
++		clock_interval_to_deadline(1, NSEC_PER_MSEC, &deadline);
++		if (assert_wait_deadline((event_t)&qcom_rawshot_started,
++		    THREAD_UNINT, deadline) == THREAD_WAITING) thread_block(THREAD_CONTINUE_NULL);
++	}
++	return 0;
++}
++
 +static void
 +qcom_rawshot_worker(void *argument __unused, wait_result_t result __unused)
 +{
@@ -176,7 +193,7 @@
 +		kern_return_t rc = stack_snapshot_from_kernel(-1, buffer, capacity,
 +		    flags, 0, 0, &used);
 +		int n = snprintf(line, sizeof(line), "\nQRAWSHOT BEGIN s=%u rc=%x bytes=%u\n", sample, rc, used);
-+		if (n <= 0 || (size_t)n >= sizeof(line) || qcom_usb_debug_enqueue(line, (size_t)n) != (size_t)n) ++failed;
++		if (n <= 0 || (size_t)n >= sizeof(line) || !qcom_rawshot_write(line, (size_t)n)) ++failed;
 +		if (rc == KERN_SUCCESS && used <= capacity) {
 +			static const char hex[] = "0123456789abcdef";
 +			for (unsigned off = 0; off < used; off += 64) {
@@ -189,11 +206,11 @@
 +					line[n++] = hex[b >> 4]; line[n++] = hex[b & 15u];
 +				}
 +				line[n++] = '\n';
-+				if (qcom_usb_debug_enqueue(line, (size_t)n) != (size_t)n) ++failed;
++				if (!qcom_rawshot_write(line, (size_t)n)) ++failed;
 +			}
 +		}
 +		n = snprintf(line, sizeof(line), "\nQRAWSHOT END s=%u bytes=%u fail=%u fnv=%08x\n", sample, used, failed, fnv);
-+		if (n > 0 && (size_t)n < sizeof(line)) (void)qcom_usb_debug_enqueue(line, (size_t)n);
++		if (n > 0 && (size_t)n < sizeof(line)) (void)qcom_rawshot_write(line, (size_t)n);
 +		if (sample == 0) qcom_rawshot_delay(15);
 +	}
 +	kfree_data(buffer, capacity);
