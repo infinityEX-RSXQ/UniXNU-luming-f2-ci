@@ -1,4 +1,4 @@
-name: macOS build (format-2 luming)
+name: Linux kernel build (experimental luming)
 
 # Route ① (sheng/dada format-2, "6S Pro way") macOS CI for the Xiaomi Civi 5 Pro
 # (luming, Qualcomm SM8735). Adapted by windows-ci (task-328) from:
@@ -157,7 +157,7 @@ defaults:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 360
     env:
       UNIXNU_DEVICE: ${{ github.workspace }}/device
@@ -353,10 +353,10 @@ jobs:
             if [ -n "$value" ]; then echo "::add-mask::$value"; fi
           done
           fail() { echo "::error::$1"; exit 1; }
+          [ "$STEPS" = kernel ] || fail "experimental Linux workflow only supports kernel"
           [ -f device/board.toml ] || fail "the device repository has no board.toml"
           [ -f "device/configs/$DEFCONFIG" ] || fail "device/configs/$DEFCONFIG not found"
           [ -f unixnu/unixnu ] || fail "the UniXNU core checkout has no unixnu wrapper"
-          [ -d "$DEVELOPER_DIR" ] || fail "Xcode not found at $DEVELOPER_DIR; installed: $(printf '%s ' /Applications/Xcode_*.app)"
           if [ -n "$kernelcache_url" ] && [ -z "${{ inputs.kernelcache_sha256 }}" ]; then
             fail "kernelcache_sha256 is required when kernelcache_url is set"
           fi
@@ -390,34 +390,26 @@ jobs:
           print('dry_run:', os.environ['DRY_RUN'])
           PY
 
-      - name: Install host tools
+      - name: Install Linux toolchain
         run: |
           set -euo pipefail
-          brew install llvm lld mtools dtc
-          if ! command -v unifdef >/dev/null; then
-            brew install unifdef
-            echo "$(brew --prefix unifdef)/bin" >> "$GITHUB_PATH"
+          sudo apt-get update
+          sudo apt-get install -y python3 git make cmake ninja-build unifdef mtools device-tree-compiler jq curl
+          sudo python3 unixnu/scripts/linux/setup-toolchain.py -j 3
+          python3 unixnu/scripts/linux/setup-toolchain.py --check
+          mkdir -p "$RUNNER_TEMP/luming-linux-shims"
+          cat > "$RUNNER_TEMP/luming-linux-shims/brew" <<'SHIM'
+          #!/bin/sh
+          if [ "$#" = 2 ] && [ "$1" = --prefix ] && [ "$2" = llvm ]; then
+            exec llvm-config --prefix
           fi
-
-      - name: Report the runner toolchain
-        run: |
-          set -euo pipefail
-          sw_vers
-          uname -m
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
-          xcrun --sdk iphoneos --find mig
-          clang --version | head -n 1
-          "$(brew --prefix llvm)/bin/clang" --version | head -n 1
-          python3 --version
-          missing=0
-          for tool in git make clang cmake ninja unifdef ld.lld mformat mcopy dtc xcodebuild jq; do
-            path=$(command -v "$tool" || true)
-            printf '%-10s %s\n' "$tool" "${path:-MISSING}"
-            [ -n "$path" ] || missing=1
-          done
+          echo "unsupported brew request on Linux" >&2
+          exit 2
+          SHIM
+          chmod +x "$RUNNER_TEMP/luming-linux-shims/brew"
+          echo "$RUNNER_TEMP/luming-linux-shims" >> "$GITHUB_PATH"
+          uname -a
           df -h "$GITHUB_WORKSPACE"
-          exit "$missing"
 
       - name: Prepare proprietary inputs
         if: ${{ inputs.dry_run != true && inputs.steps != 'preflight' }}
