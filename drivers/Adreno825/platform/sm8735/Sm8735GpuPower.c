@@ -24,6 +24,31 @@ enum : uint32_t {
     Sm8735GpuPowerRetainFf = 1u << 11,
 };
 
+/* GPUCC PLL0, from the stock gpucc-tuna.ko gpu_cc_pll0_config bytes. */
+enum : uint64_t {
+    Sm8735GpuccPll0Opmode = SM8735_GPUCC_PHYS + 0x04,
+    Sm8735GpuccPll0Alpha = SM8735_GPUCC_PHYS + 0x14,
+    Sm8735GpuccPll0UserCtl = SM8735_GPUCC_PHYS + 0x18,
+    Sm8735GpuccPll0UserCtlU = SM8735_GPUCC_PHYS + 0x1c,
+    Sm8735GpuccPll0ConfigU = SM8735_GPUCC_PHYS + 0x24,
+    Sm8735GpuccPll0ConfigU1 = SM8735_GPUCC_PHYS + 0x28,
+};
+
+enum : uint32_t {
+    Sm8735GpuPll0LVal = 0x00440034u,
+    Sm8735GpuPll0AlphaVal = 0x00001555u,
+    Sm8735GpuPll0ConfigVal = 0x20485699u,
+    Sm8735GpuPll0ConfigUVal = 0x00182261u,
+    Sm8735GpuPll0ConfigU1Val = 0x82aa299cu,
+    Sm8735GpuPll0UserCtlVal = 0x00000004u,
+    Sm8735GpuPll0UserCtlUVal = 0x00000005u,
+    Sm8735GpuPll0Outctrl = 1u << 0,
+    Sm8735GpuPll0ResetN = 1u << 2,
+    Sm8735GpuPll0LockDet = 1u << 31,
+    Sm8735GpuPll0Outputs = 7u,
+    Sm8735GpuPll0Run = 1u,
+};
+
 static int rd(const Sm8735GpuPowerIo *io, Sm8735GpuPowerTrace *trace,
     uint64_t phys, uint32_t *value)
 {
@@ -144,6 +169,60 @@ Sm8735GpuPowerStatus Sm8735GpuPowerEnableCxGdsc(const Sm8735GpuPowerIo *io,
             return Sm8735GpuPowerOk;
         }
         if (spent == 2000) {
+            return Sm8735GpuPowerTimeout;
+        }
+        if (wait_us(io, 1)) {
+            return Sm8735GpuPowerIoError;
+        }
+    }
+    return Sm8735GpuPowerTimeout;
+}
+
+Sm8735GpuPowerStatus Sm8735GpuPowerProgramPll(const Sm8735GpuPowerIo *io,
+    Sm8735GpuPowerTrace *trace)
+{
+    uint32_t mode, opmode;
+    if (trace) {
+        *trace = (Sm8735GpuPowerTrace){};
+    }
+    if (rd(io, trace, Sm8735GpuccPll0Mode, &mode) ||
+        rd(io, trace, Sm8735GpuccPll0Opmode, &opmode)) {
+        return Sm8735GpuPowerIoError;
+    }
+    if ((mode & Sm8735GpuPll0Outctrl) || (opmode & Sm8735GpuPll0Run)) {
+        /* The boot chain owns a running PLL; do not reprogram it in this step. */
+        return Sm8735GpuPowerUnexpectedState;
+    }
+    if (update(io, trace, Sm8735GpuccPll0Mode, Sm8735GpuPll0Outctrl, 0) ||
+        wr(io, trace, Sm8735GpuccPll0Opmode, 0) ||
+        wr(io, trace, Sm8735GpuccPll0L, Sm8735GpuPll0LVal) ||
+        wr(io, trace, Sm8735GpuccPll0Alpha, Sm8735GpuPll0AlphaVal) ||
+        wr(io, trace, Sm8735GpuccPll0Config, Sm8735GpuPll0ConfigVal) ||
+        wr(io, trace, Sm8735GpuccPll0ConfigU, Sm8735GpuPll0ConfigUVal) ||
+        wr(io, trace, Sm8735GpuccPll0ConfigU1, Sm8735GpuPll0ConfigU1Val) ||
+        wr(io, trace, Sm8735GpuccPll0UserCtl, Sm8735GpuPll0UserCtlVal) ||
+        wr(io, trace, Sm8735GpuccPll0UserCtlU, Sm8735GpuPll0UserCtlUVal)) {
+        return Sm8735GpuPowerIoError;
+    }
+    if (update(io, trace, Sm8735GpuccPll0Mode, Sm8735GpuPll0ResetN, Sm8735GpuPll0ResetN) ||
+        wr(io, trace, Sm8735GpuccPll0Opmode, Sm8735GpuPll0Run)) {
+        return Sm8735GpuPowerIoError;
+    }
+    for (unsigned spent = 0; spent <= 1500; ++spent) {
+        uint32_t value;
+        if (rd(io, trace, Sm8735GpuccPll0Mode, &value)) {
+            return Sm8735GpuPowerIoError;
+        }
+        if (value & Sm8735GpuPll0LockDet) {
+            if (update(io, trace, Sm8735GpuccPll0UserCtl, Sm8735GpuPll0Outputs,
+                    Sm8735GpuPll0Outputs) ||
+                update(io, trace, Sm8735GpuccPll0Mode, Sm8735GpuPll0Outctrl,
+                    Sm8735GpuPll0Outctrl)) {
+                return Sm8735GpuPowerIoError;
+            }
+            return Sm8735GpuPowerOk;
+        }
+        if (spent == 1500) {
             return Sm8735GpuPowerTimeout;
         }
         if (wait_us(io, 1)) {
