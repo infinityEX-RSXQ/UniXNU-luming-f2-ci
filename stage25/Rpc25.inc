@@ -1,5 +1,7 @@
-﻿/* Stage25 opt-in diagnostics. Port and kmsg identities stay inside this file. */
+/* Stage25 opt-in diagnostics. Port and kmsg identities stay inside this file. */
 #include <machine/machine_routines.h>
+#include <IOKit/IOLib.h>
+#include <pexpert/pexpert.h>
 #define CDX25_CAPACITY 64
 #define CDX25_PENDING UINT32_MAX
 
@@ -579,7 +581,88 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		if (gw > 0 && (size_t)gw < size - used) {
 			used += gw;
 		}
-	}	struct cdx25_row *x = NULL;
+	}
+	{
+		int s1 = 0;
+		if (PE_parse_boot_argn("luming-gpu-s1", &s1, sizeof(s1)) && s1 > 0) {
+			const uint64_t gcc = 0x100000ULL;
+			uint32_t v = ml_phys_read_word_64(gcc + 0x71004);
+			if (!(v & 1u)) {
+				ml_phys_write_word_64(gcc + 0x71004, v | 1u);
+			}
+			v = ml_phys_read_word_64(gcc + 0x52010);
+			ml_phys_write_word_64(gcc + 0x52010, v | 0x00300000u);
+			const uint64_t en[] = {
+				0x3d990bcULL, 0x3d990e4ULL, 0x3d993e8ULL,
+				0x3d990e8ULL, 0x3d997000ULL, 0x3d990d4ULL,
+				0x3d99060ULL, 0x3d990f4ULL,
+			};
+			for (unsigned i = 0; i < sizeof(en) / sizeof(en[0]); i++) {
+				v = ml_phys_read_word_64(en[i]);
+				if (!(v & 1u)) {
+					ml_phys_write_word_64(en[i], v | 1u);
+				}
+			}
+			IODelay(10);
+			uint32_t gcx2 = ml_phys_read_word_64(0x3d99094ULL);
+			uint32_t gid2 = 0;
+			uint32_t st = 1;
+			if (s1 >= 2) {
+				uint32_t pm = ml_phys_read_word_64(0x3d90000ULL);
+				uint32_t po = ml_phys_read_word_64(0x3d90004ULL);
+				if (!(pm & 1u) && !(po & 1u)) {
+					ml_phys_write_word_64(0x3d90000ULL, pm & ~1u);
+					ml_phys_write_word_64(0x3d90004ULL, 0);
+					ml_phys_write_word_64(0x3d90010ULL, 0x00440034u);
+					ml_phys_write_word_64(0x3d90014ULL, 0x00001555u);
+					ml_phys_write_word_64(0x3d90020ULL, 0x20485699u);
+					ml_phys_write_word_64(0x3d90024ULL, 0x00182261u);
+					ml_phys_write_word_64(0x3d90028ULL, 0x82aa299cu);
+					ml_phys_write_word_64(0x3d90018ULL, 0x00000400u);
+					ml_phys_write_word_64(0x3d9001cULL, 0x00000005u);
+					ml_phys_write_word_64(0x3d90000ULL,
+					    ml_phys_read_word_64(0x3d90000ULL) | 4u);
+					ml_phys_write_word_64(0x3d90004ULL, 1u);
+					for (unsigned j = 0; j < 1000; j++) {
+						if (ml_phys_read_word_64(0x3d90000ULL) &
+						    0x80000000u) {
+							break;
+						}
+						IODelay(1);
+					}
+					ml_phys_write_word_64(0x3d90018ULL,
+					    ml_phys_read_word_64(0x3d90018ULL) | 7u);
+					ml_phys_write_word_64(0x3d90000ULL,
+					    ml_phys_read_word_64(0x3d90000ULL) | 1u);
+				}
+				v = ml_phys_read_word_64(0x3d99080ULL);
+				ml_phys_write_word_64(0x3d99080ULL,
+				    (v & ~0x00fff007u) | 0x00228000u);
+				IODelay(1);
+				for (unsigned j = 0; j < 2000; j++) {
+					if (ml_phys_read_word_64(0x3d99094ULL) &
+					    0x80000000u) {
+						break;
+					}
+					IODelay(1);
+				}
+				v = ml_phys_read_word_64(0x3d99080ULL);
+				ml_phys_write_word_64(0x3d99080ULL, v | 0x800u);
+				gcx2 = ml_phys_read_word_64(0x3d99094ULL);
+				if (gcx2 & 0x80000000u) {
+					gid2 = ml_phys_read_word_64(0x3d00000ULL);
+				}
+				st = 2;
+			}
+			int sw = snprintf(out + used, size - used,
+			    "    S1 %d st%x cx%x id%x\n", s1, st, gcx2, gid2);
+			if (sw > 0 && (size_t)sw < size - used) {
+				used += sw;
+			}
+			return;
+		}
+	}
+	struct cdx25_row *x = NULL;
 	uint32_t wn = cdx25_lsd_recv_name;
 	uint32_t wpid = cdx25_lsd_recv_pid;
 	if (!wn && found[0].dest_task) {
@@ -775,6 +858,7 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		}
 	}
 }
+
 
 
 
