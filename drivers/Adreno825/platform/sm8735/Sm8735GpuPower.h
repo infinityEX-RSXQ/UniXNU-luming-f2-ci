@@ -70,6 +70,15 @@ uint32_t Sm8735GpuPowerChooseId(uint32_t id0, uint32_t id4, uint32_t id100);
 Sm8735GpuPowerStatus Sm8735GpuPowerEnableCxGdsc(const Sm8735GpuPowerIo *io,
     Sm8735GpuPowerTrace *trace);
 
+/*
+ * GPU_CC_PLL0 programming with the values embedded in the stock gpucc-tuna.ko
+ * (gpu_cc_pll0_config: L 0x34, alpha 0x1555, config 0x20485699/0x00182261/0x82aa299c,
+ * user 4/5). This is still NOT called by the kernel: the PLL is shared with the
+ * boot chain and the field mapping must be confirmed first.
+ */
+Sm8735GpuPowerStatus Sm8735GpuPowerProgramPll(const Sm8735GpuPowerIo *io,
+    Sm8735GpuPowerTrace *trace);
+
 #ifdef __cplusplus
 }
 #endif
