@@ -127,7 +127,7 @@ public:
     /* Frees CPU metadata only, with no BOs remaining. Never releases roots,
      * disables a bank or returns the platform lease; board lifecycle owns it. */
     IOReturn detach();
-    /* A GPU address window no mapping may touch, before any map (the null guard 0..0x100000 and the 12 MiB GMEM window at
+    /* A GPU address window no mapping may touch, before any map (the null guard 0..0x100000 and the 2.375 MiB GMEM window at
      * 0x4000000 of ARCHITECTURE 4.6.2). findAddress skips them. */
     IOReturn reserveWindow(uint64_t iova,uint64_t bytes);
     IOReturn findAddress(unsigned upper,size_t bytes,uint64_t alignment,uint64_t *iova) const;
