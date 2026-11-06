@@ -38,7 +38,7 @@ def make_patch(tree):
     new = once(new, anchor, '''
 	bool cdx25_reply = false;
 	uint64_t cdx25_seq = cdx25_send_begin(kmsg, cdx25_name, &cdx25_reply);
-''' + '\tcdx25_lsd_selfreply(kmsg, reply);\n' + anchor + '\tcdx25_send_end(cdx25_seq, cdx25_reply, mr);\n')
+''' + '\tcdx25_lsd_selfreply(kmsg, ikm_header(kmsg)->msgh_local_port);\n' + anchor + '\tcdx25_send_end(cdx25_seq, cdx25_reply, mr);\n')
     anchor = '\tthread_t           self = current_thread();\n\tipc_space_t        space = current_space();\n'
     new = once(new, anchor, anchor + '''	{
 		task_t cdx25_task = current_task();
