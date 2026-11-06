@@ -660,6 +660,8 @@ jobs:
           record="unixnu/out/luming/ipados-17.7.11-21H461/luming/tree/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/pexpert/DEVELOPMENT/pe_kprintf.o.json"
           if [ ! -f "$record" ]; then echo "pe_kprintf compile record not found"; find unixnu/out -name "*kprintf*.json" -print; exit 1; fi
           python3 device/usb-luming/scripts/build.py --compile-record "$record" --soc soc/Sm8735Model.h --output "$GITHUB_WORKSPACE/tmp/usb-model" --ar "$(brew --prefix llvm)/bin/llvm-ar" --nm "$(brew --prefix llvm)/bin/llvm-nm"
+          root="unixnu/out/luming/ipados-17.7.11-21H461/luming/tree"
+          python3 device/usb-luming/scripts/check_luming_hooks.py --xnu "$root/.cache/xnu-work" --records "$root/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837" --archive "$GITHUB_WORKSPACE/tmp/usb-model/libQcomXnuUsbDebug.a" --nm "$(brew --prefix llvm)/bin/llvm-nm" --patch device/usb-luming/patches/luming/0001-hooks-candidate.patch --output "$GITHUB_WORKSPACE/tmp/usb-hooks"
           echo "USB model archive only; no USB code linked into kernel or flashed"
 
       - name: Check the stage12 mode/refresh markers in the built kernel
