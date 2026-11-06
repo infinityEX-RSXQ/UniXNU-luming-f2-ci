@@ -115,38 +115,13 @@ static void platform_smc_reset(void)
  * at all. A reset discards nothing that the volumes hold, which is what a reset is. */
 void qcom_usb_debug_control_reset_now(void)
 {
-    /* Hand the reset to the board's own implementation instead of writing IMEM here.
-     *
-     * BootReset.c maps the devicetree IMEM window with ml_io_map_unmappable(..., 7)
-     * because ml_io_map hands out permanent io_submap mappings that ml_io_unmap cannot
-     * free, and it reads the cell back and compares against the values the bootloader is
-     * known to accept. Measured 2026-10-27: this module's own 4-byte ml_io_map write
-     * restarted the kernel instead of returning to fastboot, twice.
-     *
-     * boot_reset_bootloader writes the cell, verifies it, then issues PSCI SYSTEM_RESET,
-     * and returns only when something refused; text says what. */
-    extern int boot_reset_bootloader(char *, unsigned) __attribute__((weak_import));
-    if (&boot_reset_bootloader) {
-        char text[160];
-        int rc = boot_reset_bootloader(text, sizeof(text));
-        /* Only reached when it refused, since success resets the SoC. */
-        {
-            char line[192];
-            char *q = line;
-            const char *pre = "QCOM USB REBOOT refused: rc=";
-            while (*pre) *q++ = *pre++;
-            if (rc < 0 || rc > 99) rc = 99;
-            *q++ = (char)('0' + (rc / 10) % 10);
-            *q++ = (char)('0' + rc % 10);
-            *q++ = ' ';
-            for (const char *s = text; *s && q < line + sizeof(line) - 2; ++s) *q++ = *s;
-            *q++ = '\n';
-            (void)qcom_usb_debug_enqueue(line, (size_t)(q - line));
-        }
-        (void)qcom_usb_debug_wait_drained(200);
-    }
+    /* Luming logging builds do not provide the board reset service. The
+     * control/reset path is disabled by this model profile. */
+#if QUD_PSCI_SMC_RESET
     platform_smc_reset();
+#endif
 }
+
 static int qcom_usb_control_halt_restart(unsigned int type)
 {
     if (type == CONTROL_PE_RESTART_CPU &&
@@ -269,15 +244,6 @@ static char *append_decimal(char *to, uint64_t value)
     while (n) *to++ = digits[--n];
     return to;
 }
-/* Registers are read as words; decimal would make them unreadable against the manual. */
-static char *append_hex(char *to, uint64_t value)
-{
-    static const char digits[16] = "0123456789abcdef";
-    int shift;
-    for (shift = 60; shift > 0 && !((value >> shift) & 0xfu); shift -= 4) { }
-    for (; shift >= 0; shift -= 4) *to++ = digits[(value >> shift) & 0xfu];
-    return to;
-}
 /* Small in-band accounting records use no printf/console recursion. */
 static size_t loss_record(char *text, int final)
 {
@@ -342,69 +308,8 @@ static void fail(unsigned int error, int core_result)
     native.status.phase = QCOM_USB_DEBUG_REFUSED;
     native.status.dma_lease_active = native.lease.active;
     publish_init_snapshot();
-    /* Say which check refused, on the panel. The module otherwise gives up silently: no USB
-     * device appears and nothing anywhere says why, because the console it would have reported
-     * on is the one that failed. boot_progress_stage writes into the diagnostic page the board
-     * already draws, so one photograph names the failing precondition. Weak, so a board without
-     * that page still links and simply loses the line. */
-    /* A persistent row, not boot_progress_stage: that ring keeps six lines, and this runs at
-     * time=0s, so the exit log overwrites the line within seconds and a refused controller then
-     * looks exactly like one that never ran. boot_progress_persist redraws every frame.
-     * Built by hand: the module's import audit allows only a fixed set of XNU symbols and
-     * snprintf is not one of them, so the in-band append helpers format the line. */
-    extern void boot_progress_persist(const char *, uint32_t) __attribute__((weak_import));
-    if (&boot_progress_persist) {
-        char line[384];
-        char *p = append_text(line, "QCOM USB REFUSED error=");
-        p = append_decimal(p, error);
-        p = append_text(p, " core=");
-        p = append_decimal(p, (uint64_t)(unsigned int)core_result);
-        /* The domain refusal at error 10 is one of twelve distinct results (QusbDomainOkay=0
-         * through QusbDomainCleanFailed=12 in QcomUsbDmaDomain.h), and which one it is decides
-         * the fix: StreamExists means firmware still owns the stream, NoSlot means the SMMU has
-         * no free context, ReadFailed means the registers did not answer at all. */
-        p = append_text(p, " qualify=");
-        p = append_decimal(p, (uint64_t)native.status.qcom_result);
-        p = append_text(p, " domain=");
-        p = append_decimal(p, (uint64_t)native.status.domain_result);
-        /* For StreamExists, scan() records what firmware mapped SID 0 to: smr and s2cr.
-         * s2cr bits 17:16 are the memory-access type (0 translation, 1 bypass, 2 fault), and
-         * that decides the fix, so both words are printed. */
-        p = append_text(p, " smr=");
-        p = append_hex(p, native.status.domain_last_address);
-        p = append_text(p, " s2cr=");
-        p = append_hex(p, native.status.domain_last_readback & 0xffffffffu);
-        /* The endpoint-command timeout that returns -4 from dwc3_init leaves no trace of why:
-         * the controller answered the reset and passed every parameter check, then a DEPSTARTCFG
-         * or DEPCFG never completed. Those commands share exactly one dependency, the event ring
-         * the controller writes completions into, so the register set that decides it is the
-         * event base and its count next to the device state. Read them here, while the MMIO is
-         * still ours: restore_after_failure() runs right after this and gives the lease back. */
-        if (native.core_initialized && native.core) {
-            struct dwc3_snapshot snap;
-            dwc3_snapshot(native.core, &snap);
-            p = append_text(p, " gctl="); p = append_hex(p, snap.gctl);
-            p = append_text(p, " dctl="); p = append_hex(p, snap.dctl);
-            p = append_text(p, " dsts="); p = append_hex(p, snap.dsts);
-            p = append_text(p, " evt="); p = append_decimal(p, snap.event_count);
-            p = append_text(p, " eps="); p = append_decimal(p, snap.enabled_endpoints);
-            p = append_text(p, " iova="); p = append_hex(p, native.status.dma_iova);
-            /* ep_command() reports a non-zero completion status by calling trace() with
-             * (ep << 16) | cmd and the raw DEPCMD result, and core_trace() stores both. That is
-             * the pair that says which endpoint command the controller refused and why, so it
-             * belongs on this line rather than needing a new capture path. */
-            p = append_text(p, " cmd="); p = append_hex(p, native.status.trace_a);
-            p = append_text(p, " st="); p = append_hex(p, native.status.trace_b);
-            p = append_text(p, " tr="); p = append_decimal(p, native.status.traces);
-        }
-        p = append_text(p, " sctlr=");
-        p = append_hex(p, native.status.domain_last_readback >> 32);
-        p = append_text(p, " ttbr0=");
-        p = append_hex(p, native.status.domain_last_expected);
-        *p = 0;
-        /* 0xffff6600: the amber refusal colour the panel already uses for failures. */
-        boot_progress_persist(line, 0xffff6600u);
-    }
+    /* The Luming XNU baseline has no persistent boot-progress callback.
+     * The lock-free snapshot is available to its panic log instead. */
 }
 static int in_range(uint64_t address, uint64_t base, uint64_t bytes)
 {
@@ -962,18 +867,6 @@ int qcom_usb_debug_init(void)
     if (usb_diag_mode >= 201u && usb_diag_mode <= 203u) diag_reset(12);
     diag_checkpoint(QCOM_USB_DEBUG_DIAG_ENUM_DONE);
     native.status.phase = QCOM_USB_DEBUG_ACTIVE;
-    /* The success counterpart of fail()'s persistent row. Without it a working controller and a
-     * controller that never ran both leave the row empty, which is the ambiguity this whole
-     * change exists to remove. */
-    {
-        extern void boot_progress_persist(const char *, uint32_t) __attribute__((weak_import));
-        if (&boot_progress_persist) {
-            if (dwc3_ready(native.core))
-                boot_progress_persist("QCOM USB READY (CDC configured, DTR)", 0xff00ff88u);
-            else
-                boot_progress_persist("QCOM USB STARTED (initial host not ready)", 0xffffcc00u);
-        }
-    }
     ret = 1;
 out:
     buffer_status_owned();
