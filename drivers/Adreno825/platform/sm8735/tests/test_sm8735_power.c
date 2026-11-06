@@ -16,7 +16,18 @@ typedef struct Fake {
     unsigned writes;
     unsigned reads;
     unsigned fail_at;
+    int power_on_gdsc;
 } Fake;
+
+static Entry *find(Fake *f, uint64_t phys)
+{
+    for (unsigned i = 0; i < f->count; ++i) {
+        if (f->entries[i].phys == phys) {
+            return &f->entries[i];
+        }
+    }
+    return NULL;
+}
 
 static int fake_read(void *cookie, uint64_t phys, uint32_t *value)
 {
@@ -25,21 +36,29 @@ static int fake_read(void *cookie, uint64_t phys, uint32_t *value)
     if (f->fail_at && f->reads == f->fail_at) {
         return -1;
     }
-    for (unsigned i = 0; i < f->count; ++i) {
-        if (f->entries[i].phys == phys) {
-            *value = f->entries[i].value;
-            return 0;
-        }
-    }
-    *value = 0xdeadbeefu;
+    Entry *e = find(f, phys);
+    *value = e ? e->value : 0xdeadbeefu;
     return 0;
 }
 
 static int fake_write(void *cookie, uint64_t phys, uint32_t value)
 {
-    (void)phys;
-    (void)value;
-    ((Fake *)cookie)->writes++;
+    Fake *f = (Fake *)cookie;
+    ++f->writes;
+    Entry *e = find(f, phys);
+    if (!e) {
+        e = &f->entries[f->count++];
+        e->phys = phys;
+    }
+    e->value = value;
+    if (f->power_on_gdsc && phys == SM8735_GPUCC_PHYS + 0x9080) {
+        Entry *hw = find(f, SM8735_GPUCC_PHYS + 0x9094);
+        if (!hw) {
+            hw = &f->entries[f->count++];
+            hw->phys = SM8735_GPUCC_PHYS + 0x9094;
+        }
+        hw->value = 0x80000000u;
+    }
     return 0;
 }
 
@@ -52,7 +71,9 @@ static int fake_delay(void *cookie, unsigned us)
 
 static void put(Fake *f, uint64_t phys, uint32_t value)
 {
-    f->entries[f->count++] = (Entry){ phys, value };
+    Entry *e = &f->entries[f->count++];
+    e->phys = phys;
+    e->value = value;
 }
 
 int main(void)
@@ -88,6 +109,28 @@ int main(void)
         return 1;
     }
 
+    Fake gdsc = {0};
+    gdsc.power_on_gdsc = 1;
+    Sm8735GpuPowerIo io2 = { &gdsc, fake_read, fake_write, fake_delay };
+    Sm8735GpuPowerTrace trace = {0};
+    Sm8735GpuPowerStatus st = Sm8735GpuPowerEnableCxGdsc(&io2, &trace);
+    if (st != Sm8735GpuPowerOk) {
+        printf("gdsc enable failed st=%d writes=%u\n", (int)st, gdsc.writes);
+        return 1;
+    }
+    if (gdsc.writes < 1) {
+        printf("gdsc writes=%u\n", gdsc.writes);
+        return 1;
+    }
+
+    Fake timeout = {0};
+    put(&timeout, SM8735_GPUCC_PHYS + 0x9094, 0u);
+    Sm8735GpuPowerIo io3 = { &timeout, fake_read, fake_write, fake_delay };
+    if (Sm8735GpuPowerEnableCxGdsc(&io3, NULL) != Sm8735GpuPowerTimeout) {
+        printf("timeout path did not time out\n");
+        return 1;
+    }
+
     Fake bad = {0};
     bad.fail_at = 1;
     Sm8735GpuPowerSurvey s2 = {0};
@@ -101,6 +144,9 @@ int main(void)
         return 1;
     }
 
-    printf("PASS sm8735 gpu power survey (no writes, id=%08x)\n", s.gpu_id_candidate);
+    printf("PASS sm8735 gpu power survey + CX GDSC (id=%08x)\n", s.gpu_id_candidate);
     return 0;
 }
+
+
+
