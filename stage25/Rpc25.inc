@@ -39,6 +39,8 @@ struct cdx25_row {
 static struct cdx25_row cdx25_rows[CDX25_CAPACITY];
 static unsigned cdx25_enabled, cdx25_busy, cdx25_missed;
 static uint64_t cdx25_next;
+static uint32_t cdx25_lsd_recv_name;
+static uint32_t cdx25_lsd_recv_pid;
 
 static bool
 cdx25_is_springboard(const char *name)
@@ -493,12 +495,40 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		return;
 	}
 	struct cdx25_row *x = NULL;
-	for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen; s--) {
-		struct cdx25_row *row = cdx25_slot(s);
-		if (row->seq == s && row->is_lsd &&
-		    row->reply_tx == CDX25_PENDING) {
-			x = row;
+	uint32_t wn = cdx25_lsd_recv_name;
+	uint32_t wpid = cdx25_lsd_recv_pid;
+	if (!wn && found[0].dest_task) {
+		task_t lt = (task_t)(uintptr_t)found[0].dest_task;
+		thread_t th;
+		queue_iterate(&lt->threads, th, thread_t, task_threads) {
+			if (th->block_hint != kThreadWaitPortReceive ||
+			    !th->waitq.wq_q ||
+			    th->wait_event != IPC_MQUEUE_RECEIVE) {
+				continue;
+			}
+			thread_waitinfo_v2_t wi = {};
+			struct ipc_service_port_label *ispl = NULL;
+			wi.wait_type = kThreadWaitPortReceive;
+			kdp_mqueue_recv_find_owner(th->waitq.wq_q,
+			    th->wait_event, &wi, &ispl);
+			wn = (uint32_t)wi.owner;
 			break;
+		}
+	}
+	if (!wn) {
+		wn = (uint32_t)found[0].wait_owner;
+	}
+	if (!wpid) {
+		wpid = found[0].peer;
+	}
+	if (wn) {
+		for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen; s--) {
+			struct cdx25_row *row = cdx25_slot(s);
+			if (row->seq == s && row->name == wn &&
+			    row->client == wpid) {
+				x = row;
+				break;
+			}
 		}
 	}
 	if (x) {
@@ -507,11 +537,13 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 			xc[j] = x->comm[j];
 		}
 		snprintf(out + used, size - used,
-		    "    X%llx req%x p%u %s d%llx s%.8s\n",
-		    (unsigned long long)x->seq, x->request, x->peer,
+		    "    W%x M%llx req%x p%u %s d%llx s%.8s\n",
+		    wn, (unsigned long long)x->seq, x->request, x->peer,
 		    xc[0] ? xc : "?", (unsigned long long)x->dest_addr, x->svc);
+	} else if (wn) {
+		snprintf(out + used, size - used, "    W%x no-row\n", wn);
 	} else {
-		snprintf(out + used, size - used, "    X none\n");
+		snprintf(out + used, size - used, "    W none\n");
 	}
 	return;
 	if (found[0].dest_task) {
