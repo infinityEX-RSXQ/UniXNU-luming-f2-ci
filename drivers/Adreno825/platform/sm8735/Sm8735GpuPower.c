@@ -178,6 +178,61 @@ Sm8735GpuPowerStatus Sm8735GpuPowerEnableCxGdsc(const Sm8735GpuPowerIo *io,
     return Sm8735GpuPowerTimeout;
 }
 
+Sm8735GpuPowerStatus Sm8735GpuPowerOnS1(const Sm8735GpuPowerIo *io,
+    Sm8735GpuPowerTrace *trace, uint32_t *gpu_id)
+{
+    static const uint32_t branches[] = {
+        SM8735_GPUCC_AHB_CLK_EN, SM8735_GPUCC_CXO_CLK_EN,
+        SM8735_GPUCC_HUB_AON_EN, SM8735_GPUCC_HUB_CX_INT_EN,
+        SM8735_GPUCC_SMMU_VOTE_EN, SM8735_GPUCC_CX_GMU_CLK_EN,
+        SM8735_GPUCC_GX_GMU_CLK_EN, SM8735_GPUCC_MEMNOC_GFX_EN,
+    };
+    if (!io || !gpu_id) {
+        return Sm8735GpuPowerIoError;
+    }
+    *gpu_id = 0;
+    if (trace) {
+        *trace = (Sm8735GpuPowerTrace){};
+    }
+
+    /* GCC must gate the GPUCC AHB before the first GPU_CC access (gcc-tuna probe). */
+    if (update(io, trace, SM8735_GCC_PHYS + SM8735_GCC_GPU_CFG_AHB_OFF, 1u, 1u) ||
+        update(io, trace, SM8735_GCC_PHYS + SM8735_GCC_GPLL0_VOTE_OFF,
+            SM8735_GCC_GPLL0_VOTE_MASK, SM8735_GCC_GPLL0_VOTE_MASK) ||
+        wait_us(io, 10)) {
+        return Sm8735GpuPowerIoError;
+    }
+
+    for (unsigned i = 0; i < sizeof(branches) / sizeof(branches[0]); ++i) {
+        if (update(io, trace, SM8735_GPUCC_PHYS + branches[i], 1u, 1u)) {
+            return Sm8735GpuPowerIoError;
+        }
+    }
+    if (wait_us(io, 10)) {
+        return Sm8735GpuPowerIoError;
+    }
+
+    /* A running PLL is owned by the boot chain; leave it alone and continue. */
+    const Sm8735GpuPowerStatus pll = Sm8735GpuPowerProgramPll(io, trace);
+    if (pll != Sm8735GpuPowerOk && pll != Sm8735GpuPowerUnexpectedState) {
+        return pll;
+    }
+
+    if (Sm8735GpuPowerEnableCxGdsc(io, trace) != Sm8735GpuPowerOk ||
+        wait_us(io, 10)) {
+        return Sm8735GpuPowerIoError;
+    }
+
+    uint32_t id0 = 0, id4 = 0, id100 = 0;
+    if (rd(io, trace, SM8735_GPU_PHYS + 0x000, &id0) ||
+        rd(io, trace, SM8735_GPU_PHYS + 0x004, &id4) ||
+        rd(io, trace, SM8735_GPU_PHYS + 0x100, &id100)) {
+        return Sm8735GpuPowerIoError;
+    }
+    *gpu_id = Sm8735GpuPowerChooseId(id0, id4, id100);
+    return *gpu_id ? Sm8735GpuPowerOk : Sm8735GpuPowerUnexpectedState;
+}
+
 Sm8735GpuPowerStatus Sm8735GpuPowerProgramPll(const Sm8735GpuPowerIo *io,
     Sm8735GpuPowerTrace *trace)
 {
