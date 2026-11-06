@@ -608,3 +608,33 @@
  
  		simple_unlock(&kprintf_lock);
  
+--- a/bsd/kern/kern_exit.c
++++ b/bsd/kern/kern_exit.c
+@@ -1885,6 +1885,14 @@
+ static void
+ cdx14_observe_exit(proc_t p, int rv)
+ {
++	if (!strcmp(p->p_comm, "lsd")) {
++		static unsigned lsd_exits;
++		unsigned count = __atomic_add_fetch(&lsd_exits, 1, __ATOMIC_RELAXED);
++		unsigned ns = PROC_HAS_EXITREASON(p) ? p->p_exit_reason->osr_namespace : 0;
++		uint64_t code = PROC_HAS_EXITREASON(p) ? p->p_exit_reason->osr_code : 0;
++		if (count <= 8) printf("CDX_LSD_EXIT pid=%d rv=%x ns=%u code=%llx n=%u\n",
++		    proc_getpid(p), rv, ns, (unsigned long long)code, count);
++	}
+ 	for (unsigned i = 0; i < 4; ++i) {
+ 		if (strcmp(p->p_comm, cdx14_names[i])) continue;
+ 		unsigned n = __atomic_add_fetch(&cdx14_daemons[i].count, 1, __ATOMIC_RELAXED);
+@@ -1923,6 +1931,12 @@
+ cdx14_daemon_exception(const char *name, unsigned e, uint64_t c0, uint64_t c1)
+ {
+ 	if (!name) return;
++	if (!strcmp(name, "lsd")) {
++		static unsigned lsd_exceptions;
++		unsigned count = __atomic_add_fetch(&lsd_exceptions, 1, __ATOMIC_RELAXED);
++		if (count <= 8) printf("CDX_LSD_EXCEPTION e=%u c0=%llx c1=%llx n=%u\n",
++		    e, (unsigned long long)c0, (unsigned long long)c1, count);
++	}
+ 	for (unsigned i = 0; i < 4; ++i) {
+ 		if (strcmp(name, cdx14_names[i])) continue;
+ 		unsigned n = __atomic_add_fetch(&cdx14_exceptions[i].count, 1, __ATOMIC_RELAXED);
