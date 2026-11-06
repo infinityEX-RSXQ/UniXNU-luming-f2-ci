@@ -17,6 +17,7 @@ typedef struct Fake {
     unsigned reads;
     unsigned fail_at;
     int power_on_gdsc;
+    int pll_lock_on_run;
 } Fake;
 
 static Entry *find(Fake *f, uint64_t phys)
@@ -51,6 +52,14 @@ static int fake_write(void *cookie, uint64_t phys, uint32_t value)
         e->phys = phys;
     }
     e->value = value;
+    if (f->pll_lock_on_run && phys == SM8735_GPUCC_PHYS + 0x04 && value == 1u) {
+        Entry *m = find(f, SM8735_GPUCC_PHYS + 0x00);
+        if (!m) {
+            m = &f->entries[f->count++];
+            m->phys = SM8735_GPUCC_PHYS + 0x00;
+        }
+        m->value = 0x80000000u;
+    }
     if (f->power_on_gdsc && phys == SM8735_GPUCC_PHYS + 0x9080) {
         Entry *hw = find(f, SM8735_GPUCC_PHYS + 0x9094);
         if (!hw) {
@@ -144,9 +153,37 @@ int main(void)
         return 1;
     }
 
-    printf("PASS sm8735 gpu power survey + CX GDSC (id=%08x)\n", s.gpu_id_candidate);
+    Fake pll = {0};
+    pll.pll_lock_on_run = 1;
+    put(&pll, SM8735_GPUCC_PHYS + 0x00, 0u);
+    put(&pll, SM8735_GPUCC_PHYS + 0x04, 0u);
+    Sm8735GpuPowerIo io4 = { &pll, fake_read, fake_write, fake_delay };
+    if (Sm8735GpuPowerProgramPll(&io4, NULL) != Sm8735GpuPowerOk) {
+        printf("pll program failed writes=%u\n", pll.writes);
+        return 1;
+    }
+
+    Fake running = {0};
+    put(&running, SM8735_GPUCC_PHYS + 0x00, 1u);
+    Sm8735GpuPowerIo io5 = { &running, fake_read, fake_write, fake_delay };
+    if (Sm8735GpuPowerProgramPll(&io5, NULL) != Sm8735GpuPowerUnexpectedState) {
+        printf("running pll was not rejected\n");
+        return 1;
+    }
+
+    Fake nolock = {0};
+    put(&nolock, SM8735_GPUCC_PHYS + 0x00, 0u);
+    put(&nolock, SM8735_GPUCC_PHYS + 0x04, 0u);
+    Sm8735GpuPowerIo io6 = { &nolock, fake_read, fake_write, fake_delay };
+    if (Sm8735GpuPowerProgramPll(&io6, NULL) != Sm8735GpuPowerTimeout) {
+        printf("pll lock timeout not detected\n");
+        return 1;
+    }
+
+    printf("PASS sm8735 gpu power survey + CX GDSC + PLL (id=%08x)\n", s.gpu_id_candidate);
     return 0;
 }
+
 
 
 
