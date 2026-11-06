@@ -58,6 +58,7 @@ def main():
     p.add_argument('--compile-record', type=Path, required=True,
                    help='pe_kprintf.o.json for selected ARM64 XNU')
     p.add_argument('--soc', default='soc/Sm8550.h', help='module-relative profile')
+    p.add_argument('--experimental-device', action='store_true', help='explicitly build unqualified SM8735 device-test profile')
     p.add_argument('--output', type=Path, required=True, help='new directory under tmp/ or .cache/')
     p.add_argument('--ar', help='llvm-ar executable')
     p.add_argument('--nm', help='llvm-nm executable for import/export audit')
@@ -91,7 +92,13 @@ def main():
     # Explicit CI-only build of the unqualified model: archive must not ship.
     if profile.name == 'Sm8735Model.h':
         defines.append('-DQUD_SM8735_MODEL_ONLY=1')
-    report = {'hardware_verified': False, 'kernel_linked': False,
+    if profile.name == 'Sm8735Experimental.h':
+        if not a.experimental_device:
+            p.error('unqualified device-test profile requires --experimental-device')
+        defines.append('-DQUD_SM8735_EXPERIMENTAL_DEVICE=1')
+    elif a.experimental_device:
+        p.error('--experimental-device requires Sm8735Experimental.h')
+    report = {'hardware_verified': False, 'experimental_device': bool(a.experimental_device), 'kernel_linked': False,
               'compile_record_sha256': hashlib.sha256(record_bytes).hexdigest(),
               'soc': a.soc, 'commands': [], 'source_sha256': {}}
     inputs = [p for p in ROOT.rglob('*') if p.is_file() and p.suffix in ('.c', '.h')]
@@ -119,19 +126,11 @@ def main():
         external = symbols('--undefined-only') - defined
         allowed = {'_PE_halt_restart', '_PE_parse_boot_argn', '_cpu_number', '_master_cpu',
                    '_ml_io_map', '_ml_static_vtop', '___stack_chk_guard', '___stack_chk_fail',
-                   '_bzero', '_memcpy', '_memset',
-                   # Optional: the refusal report goes to the board's diagnostic page when the
-                   # kernel has one. It is a weak_import, so a kernel without boot progress still
-                   # links and simply loses the line.
-                   '_boot_progress_stage', '_boot_progress_persist',
-                   # Optional: the board's own reset path, which maps the IMEM window with
-                   # the attributes the bootloader accepts. Weak, so a board without it
-                   # still links and falls back to this module's plain PSCI reset.
-                   '_boot_reset_bootloader'}
+                   '_bzero', '_memcpy', '_memset'}
         if external - allowed:
             raise RuntimeError('unexpected XNU imports: ' + str(sorted(external - allowed)))
         required = {'_qcom_usb_debug_' + s for s in
-                    ('init', 'write', 'putc', 'enqueue', 'poll', 'panic_prepare', 'panic_drain', 'stop', 'get_status',
+                    ('init', 'init_snapshot', 'write', 'putc', 'enqueue', 'poll', 'panic_prepare', 'panic_drain', 'stop', 'get_status',
                      'control_start', 'control_take_reboot', 'control_arm_reboot',
                      'control_reboot_failed', 'wait_drained', 'register_screenshot', 'register_framebuffer')}
         if not required <= defined:

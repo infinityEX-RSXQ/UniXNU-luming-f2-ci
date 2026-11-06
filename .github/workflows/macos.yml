@@ -659,7 +659,7 @@ jobs:
           set -euo pipefail
           record="unixnu/out/luming/ipados-17.7.11-21H461/luming/tree/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/pexpert/DEVELOPMENT/pe_kprintf.o.json"
           if [ ! -f "$record" ]; then echo "pe_kprintf compile record not found"; find unixnu/out -name "*kprintf*.json" -print; exit 1; fi
-          python3 device/usb-luming/scripts/build.py --compile-record "$record" --soc soc/Sm8735Model.h --output "$GITHUB_WORKSPACE/tmp/usb-model" --ar "$(brew --prefix llvm)/bin/llvm-ar" --nm "$(brew --prefix llvm)/bin/llvm-nm"
+          python3 device/usb-luming/scripts/build.py --compile-record "$record" --soc soc/Sm8735Experimental.h --experimental-device --output "$GITHUB_WORKSPACE/tmp/usb-model" --ar "$(brew --prefix llvm)/bin/llvm-ar" --nm "$(brew --prefix llvm)/bin/llvm-nm"
           root="unixnu/out/luming/ipados-17.7.11-21H461/luming/tree"
           python3 device/usb-luming/scripts/check_luming_hooks.py --xnu "$root/.cache/xnu-work" --records "$root/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837" --archive "$GITHUB_WORKSPACE/tmp/usb-model/libQcomXnuUsbDebug.a" --nm "$(brew --prefix llvm)/bin/llvm-nm" --patch device/usb-luming/patches/luming/0001-hooks-candidate.patch --output "$GITHUB_WORKSPACE/tmp/usb-hooks"
           echo "USB model archive only; no USB code linked into kernel or flashed"
@@ -677,7 +677,7 @@ jobs:
           grep -q qcom_usb_debug_init "$root/.cache/xnu-work/pexpert/arm/pe_kprintf.c"
           "$(brew --prefix llvm)/bin/llvm-nm" --defined-only "$root/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf" > "$GITHUB_WORKSPACE/tmp/usb-linked-symbols.txt"
           grep -q '_qcom_usb_debug_init' "$GITHUB_WORKSPACE/tmp/usb-linked-symbols.txt"
-          echo "Model-only USB XNU link completed; this kernel is not device-qualified"
+          echo "Experimental USB XNU link completed; hardware is not qualified"
 
       - name: Check the stage12 mode/refresh markers in the built kernel
         if: ${{ inputs.dry_run != true && contains(inputs.steps, 'kernel') }}
@@ -1957,8 +1957,8 @@ jobs:
             echo "uefi=${{ inputs.uefi_repository }}@${{ inputs.uefi_ref }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload kernel and boot.img to the private release
-        if: false
+      - name: Upload experimental kernel to the private release
+        if: ${{ inputs.dry_run != true && inputs.upload_artifacts == true && contains(inputs.steps, 'kernel') }}
         env:
           PRIVATE_UPLOAD_TOKEN: ${{ secrets.PRIVATE_UPLOAD_TOKEN }}
         run: |
@@ -1967,7 +1967,7 @@ jobs:
           import hashlib, json, os, pathlib, tarfile, urllib.error, urllib.request
           repo = os.environ['PRIVATE_REPOSITORY']
           token = os.environ['PRIVATE_UPLOAD_TOKEN']
-          tag = f"ci-defer-console-{os.environ['GITHUB_RUN_ID']}"
+          tag = f"ci-luming-usb-experimental-{os.environ['GITHUB_RUN_ID']}"
           root = pathlib.Path('.')
 
           def find_one(pattern):
@@ -2081,7 +2081,7 @@ jobs:
               if exc.code != 404: raise
               release = req('POST', f'{api}/repos/{repo}/releases', {
                   'tag_name': tag, 'name': f'CI diagnostic build {tag}',
-                  'body': 'Kernel and boot.img from the public code-only CI mirror; private device-test artifacts.',
+                  'body': 'Unqualified SM8735 USB logging device-test kernel; private experimental artifact.',
                   'draft': False, 'prerelease': True,
               })
           release_id = release['id']
