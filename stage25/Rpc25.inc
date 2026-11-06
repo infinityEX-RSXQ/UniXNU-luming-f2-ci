@@ -493,12 +493,15 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		return;
 	}
 	struct cdx25_row *x = NULL;
-	for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen; s--) {
-		struct cdx25_row *row = cdx25_slot(s);
-		if (row->seq == s && row->is_lsd &&
-		    row->reply_tx == CDX25_PENDING) {
-			x = row;
-			break;
+	uint32_t wn = (uint32_t)found[0].wait_owner;
+	if (wn) {
+		for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen; s--) {
+			struct cdx25_row *row = cdx25_slot(s);
+			if (row->seq == s && row->name == wn &&
+			    row->client == found[0].peer) {
+				x = row;
+				break;
+			}
 		}
 	}
 	if (x) {
@@ -507,11 +510,13 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 			xc[j] = x->comm[j];
 		}
 		snprintf(out + used, size - used,
-		    "    X%llx req%x p%u %s d%llx s%.8s\n",
-		    (unsigned long long)x->seq, x->request, x->peer,
+		    "    W%x M%llx req%x p%u %s d%llx s%.8s\n",
+		    wn, (unsigned long long)x->seq, x->request, x->peer,
 		    xc[0] ? xc : "?", (unsigned long long)x->dest_addr, x->svc);
+	} else if (wn) {
+		snprintf(out + used, size - used, "    W%x no-row\n", wn);
 	} else {
-		snprintf(out + used, size - used, "    X none\n");
+		snprintf(out + used, size - used, "    W none\n");
 	}
 	return;
 	if (found[0].dest_task) {
