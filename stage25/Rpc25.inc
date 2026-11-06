@@ -1,4 +1,5 @@
 /* Stage25 opt-in diagnostics. Port and kmsg identities stay inside this file. */
+#include <machine/machine_routines.h>
 #define CDX25_CAPACITY 64
 #define CDX25_PENDING UINT32_MAX
 
@@ -567,6 +568,18 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 			snprintf(out + used, size - used, "    L none\n");
 		}
 	}
+	{
+		uint32_t gcx = ml_phys_read_word_64(0x3d99094ULL);
+		uint32_t gid = 0;
+		if (gcx & 0x80000000u) {
+			gid = ml_phys_read_word_64(0x3d00000ULL);
+		}
+		int gw = snprintf(out + used, size - used,
+		    "    G%x/%x\n", gcx, gid);
+		if (gw > 0 && (size_t)gw < size - used) {
+			used += gw;
+		}
+	}
 	struct cdx25_row *x = NULL;
 	uint32_t wn = cdx25_lsd_recv_name;
 	uint32_t wpid = cdx25_lsd_recv_pid;
@@ -763,4 +776,5 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		}
 	}
 }
+
 
