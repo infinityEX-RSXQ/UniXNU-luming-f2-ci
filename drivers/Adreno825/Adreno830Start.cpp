@@ -955,7 +955,8 @@ IOReturn validateBoard(const Adreno830Board *board,Adreno830Failure *failure)
         board->irq_smmu_global,board->irq_smmu_cb[0],board->irq_smmu_cb[1],board->irq_smmu_cb[2],board->irq_smmu_cb[3],
         board->irq_scm_waitq};
     for(unsigned i=0;i<Adreno830BoardIrqCount;++i)
-        if(!spi(irqs[i]))return refuse(failure,uint16_t(A830S0StepIrq+i),A830ReasonArgument,i,irqs[i]);
+        if(!(i==Adreno830BoardIrqCount-1 && irqs[i]==0) && !spi(irqs[i]))
+            return refuse(failure,uint16_t(A830S0StepIrq+i),A830ReasonArgument,i,irqs[i]);
     /* Three distinct streams on three distinct stream-match slots; the GPU and GMU contexts on different banks. */
     const bool streams=board->sid_gpu!=board->sid_lpac && board->sid_gpu!=board->sid_gmu && board->sid_lpac!=board->sid_gmu &&
         board->slot_gpu!=board->slot_lpac && board->slot_gpu!=board->slot_gmu && board->slot_lpac!=board->slot_gmu &&
