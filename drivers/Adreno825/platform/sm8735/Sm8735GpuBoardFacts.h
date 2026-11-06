@@ -13,8 +13,11 @@
  * them with A830/SM8750 numbers.
  */
 
-#define SM8735_GPU_IRQ_GPU          300u   /* kgsl_3d0_irq */
-#define SM8735_GPU_IRQ_CX_HOST      80u    /* cx_host_irq */
+/* [measured] DTB root qcom,msm-id = <0x28f 0x10000>; 0x28f is the SMEM socinfo
+ * id compared in S0. */
+#define SM8735_SOC_ID               0x28fu
+
+#define SM8735_GPU_IRQ_GPU          300u   /* kgsl_3d0_irq */#define SM8735_GPU_IRQ_CX_HOST      80u    /* cx_host_irq */
 #define SM8735_GPU_IRQ_HFI          304u   /* GMU hfi */
 #define SM8735_GPU_IRQ_GMU          305u   /* GMU gmu */
 
