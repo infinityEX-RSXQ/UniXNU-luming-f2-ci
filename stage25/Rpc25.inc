@@ -22,6 +22,7 @@ struct cdx25_row {
 	uint64_t seq, tid, context, peer_tid;
 	uint32_t client, name, request, send_rc;
 	uint32_t peer, delivery_rc, reply, reply_tx, reply_rc;
+	uint32_t is_lsd;
 	char comm[17];
 	char svc[17];
 	char wait_svc[17];
@@ -52,6 +53,13 @@ cdx25_is_springboard(const char *name)
 		}
 	}
 	return true;
+}
+
+static bool
+cdx25_is_lsd(const char *name)
+{
+	return name && name[0] == 'l' && name[1] == 's' && name[2] == 'd' &&
+	    name[3] == '\0';
 }
 
 static void
@@ -247,7 +255,12 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 	}
 	task_t task = current_task();
 	struct proc *proc = get_bsdtask_info(task);
-	if (!proc || !cdx25_is_springboard(proc_name_address(proc))) {
+	if (!proc) {
+		return 0;
+	}
+	const char *client_name = proc_name_address(proc);
+	bool is_lsd = cdx25_is_lsd(client_name);
+	if (!cdx25_is_springboard(client_name) && !is_lsd) {
 		return 0;
 	}
 
@@ -303,6 +316,7 @@ cdx25_send_begin(ipc_kmsg_t kmsg, mach_port_name_t reply_name, bool *is_reply)
 		.tid = thread_tid(current_thread()),
 		.context = VM_KERNEL_UNSLIDE_OR_PERM(reply),
 		.client = task_pid(task),
+		.is_lsd = is_lsd,
 		.name = reply_name,
 		.request = header->msgh_id,
 		.send_rc = CDX25_PENDING,
@@ -478,6 +492,28 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 	if (used < 0 || (size_t)used >= size) {
 		return;
 	}
+	struct cdx25_row *x = NULL;
+	for (uint64_t s = seen; s > 0 && s + CDX25_CAPACITY > seen; s--) {
+		struct cdx25_row *row = cdx25_slot(s);
+		if (row->seq == s && row->is_lsd &&
+		    row->reply_tx == CDX25_PENDING) {
+			x = row;
+			break;
+		}
+	}
+	if (x) {
+		char xc[9] = {};
+		for (unsigned j = 0; j < 8 && x->comm[j]; j++) {
+			xc[j] = x->comm[j];
+		}
+		snprintf(out + used, size - used,
+		    "    X%llx req%x p%u %s d%llx s%.8s\n",
+		    (unsigned long long)x->seq, x->request, x->peer,
+		    xc[0] ? xc : "?", (unsigned long long)x->dest_addr, x->svc);
+	} else {
+		snprintf(out + used, size - used, "    X none\n");
+	}
+	return;
 	if (found[0].dest_task) {
 		task_t lt = (task_t)(uintptr_t)found[0].dest_task;
 		thread_t th;
