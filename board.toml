@@ -45,7 +45,7 @@ example = false
 # IOMobileGraphicsFamily, IOHIDFamily, IOHIDEventDriver) stay out until a display/input
 # component exists (docs/GAP-LIST.md #4/#5).
 include = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "LumingUfs", "RamBlock",
-           "VerifiedRoot", "XnuPrelink", "DarwinBoot"]
+           "VerifiedRoot", "XnuPrelink", "DarwinBoot", "GopFramebuffer"]
 
 [userdata]
 # [measured] GPT entry "userdata" of LUN 0 (2026-10-22 stock capture, also format-1 board):
@@ -127,6 +127,7 @@ roots = [
   "com.apple.iokit.IOSlowAdaptiveClockingFamily",
   "com.apple.iokit.IOStorageFamily",
   "com.apple.iokit.IOSurface",
+  "com.apple.iokit.IOMobileGraphicsFamily",
   "com.apple.kec.Libm",
   "com.apple.kec.corecrypto",
   "com.apple.kext.AppleMatch",
