@@ -80,7 +80,8 @@ static QUSB_U64 reg_value(const QUSB_DOMAIN_LEASE *l,QUSB_U32 i)
 static int lease_shape(const QUSB_DOMAIN_LEASE *l)
 {
   QUSB_U32 i,shift,pages,bits1,bits2;
-  if(!l||l->magic!=MAGIC||l->active!=1||!l->stream_count||l->stream_count>128||
+  if(!l||l->magic!=MAGIC||l->active!=1||!l->stream_count||l->stream_count>QUSB_DOMAIN_MAX_STREAMS||
+     l->stream_count!=(l->id0&255U)||
      !l->bank_count||l->bank_count>128||l->index>=l->stream_count||l->cb>=l->bank_count||
      l->cb<((l->id1>>16)&255U)||
      l->extended_stream_ids>1||l->enable_attempted>1||l->tlb_released>1||l->tlb_poisoned>1||
@@ -288,7 +289,7 @@ QUSB_DOMAIN_RESULT QcomUsbDomainInstall(const QUSB_DOMAIN_PLATFORM *p,void *cpu,
   l->stream_count=l->id0&255U;l->bank_count=l->id1&255U;
   l->extended_stream_ids=(l->original_cr0>>3)&1U;l->diag_cr2=cr2;
   /* Record all failed guards at once; these bits do not change admission. */
-  if(!l->stream_count||l->stream_count>128)l->diag_reject|=1U<<0;
+  if(!l->stream_count||l->stream_count>QUSB_DOMAIN_MAX_STREAMS)l->diag_reject|=1U<<0;
   if(!l->bank_count||l->bank_count>128)l->diag_reject|=1U<<1;
   if(!(l->id0&(1U<<30)))l->diag_reject|=1U<<2;
   if(!(l->id0&(1U<<27)))l->diag_reject|=1U<<3;

@@ -8,6 +8,8 @@
 #define QUSB_DOMAIN_PT_BYTES 12288U
 #define QUSB_DOMAIN_PAGE_BYTES 4096U
 #define QUSB_DOMAIN_REGISTER_COUNT 10U
+/* ID0.NUMSMRG is eight bits; 255 entries fit in the disjoint SMR/S2CR windows. */
+#define QUSB_DOMAIN_MAX_STREAMS 255U
 
 typedef int (*QUSB_READ64)(void *, QUSB_U64, QUSB_U64 *);
 typedef int (*QUSB_WRITE64)(void *, QUSB_U64, QUSB_U64);
