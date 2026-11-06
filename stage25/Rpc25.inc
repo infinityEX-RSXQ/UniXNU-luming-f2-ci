@@ -64,6 +64,30 @@ cdx25_is_lsd(const char *name)
 	    name[3] == '\0';
 }
 
+static bool
+cdx25_lsd_selfreply(ipc_kmsg_t kmsg, ipc_port_t reply)
+{
+	if (!IP_VALID(reply)) {
+		return false;
+	}
+	task_t task = current_task();
+	struct proc *proc = get_bsdtask_info(task);
+	if (!proc || !cdx25_is_lsd(proc_name_address(proc))) {
+		return false;
+	}
+	mach_msg_header_t *hdr = ikm_header(kmsg);
+	if (hdr->msgh_id != 0xca8) {
+		return false;
+	}
+	hdr->msgh_id = 0xd0c;
+	hdr->msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_PORT_SEND_ONCE, 0);
+	hdr->msgh_remote_port = reply;
+	hdr->msgh_local_port = MACH_PORT_NULL;
+	hdr->msgh_size = (mach_msg_size_t)(sizeof(mach_msg_header_t) + 8);
+	*(uint64_t *)((char *)hdr + sizeof(mach_msg_header_t)) = 0;
+	return true;
+}
+
 static void
 cdx25_comm_copy(char *dst, size_t n, const char *src)
 {
