@@ -1,0 +1,63 @@
+/* SPDX-License-Identifier: MIT */
+#ifndef SM8735_GPU_BOARD_FACTS_H
+#define SM8735_GPU_BOARD_FACTS_H
+
+#include <stdint.h>
+
+/*
+ * [measured] stock luming vendor_boot.dtb, /soc/qcom,kgsl-3d0@3d00000,
+ * /soc/kgsl-smmu@3da0000 and /soc/qcom,gmu@3d37000.
+ *
+ * Only values that are present in the stock DTB are listed. Values that still
+ * have to come from a measured register read are marked [missing]; do not fill
+ * them with A830/SM8750 numbers.
+ */
+
+#define SM8735_GPU_IRQ_GPU          300u   /* kgsl_3d0_irq */
+#define SM8735_GPU_IRQ_CX_HOST      80u    /* cx_host_irq */
+#define SM8735_GPU_IRQ_HFI          304u   /* GMU hfi */
+#define SM8735_GPU_IRQ_GMU          305u   /* GMU gmu */
+
+/* qcom,actlr = <0 0x3ff 0x32b>; the third cell is the ACTLR value. */
+#define SM8735_GPU_SMMU_ACTLR       0x32bu
+
+/* SMMU global interrupt plus 11 context-bank interrupts: 677..687. */
+#define SM8735_GPU_SMMU_IRQ_GLOBAL  673u
+#define SM8735_GPU_SMMU_CB_COUNT    11u
+#define SM8735_GPU_SMMU_IRQ_CB0     677u
+#define SM8735_GPU_SMMU_IRQ_CB1     678u
+#define SM8735_GPU_SMMU_IRQ_CB2     679u
+#define SM8735_GPU_SMMU_IRQ_CB3     680u
+#define SM8735_GPU_SMMU_IRQ_CB4     681u
+#define SM8735_GPU_SMMU_IRQ_CB5     682u
+#define SM8735_GPU_SMMU_IRQ_CB6     683u
+#define SM8735_GPU_SMMU_IRQ_CB7     684u
+#define SM8735_GPU_SMMU_IRQ_CB8     685u
+#define SM8735_GPU_SMMU_IRQ_CB9     686u
+#define SM8735_GPU_SMMU_IRQ_CB10    687u
+
+/* qcom,bus-table-ddr, 12 entries in kHz. */
+#define SM8735_GPU_DDR_KBPS_COUNT   12u
+static const uint32_t sm8735_gpu_ddr_kbps[SM8735_GPU_DDR_KBPS_COUNT] = {
+    0u, 781250u, 2136718u, 5285156u, 6074218u, 6671875u,
+    8171875u, 10687500u, 12449218u, 14398437u, 16500000u, 18597656u,
+};
+
+/* qcom,bus-table-cnoc: the stock table has the single 100 level. */
+#define SM8735_GPU_CNOC_LEVELS_COUNT 2u
+static const uint32_t sm8735_gpu_cnoc_levels[SM8735_GPU_CNOC_LEVELS_COUNT] = {0u, 100u};
+
+/* nvmem gpu_speed_bin@138: reg <0x138 2>, nine bits. */
+#define SM8735_GPU_QFPROM_SPEEDBIN_OFFSET 0x138u
+#define SM8735_GPU_SPEEDBIN_BITS          9u
+
+/* qcom,gmu-freq-table: {500 MHz, 0x40}, {650 MHz, 0x80}. */
+#define SM8735_GPU_GMU_KHZ_COUNT    2u
+static const uint32_t sm8735_gpu_gmu_khz[SM8735_GPU_GMU_KHZ_COUNT] = {500000u, 650000u};
+static const uint32_t sm8735_gpu_gmu_vlvl[SM8735_GPU_GMU_KHZ_COUNT] = {0x40u, 0x80u};
+
+/* [missing] GPU and LPAC SIDs/slots/CB assignments: the stock GPU node has no
+ * iommus property; only the GMU SID 5 is present in its node. Read the SMMU
+ * stream-match registers or the stock KGSL log before choosing. */
+
+#endif /* SM8735_GPU_BOARD_FACTS_H */
