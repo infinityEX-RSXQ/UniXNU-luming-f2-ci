@@ -7,6 +7,7 @@ import json
 
 HERE = Path(__file__).resolve().parent
 SOURCE = 'osfmk/ipc/mach_msg.c'
+SOURCE2 = 'osfmk/ipc/mach_port.c'
 PATCH = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz-cdx25-rpc.patch'
 
 
@@ -51,7 +52,25 @@ def make_patch(tree):
 ''')
     diff = difflib.unified_diff(old.splitlines(True), new.splitlines(True),
                                 'a/' + SOURCE, 'b/' + SOURCE)
-    return (f'diff --git a/{SOURCE} b/{SOURCE}\n' + ''.join(diff)).encode()
+    raw2 = (tree / SOURCE2).read_bytes().replace(b'\r\n', b'\n')
+    pin2 = (HERE / 'mach_port.sha256').read_text().strip()
+    if hashlib.sha256(raw2).hexdigest() != pin2:
+        raise ValueError('Stage25 mach_port.c source drift')
+    old2 = raw2.decode()
+    anchor2 = '\tkern_return_t ret;\n\n\tif (space == IS_NULL) {\n'
+    new2 = once(old2, anchor2, '''	kern_return_t ret;
+
+	if (filter_policy_id) {
+		*filter_policy_id = 0;
+	}
+	return KERN_SUCCESS;
+
+	if (space == IS_NULL) {
+''')
+    diff_port = difflib.unified_diff(old2.splitlines(True), new2.splitlines(True),
+                                     'a/' + SOURCE2, 'b/' + SOURCE2)
+    return (f'diff --git a/{SOURCE} b/{SOURCE}\n' + ''.join(diff) +
+            f'diff --git a/{SOURCE2} b/{SOURCE2}\n' + ''.join(diff_port)).encode()
 
 
 def install(tree, device):
