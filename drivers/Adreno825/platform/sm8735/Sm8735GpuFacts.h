@@ -21,6 +21,13 @@
 #define SM8735_CX_MISC_PHYS        0x03d9e000ull
 #define SM8735_CX_MISC_BYTES       0x00002000ull
 
+/* [measured] stock DTB clock-controller@100000: qcom,tuna-gccsyscon. */
+#define SM8735_GCC_PHYS            0x00100000ull
+/* [measured] gcc-tuna.c: GPU CFG AHB and GPLL0 vote. */
+#define SM8735_GCC_GPU_CFG_AHB_OFF 0x00071004ull
+#define SM8735_GCC_GPLL0_VOTE_OFF  0x00052010ull
+#define SM8735_GCC_GPLL0_VOTE_MASK 0x00300000ull  /* BIT(20) | BIT(21) */
+
 /* [measured] stock DTB clock-controller@3d90000: qcom,tuna-gpuccsyscon. */
 #define SM8735_GPUCC_PHYS          0x03d90000ull
 #define SM8735_GPUCC_BYTES         0x00009800ull
