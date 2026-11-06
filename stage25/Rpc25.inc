@@ -1,4 +1,4 @@
-/* Stage25 opt-in diagnostics. Port and kmsg identities stay inside this file. */
+﻿/* Stage25 opt-in diagnostics. Port and kmsg identities stay inside this file. */
 #include <machine/machine_routines.h>
 #define CDX25_CAPACITY 64
 #define CDX25_PENDING UINT32_MAX
@@ -569,24 +569,17 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		}
 	}
 	{
-		uint32_t gpll = ml_phys_read_word_64(0x3d90000ULL);
-		uint32_t gdsc = ml_phys_read_word_64(0x3d9080ULL);
 		uint32_t gcx = ml_phys_read_word_64(0x3d99094ULL);
-		uint32_t gahb = ml_phys_read_word_64(0x3d990bcULL);
-		uint32_t gcxg = ml_phys_read_word_64(0x3d990d4ULL);
-		uint32_t gxg = ml_phys_read_word_64(0x3d99060ULL);
 		uint32_t gid = 0;
 		if (gcx & 0x80000000u) {
 			gid = ml_phys_read_word_64(0x3d00000ULL);
 		}
 		int gw = snprintf(out + used, size - used,
-		    "    GG %x/%x/%x/%x/%x/%x/%x\n",
-		    gpll, gdsc, gcx, gahb, gcxg, gxg, gid);
+		    "    G%x/%x\n", gcx, gid);
 		if (gw > 0 && (size_t)gw < size - used) {
 			used += gw;
 		}
-	}
-	struct cdx25_row *x = NULL;
+	}	struct cdx25_row *x = NULL;
 	uint32_t wn = cdx25_lsd_recv_name;
 	uint32_t wpid = cdx25_lsd_recv_pid;
 	if (!wn && found[0].dest_task) {
@@ -782,5 +775,6 @@ cdx25_snapshot(uint32_t pid, uint64_t tid, uint64_t context, uint32_t name,
 		}
 	}
 }
+
 
 
